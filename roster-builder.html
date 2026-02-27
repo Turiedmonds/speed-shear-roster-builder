@@ -31,8 +31,8 @@ Each array item: object with string fields {name, town} (town may be empty strin
       --bg:#25282d;
       --card:#ffffff;
       --border:#000000;
-      --text:#222;
-      --muted:#666;
+      --text:#000000;
+      --muted:#000000;
       --accent:#000000;
       --accent-hover:#1f1f1f;
       --secondary:#767676;
@@ -58,7 +58,7 @@ Each array item: object with string fields {name, town} (town may be empty strin
     .grade h3 { margin-bottom:8px; }
     table { width:100%; border-collapse: collapse; margin-top:8px; }
     th, td { border-bottom:1px solid #ececec; padding:6px; vertical-align: top; }
-    th { text-align:left; background:#e5e5e5; color:#222; }
+    th { text-align:left; background:#e5e5e5; color:#000000; }
     .muted { color:var(--muted); font-size: 12px; }
     .actions { display:flex; gap:6px; flex-wrap:wrap; }
     .status { margin-top:8px; font-size:13px; }
@@ -75,12 +75,14 @@ Each array item: object with string fields {name, town} (town may be empty strin
     .competitors-area table { background:#ffffff; }
     .competitors-area tbody tr { background:#ffffff; }
     .competitors-area tbody tr:nth-child(even) { background:#f3f3f3; }
-    .competitors-area thead th { background:#d9d9d9; color:#000; }
+    .competitors-area thead th { background:#000000; color:#ffffff; }
+    .competitors-area table input[data-action="edit-name"],
+    .competitors-area table input[data-action="edit-town"] { font-weight:700; }
     .competitors-label { margin:0; font-size:14px; font-weight:700; }
     .quick-add-area { padding-bottom:14px; border-bottom:2px solid #d0d0d0; margin-bottom:12px; }
     .page-title { text-align:center; }
     .grade-title { display:flex; align-items:center; gap:12px; margin:0; font-size:24px; font-weight:800; line-height:1.2; }
-    .total-badge { display:inline-block; border:1px solid #000; border-radius:20px; padding:6px 12px; font-size:17px; font-weight:700; background:#f0f0f0; color:#222; }
+    .total-badge { display:inline-block; border:1px solid #000; border-radius:20px; padding:6px 12px; font-size:17px; font-weight:700; background:#f0f0f0; color:#000000; }
   </style>
 </head>
 <body>
@@ -674,23 +676,10 @@ Each array item: object with string fields {name, town} (town may be empty strin
 })();
 </script>
 </body>
-<!-- Manual checklist:
-- Fresh load shows no grade cards
-- Adding a grade creates a card
-- Import shows only imported grades
-- Refresh restores only saved grades
-- Buttons black/grey with white text
-- Borders thicker and black
-- Add competitor → edit name in table → refresh → edit persists
-- Edit town → refresh → persists
-- Try to blank the name → prevented/reverted
-- Edit to create a duplicate → prevented/reverted
-- Export JSON still matches existing importer expectations
-- Women’s grade present
-- Offline still works
-- Export/import still works
-- Numbering column appears and reflows on delete
-- Total badge updates correctly
-- Competitor table header row is grey
+<!-- Testing checklist:
+- Header row background black, text white
+- No grey text visible anywhere on page
+- Competitor names + towns bold
+- Other inputs not bold
 -->
 </html>
