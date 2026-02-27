@@ -17,12 +17,11 @@ Each array item: object with string fields {name, town} (town may be empty strin
 - Enter rows -> refresh -> data persists (localStorage)
 - Bulk paste mixed formats -> parses same as Admin Setup
 - Duplicates skipped with counts shown
-- Export JSON -> import into Admin Setup works
-- Export JSON -> re-import into builder repopulates
+- Download Roster File -> import into Admin Setup works
+- Download Roster File -> re-import into builder repopulates
 - Town blank allowed
-- Download Roster Pack downloads one JSON file
+- Download Roster File downloads one JSON file
 - Load Roster File can load the pack and rebuild grades
-- After loading pack, Download Grade Files still produces one file per grade for Admin Setup
 -->
 <html lang="en">
 <head>
@@ -129,8 +128,7 @@ Each array item: object with string fields {name, town} (town may be empty strin
 
   <div class="panel">
     <div class="actions">
-      <button id="exportBtn" type="button">Download Grade Files</button>
-      <button id="exportPackBtn" type="button">Download Roster Pack (one file)</button>
+      <button id="exportPackBtn" type="button">Download Roster File</button>
       <button id="importBtn" type="button" class="secondary">Load Roster File</button>
       <input id="importFile" type="file" accept="application/json" style="display:none">
     </div>
@@ -148,7 +146,6 @@ Each array item: object with string fields {name, town} (town may be empty strin
   const newGradeInput = document.getElementById('newGrade');
   const addGradeBtn = document.getElementById('addGradeBtn');
   const gradesContainer = document.getElementById('gradesContainer');
-  const exportBtn = document.getElementById('exportBtn');
   const exportPackBtn = document.getElementById('exportPackBtn');
   const importBtn = document.getElementById('importBtn');
   const importFile = document.getElementById('importFile');
@@ -437,75 +434,11 @@ Each array item: object with string fields {name, town} (town may be empty strin
       .replace(/^_+|_+$/g, '');
   }
 
-  function filenameForExport(gradeName){
-    const date = formatExportDate();
-    const comp = sanitizeExportToken(state.competitionName || '');
-    const grade = sanitizeExportToken(gradeName || '') || 'grade';
-    const prefix = comp ? comp : 'roster';
-    return `${prefix}_${grade}_${date}.json`;
-  }
-
   function filenameForPackExport(){
     const date = formatExportDate();
     const comp = sanitizeExportToken(state.competitionName || '');
     const prefix = comp ? comp : 'roster';
     return `${prefix}_RosterPack_${date}.json`;
-  }
-
-  function exportJson(){
-    sanitizeState();
-    if (!state.grades.length) {
-      setStatus('No grades to export.', 'warn');
-      return;
-    }
-
-    let removed = 0;
-    state.grades.forEach((grade)=>{
-      const before = grade.rows.length;
-      grade.rows = ensureUniqueRows(grade.rows);
-      removed += (before - grade.rows.length);
-    });
-
-    let exportedCount = 0;
-    let skippedEmptyGrades = 0;
-
-    state.grades.forEach((grade)=> {
-      if (!grade.rows.length) {
-        skippedEmptyGrades += 1;
-        return;
-      }
-      const payload = {
-        [grade.name]: grade.rows.map((row)=> ({ name: row.name, town: row.town || '' }))
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filenameForExport(grade.name);
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      exportedCount += 1;
-    });
-
-    if (!exportedCount) {
-      setStatus(`No files exported. Skipped ${skippedEmptyGrades} empty grade${skippedEmptyGrades === 1 ? '' : 's'}.`, 'warn');
-      render();
-      scheduleSave();
-      return;
-    }
-
-    const statusParts = [`Downloaded ${exportedCount} grade file${exportedCount === 1 ? '' : 's'}.`];
-    if (skippedEmptyGrades > 0) {
-      statusParts.push(`Skipped ${skippedEmptyGrades} empty grade${skippedEmptyGrades === 1 ? '' : 's'}.`);
-    }
-    if (removed > 0) {
-      statusParts.push(`Removed ${removed} empty/duplicate rows before download.`);
-    }
-    setStatus(statusParts.join(' '), removed > 0 || skippedEmptyGrades > 0 ? 'warn' : 'ok');
-    render();
-    scheduleSave();
   }
 
   function exportRosterPackJson(){
@@ -545,7 +478,7 @@ Each array item: object with string fields {name, town} (town may be empty strin
     a.remove();
     URL.revokeObjectURL(url);
 
-    setStatus(`Roster pack downloaded (${state.grades.length} grades, ${totalCompetitors} competitors).`, 'ok');
+    setStatus(`Roster file downloaded (${state.grades.length} grades, ${totalCompetitors} competitors).`, 'ok');
     render();
     scheduleSave();
   }
@@ -759,7 +692,6 @@ Each array item: object with string fields {name, town} (town may be empty strin
     }
   });
 
-  exportBtn.addEventListener('click', exportJson);
   exportPackBtn.addEventListener('click', exportRosterPackJson);
   importBtn.addEventListener('click', ()=> importFile.click());
   importFile.addEventListener('change', async ()=>{
@@ -779,12 +711,8 @@ Each array item: object with string fields {name, town} (town may be empty strin
 </script>
 </body>
 <!-- Testing checklist:
-- With multiple grades, clicking Download Grade Files downloads multiple files (one per grade)
-- Filenames match comp_grade_dd-mm-yyyy
-- Importing a single file into Admin Setup loads only that grade
-- Empty grade does not export
-- Download Roster Pack downloads one JSON file
+- Download Roster File downloads one JSON file
 - Load Roster File can load the pack and rebuild grades
-- After loading pack, Download Grade Files still produces one file per grade for Admin Setup
+- Download Roster File can be imported back into Admin Setup
 -->
 </html>
