@@ -126,7 +126,7 @@ Each array item: object with string fields {name, town} (town may be empty strin
 
   <div class="panel">
     <div class="actions">
-      <button id="exportBtn" type="button">Download Roster File</button>
+      <button id="exportBtn" type="button">Download Grade Files</button>
       <button id="importBtn" type="button" class="secondary">Load Roster File</button>
       <input id="importFile" type="file" accept="application/json" style="display:none">
     </div>
@@ -416,38 +416,82 @@ Each array item: object with string fields {name, town} (town may be empty strin
     scheduleSave();
   }
 
-  function filenameForExport(){
-    const date = new Date().toISOString().slice(0,10);
-    const comp = (state.competitionName || '').trim()
+  function formatExportDate(){
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear());
+    return `${day}-${month}-${year}`;
+  }
+
+  function sanitizeExportToken(value){
+    return collapseSpaces(value)
       .replace(/\s+/g, '_')
       .replace(/[^A-Za-z0-9_-]/g, '')
       .replace(/_+/g, '_')
       .replace(/^_+|_+$/g, '');
-    return comp ? `roster_${comp}_${date}.json` : `roster_${date}.json`;
+  }
+
+  function filenameForExport(gradeName){
+    const date = formatExportDate();
+    const comp = sanitizeExportToken(state.competitionName || '');
+    const grade = sanitizeExportToken(gradeName || '') || 'grade';
+    const prefix = comp ? comp : 'roster';
+    return `${prefix}_${grade}_${date}.json`;
   }
 
   function exportJson(){
     sanitizeState();
+    if (!state.grades.length) {
+      setStatus('No grades to export.', 'warn');
+      return;
+    }
+
     let removed = 0;
     state.grades.forEach((grade)=>{
       const before = grade.rows.length;
       grade.rows = ensureUniqueRows(grade.rows);
       removed += (before - grade.rows.length);
     });
-    const payload = {};
+
+    let exportedCount = 0;
+    let skippedEmptyGrades = 0;
+
     state.grades.forEach((grade)=> {
-      payload[grade.name] = grade.rows.map((row)=> ({ name: row.name, town: row.town || '' }));
+      if (!grade.rows.length) {
+        skippedEmptyGrades += 1;
+        return;
+      }
+      const payload = {
+        [grade.name]: grade.rows.map((row)=> ({ name: row.name, town: row.town || '' }))
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filenameForExport(grade.name);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      exportedCount += 1;
     });
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filenameForExport();
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    setStatus(removed > 0 ? `Removed ${removed} empty/duplicate rows before download.` : 'Roster file downloaded.', removed > 0 ? 'warn' : 'ok');
+
+    if (!exportedCount) {
+      setStatus(`No files exported. Skipped ${skippedEmptyGrades} empty grade${skippedEmptyGrades === 1 ? '' : 's'}.`, 'warn');
+      render();
+      scheduleSave();
+      return;
+    }
+
+    const statusParts = [`Downloaded ${exportedCount} grade file${exportedCount === 1 ? '' : 's'}.`];
+    if (skippedEmptyGrades > 0) {
+      statusParts.push(`Skipped ${skippedEmptyGrades} empty grade${skippedEmptyGrades === 1 ? '' : 's'}.`);
+    }
+    if (removed > 0) {
+      statusParts.push(`Removed ${removed} empty/duplicate rows before download.`);
+    }
+    setStatus(statusParts.join(' '), removed > 0 || skippedEmptyGrades > 0 ? 'warn' : 'ok');
     render();
     scheduleSave();
   }
@@ -677,9 +721,9 @@ Each array item: object with string fields {name, town} (town may be empty strin
 </script>
 </body>
 <!-- Testing checklist:
-- Header row background black, text white
-- No grey text visible anywhere on page
-- Competitor names + towns bold
-- Other inputs not bold
+- With multiple grades, clicking Download Grade Files downloads multiple files (one per grade)
+- Filenames match comp_grade_dd-mm-yyyy
+- Importing a single file into Admin Setup loads only that grade
+- Empty grade does not export
 -->
 </html>
