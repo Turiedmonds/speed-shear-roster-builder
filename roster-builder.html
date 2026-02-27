@@ -20,6 +20,9 @@ Each array item: object with string fields {name, town} (town may be empty strin
 - Export JSON -> import into Admin Setup works
 - Export JSON -> re-import into builder repopulates
 - Town blank allowed
+- Download Roster Pack downloads one JSON file
+- Load Roster File can load the pack and rebuild grades
+- After loading pack, Download Grade Files still produces one file per grade for Admin Setup
 -->
 <html lang="en">
 <head>
@@ -127,6 +130,7 @@ Each array item: object with string fields {name, town} (town may be empty strin
   <div class="panel">
     <div class="actions">
       <button id="exportBtn" type="button">Download Grade Files</button>
+      <button id="exportPackBtn" type="button">Download Roster Pack (one file)</button>
       <button id="importBtn" type="button" class="secondary">Load Roster File</button>
       <input id="importFile" type="file" accept="application/json" style="display:none">
     </div>
@@ -145,6 +149,7 @@ Each array item: object with string fields {name, town} (town may be empty strin
   const addGradeBtn = document.getElementById('addGradeBtn');
   const gradesContainer = document.getElementById('gradesContainer');
   const exportBtn = document.getElementById('exportBtn');
+  const exportPackBtn = document.getElementById('exportPackBtn');
   const importBtn = document.getElementById('importBtn');
   const importFile = document.getElementById('importFile');
   const globalStatus = document.getElementById('globalStatus');
@@ -440,6 +445,13 @@ Each array item: object with string fields {name, town} (town may be empty strin
     return `${prefix}_${grade}_${date}.json`;
   }
 
+  function filenameForPackExport(){
+    const date = formatExportDate();
+    const comp = sanitizeExportToken(state.competitionName || '');
+    const prefix = comp ? comp : 'roster';
+    return `${prefix}_RosterPack_${date}.json`;
+  }
+
   function exportJson(){
     sanitizeState();
     if (!state.grades.length) {
@@ -496,11 +508,56 @@ Each array item: object with string fields {name, town} (town may be empty strin
     scheduleSave();
   }
 
+  function exportRosterPackJson(){
+    sanitizeState();
+    if (!state.grades.length) {
+      setStatus('No grades to export.', 'warn');
+      return;
+    }
+
+    const rosters = {};
+    let totalCompetitors = 0;
+
+    state.grades.forEach((grade)=> {
+      const rows = ensureUniqueRows(grade.rows || []).map((row)=> ({
+        name: row.name,
+        town: row.town || ''
+      }));
+      rosters[grade.name] = rows;
+      totalCompetitors += rows.length;
+    });
+
+    const payload = {
+      schemaVersion: 1,
+      type: 'roster_pack',
+      competitionName: String(state.competitionName || ''),
+      date: formatExportDate(),
+      rosters
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filenameForPackExport();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setStatus(`Roster pack downloaded (${state.grades.length} grades, ${totalCompetitors} competitors).`, 'ok');
+    render();
+    scheduleSave();
+  }
+
   function importJsonText(text){
     const js = JSON.parse(text);
     if (!js || typeof js !== 'object' || Array.isArray(js)) throw new Error('Invalid JSON: expected top-level object keyed by grade.');
+    const source = js.type === 'roster_pack' && js.rosters && typeof js.rosters === 'object' && !Array.isArray(js.rosters)
+      ? js.rosters
+      : js;
     const nextGrades = [];
-    for (const [gradeName, list] of Object.entries(js)) {
+    for (const [gradeName, list] of Object.entries(source)) {
       if (!Array.isArray(list)) continue;
       const rows = list.map((v)=> {
         const entry = typeof v === 'string'
@@ -703,6 +760,7 @@ Each array item: object with string fields {name, town} (town may be empty strin
   });
 
   exportBtn.addEventListener('click', exportJson);
+  exportPackBtn.addEventListener('click', exportRosterPackJson);
   importBtn.addEventListener('click', ()=> importFile.click());
   importFile.addEventListener('change', async ()=>{
     const f = importFile.files && importFile.files[0];
@@ -725,5 +783,8 @@ Each array item: object with string fields {name, town} (town may be empty strin
 - Filenames match comp_grade_dd-mm-yyyy
 - Importing a single file into Admin Setup loads only that grade
 - Empty grade does not export
+- Download Roster Pack downloads one JSON file
+- Load Roster File can load the pack and rebuild grades
+- After loading pack, Download Grade Files still produces one file per grade for Admin Setup
 -->
 </html>
