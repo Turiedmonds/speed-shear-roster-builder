@@ -1,0 +1,617 @@
+<!doctype html>
+<!--
+Importer output shape expected by Admin Setup:
+{
+  "<Grade Name>": [
+    { "name": "Competitor Name", "town": "Town or ''" },
+    ...
+  ],
+  ...
+}
+Top-level: object keyed by grade name.
+Each grade value: array.
+Each array item: object with string fields {name, town} (town may be empty string).
+-->
+<!-- Testing checklist:
+- Works via double-click file://
+- Enter rows -> refresh -> data persists (localStorage)
+- Bulk paste mixed formats -> parses same as Admin Setup
+- Duplicates skipped with counts shown
+- Export JSON -> import into Admin Setup works
+- Export JSON -> re-import into builder repopulates
+- Town blank allowed
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Speed Shear Roster Builder</title>
+  <style>
+    :root {
+      --bg:#25282d;
+      --card:#ffffff;
+      --border:#000000;
+      --text:#222;
+      --muted:#666;
+      --accent:#000000;
+      --accent-hover:#1f1f1f;
+      --secondary:#767676;
+      --secondary-hover:#646464;
+    }
+    body { font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; margin: 22px; background:var(--bg); color:var(--text); }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .panel { border:3px solid var(--border); border-radius:12px; padding:20px; margin-bottom:22px; background:var(--card); box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    h1,h2,h3 { margin:0 0 10px; }
+    p { margin: 6px 0; color:var(--muted); }
+    label { display:block; margin-bottom:6px; font-weight:600; }
+    input, textarea, button { font: inherit; }
+    select, input[type="text"], textarea { width:100%; box-sizing:border-box; border:1px solid #cfcfcf; border-radius:8px; padding:8px; background:#fff; color:var(--text); }
+    textarea { min-height:80px; }
+    button { background:var(--accent); color:#fff; border:1px solid var(--accent); border-radius:8px; padding:7px 12px; cursor:pointer; transition:background-color .15s ease, transform .15s ease, box-shadow .15s ease; }
+    button:hover { background:var(--accent-hover); border-color:var(--accent-hover); transform:translateY(-1px); box-shadow:0 2px 6px rgba(0,0,0,.15); }
+    button.secondary { background:var(--secondary); color:#fff; border:1px solid var(--secondary); }
+    button.secondary:hover { background:var(--secondary-hover); border-color:var(--secondary-hover); }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+    .grow { flex:1 1 240px; }
+    #gradesContainer { margin-top:18px; display:flex; flex-direction:column; gap:18px; border:3px solid #000; border-radius:12px; padding:14px; }
+    .grade { border:3px solid #000; border-radius:12px; padding:20px; margin-top:0; background:var(--card); box-shadow:0 2px 4px rgba(0,0,0,.05); }
+    .grade h3 { margin-bottom:8px; }
+    table { width:100%; border-collapse: collapse; margin-top:8px; }
+    th, td { border-bottom:1px solid #ececec; padding:6px; vertical-align: top; }
+    th { text-align:left; background:#e5e5e5; color:#222; }
+    .muted { color:var(--muted); font-size: 12px; }
+    .actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .status { margin-top:8px; font-size:13px; }
+    .ok { color:#0f6e2b; }
+    .warn { color:#a26100; }
+    .err { color:#bb1c1c; }
+    .header-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .saved-indicator { position: fixed; right: 16px; top: 14px; background:#fff; border:1px solid var(--border); color:#0f6e2b; border-radius:999px; padding:4px 10px; font-size:12px; opacity:0; transition:opacity .2s; pointer-events:none; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+    .saved-indicator.show { opacity:1; }
+    .hidden { display:none; }
+    .bulk-panel { margin-top:12px; border-top:2px solid #d0d0d0; padding-top:14px; }
+    .section-gap { margin-top:18px; }
+    .competitors-area { margin-top:18px; padding:14px 12px 10px; border:3px solid #000; border-radius:10px; background:#ffffff; }
+    .competitors-area table { background:#ffffff; }
+    .competitors-area tbody tr { background:#ffffff; }
+    .competitors-area tbody tr:nth-child(even) { background:#f3f3f3; }
+    .competitors-area thead th { background:#d9d9d9; color:#000; }
+    .competitors-label { margin:0; font-size:14px; font-weight:700; }
+    .quick-add-area { padding-bottom:14px; border-bottom:2px solid #d0d0d0; margin-bottom:12px; }
+    .page-title { text-align:center; }
+    .grade-title { display:flex; align-items:center; gap:12px; margin:0; font-size:24px; font-weight:800; line-height:1.2; }
+    .total-badge { display:inline-block; border:1px solid #000; border-radius:20px; padding:6px 12px; font-size:17px; font-weight:700; background:#f0f0f0; color:#222; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <div class="header-row">
+      <div>
+        <h1 class="page-title">Speed Shear Roster Builder</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="grow">
+        <label for="competitionName">Competition name</label>
+        <input id="competitionName" type="text" placeholder="e.g. Taihape A&P Show">
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Grades</h2>
+    <div class="row">
+      <div class="grow">
+        <label for="gradeSelect">Choose a grade</label>
+        <select id="gradeSelect">
+          <option value="Open">Open</option>
+          <option value="Senior">Senior</option>
+          <option value="Intermediate">Intermediate</option>
+          <option value="Junior">Junior</option>
+          <option value="Women's">Women's</option>
+          <option value="__custom__">Custom Grade...</option>
+        </select>
+      </div>
+      <div class="grow hidden" id="customGradeWrap">
+        <label for="newGrade">Custom grade name</label>
+        <input id="newGrade" type="text" placeholder="e.g. Novice">
+      </div>
+      <div><button id="addGradeBtn" type="button">Add Grade</button></div>
+    </div>
+    <div id="gradesContainer"></div>
+  </div>
+
+  <div class="panel">
+    <div class="actions">
+      <button id="exportBtn" type="button">Download Roster File</button>
+      <button id="importBtn" type="button" class="secondary">Load Roster File</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none">
+    </div>
+    <div id="globalStatus" class="status muted"></div>
+  </div>
+</div>
+<div id="savedIndicator" class="saved-indicator">Saved ✓</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'speedShear_rosterBuilder_v1';
+  const competitionNameInput = document.getElementById('competitionName');
+  const gradeSelect = document.getElementById('gradeSelect');
+  const customGradeWrap = document.getElementById('customGradeWrap');
+  const newGradeInput = document.getElementById('newGrade');
+  const addGradeBtn = document.getElementById('addGradeBtn');
+  const gradesContainer = document.getElementById('gradesContainer');
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  const importFile = document.getElementById('importFile');
+  const globalStatus = document.getElementById('globalStatus');
+  const savedIndicator = document.getElementById('savedIndicator');
+
+  let state = { schemaVersion: 1, competitionName: '', grades: [] };
+  let saveTimer = null;
+  let toastTimer = null;
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function normalizeKey(value){
+    return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  }
+
+  function collapseSpaces(value){
+    return String(value || '').trim().replace(/\s+/g, ' ');
+  }
+
+  function capitalizeWordSegment(value){
+    const lower = String(value || '').toLowerCase();
+    const idx = lower.search(/[a-z]/i);
+    if (idx < 0) return lower;
+    return lower.slice(0, idx) + lower.charAt(idx).toUpperCase() + lower.slice(idx + 1);
+  }
+
+  const ACRONYM_WHITELIST = {
+    NZ: 'NZ',
+    'A&P': 'A&P'
+  };
+
+  function toTitleCaseSmart(value){
+    const text = collapseSpaces(value);
+    if (!text) return '';
+    const words = text.split(' ');
+    return words.map((word)=> {
+      const hyphenParts = word.split('-');
+      return hyphenParts.map((part)=> {
+        const match = part.match(/(^[^A-Za-z0-9]*)([A-Za-z0-9&']+)([^A-Za-z0-9]*$)/);
+        if (!match) return capitalizeWordSegment(part);
+        const [, lead, core, trail] = match;
+        const coreUpper = core.toUpperCase();
+        let replacementCore = '';
+        if (coreUpper === 'MT') {
+          replacementCore = 'Mt';
+        } else if (Object.prototype.hasOwnProperty.call(ACRONYM_WHITELIST, coreUpper)) {
+          replacementCore = ACRONYM_WHITELIST[coreUpper];
+        } else {
+          const apostropheParts = core.split("'").map(capitalizeWordSegment);
+          replacementCore = apostropheParts.join("'");
+          replacementCore = replacementCore.replace(/^Mc([a-z])/, (_m, c)=> `Mc${c.toUpperCase()}`);
+        }
+        return `${lead}${replacementCore}${trail}`;
+      }).join('-');
+    }).join(' ');
+  }
+
+  function normalizeRosterEntry(name, town){
+    return {
+      name: toTitleCaseSmart(name),
+      town: toTitleCaseSmart(town)
+    };
+  }
+
+  function parseRosterLineRobust(line){
+    const text = String(line || '').trim();
+    if (!text) return { name: '', town: '' };
+    const cleaned = text.replace(/\s+,/g, ',');
+    let name = cleaned;
+    let town = '';
+    const commaIdx = cleaned.indexOf(',');
+    if (commaIdx >= 0) {
+      name = cleaned.slice(0, commaIdx);
+      town = cleaned.slice(commaIdx + 1).replace(/^\s*,+\s*/, '');
+    } else {
+      const tabMatch = cleaned.match(/^(.*?)\t+(.*)$/);
+      if (tabMatch) {
+        name = tabMatch[1];
+        town = tabMatch[2];
+      } else {
+        const dashMatch = cleaned.match(/^(.*?)\s+[\-–—]\s+(.*)$/);
+        if (dashMatch) {
+          name = dashMatch[1];
+          town = dashMatch[2];
+        } else {
+          const spaceMatch = cleaned.match(/^(.*?)\s{2,}(\S.*)$/);
+          if (spaceMatch) {
+            const left = collapseSpaces(spaceMatch[1]);
+            const right = collapseSpaces(spaceMatch[2]);
+            const leftWords = left ? left.split(' ').length : 0;
+            const rightWords = right ? right.split(' ').length : 0;
+            if (leftWords >= 2 && rightWords >= 1 && rightWords <= 4) {
+              name = left;
+              town = right;
+            }
+          }
+        }
+      }
+    }
+    return {
+      name: collapseSpaces(name),
+      town: collapseSpaces(town)
+    };
+  }
+
+  function canonicalGradeName(raw){
+    return collapseSpaces(String(raw || '').replace(/\u00A0/g, ' '));
+  }
+
+  function scheduleSave(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      savedIndicator.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=> savedIndicator.classList.remove('show'), 1000);
+    }, 1000);
+  }
+
+  function setStatus(message, cls){
+    globalStatus.className = `status ${cls || 'muted'}`;
+    globalStatus.textContent = message || '';
+  }
+
+  function ensureUniqueRows(rows){
+    const out = [];
+    const seen = new Set();
+    rows.forEach((row)=>{
+      const normalized = normalizeRosterEntry(row.name, row.town);
+      if (!normalized.name) return;
+      const key = `${normalizeKey(normalized.name)}|${normalizeKey(normalized.town)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ name: normalized.name, town: normalized.town || '' });
+    });
+    return out;
+  }
+
+  function render(){
+    competitionNameInput.value = state.competitionName || '';
+    if (!state.grades.length) {
+      gradesContainer.innerHTML = '<p class="muted">No grades added yet. Use ‘Add Grade’ above to start.</p>';
+      return;
+    }
+    gradesContainer.innerHTML = state.grades.map((grade, index)=> {
+      const rows = grade.rows || [];
+      const trs = rows.map((row, rIndex)=> `
+        <tr>
+          <td>${rIndex + 1}</td>
+          <td>${escapeHtml(row.name || '')}</td>
+          <td>${escapeHtml(row.town || '')}</td>
+          <td><button type="button" class="secondary" data-action="delete-row" data-grade-index="${index}" data-row-index="${rIndex}">Remove</button></td>
+        </tr>
+      `).join('');
+      const emptyState = rows.length ? '' : '<tr><td colspan="4" class="muted">No competitors added yet.</td></tr>';
+      return `
+        <div class="grade" data-grade-index="${index}">
+          <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h3 class="grade-title">${escapeHtml(grade.name)} <span class="total-badge">Total: ${rows.length}</span></h3>
+            <div class="actions">
+              <button type="button" class="secondary" data-action="remove-grade" data-grade-index="${index}">Remove Grade</button>
+            </div>
+          </div>
+          <div class="row quick-add-area">
+            <div class="grow">
+              <label>Name</label>
+              <input type="text" data-action="quick-name" data-grade-index="${index}" placeholder="Required">
+            </div>
+            <div class="grow">
+              <label>Town</label>
+              <input type="text" data-action="quick-town" data-grade-index="${index}" placeholder="Optional">
+            </div>
+            <div><button type="button" data-action="quick-add" data-grade-index="${index}">Add Competitor</button></div>
+          </div>
+          <div class="bulk-panel">
+            <button type="button" class="secondary" data-action="toggle-bulk" data-grade-index="${index}">Add a list of names</button>
+            <div data-role="bulk-wrap" data-grade-index="${index}" class="hidden" style="margin-top:8px;">
+              <p class="muted">Paste a list of competitors below (one per line). You can paste ‘Name’ or ‘Name and town’.</p>
+              <textarea data-action="bulk-text" data-grade-index="${index}" placeholder="One per line"></textarea>
+              <div class="actions" style="margin-top:6px">
+                <button type="button" data-action="parse-add" data-grade-index="${index}">Add From List</button>
+                <span class="muted" data-role="bulk-status" data-grade-index="${index}"></span>
+              </div>
+            </div>
+          </div>
+          <div class="row section-gap" style="justify-content:flex-end;">
+            <div class="actions">
+              <button type="button" class="secondary" data-action="clear-grade" data-grade-index="${index}">Clear All Competitors</button>
+            </div>
+          </div>
+          <div class="competitors-area">
+            <p class="competitors-label">Competitors</p>
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Town</th><th>Remove</th></tr></thead>
+              <tbody>${trs || emptyState}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function sanitizeState(){
+    const seenGrades = new Set();
+    const grades = [];
+    state.grades.forEach((g)=>{
+      const name = canonicalGradeName(g.name);
+      if (!name) return;
+      const key = normalizeKey(name);
+      if (seenGrades.has(key)) return;
+      seenGrades.add(key);
+      grades.push({ name, rows: ensureUniqueRows(Array.isArray(g.rows) ? g.rows : []) });
+    });
+    state.grades = grades;
+  }
+
+  function parseAndAdd(gradeIndex, text){
+    const lines = String(text || '').replace(/\u00A0/g, ' ').split(/\r?\n/);
+    const grade = state.grades[gradeIndex];
+    if (!grade) return;
+    const seen = new Set(grade.rows.map((row)=> `${normalizeKey(row.name)}|${normalizeKey(row.town)}`));
+
+    let parsedCount = 0;
+    let added = 0;
+    let invalid = 0;
+    let duplicate = 0;
+
+    lines.forEach((line)=>{
+      if (!String(line).trim()) return;
+      parsedCount += 1;
+      const parsed = parseRosterLineRobust(line);
+      const entry = normalizeRosterEntry(parsed.name, parsed.town);
+      if (!entry.name) {
+        invalid += 1;
+        return;
+      }
+      const key = `${normalizeKey(entry.name)}|${normalizeKey(entry.town)}`;
+      if (seen.has(key)) {
+        duplicate += 1;
+        return;
+      }
+      seen.add(key);
+      grade.rows.push({ name: entry.name, town: entry.town || '' });
+      added += 1;
+    });
+
+    const statusEl = document.querySelector(`[data-role="bulk-status"][data-grade-index="${gradeIndex}"]`);
+    if (statusEl) {
+      statusEl.textContent = `Parsed: ${parsedCount} • Added: ${added} • Skipped: ${duplicate + invalid}`;
+    }
+    scheduleSave();
+    render();
+  }
+
+  function addGrade(rawName){
+    const name = canonicalGradeName(rawName);
+    if (!name) return;
+    const key = normalizeKey(name);
+    const exists = state.grades.some((g)=> normalizeKey(g.name) === key);
+    if (exists) {
+      setStatus(`Grade "${name}" already exists.`, 'warn');
+      return;
+    }
+    state.grades.push({ name, rows: [] });
+    newGradeInput.value = '';
+    setStatus('', 'muted');
+    render();
+    scheduleSave();
+  }
+
+  function filenameForExport(){
+    const date = new Date().toISOString().slice(0,10);
+    const comp = (state.competitionName || '').trim()
+      .replace(/\s+/g, '_')
+      .replace(/[^A-Za-z0-9_-]/g, '')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    return comp ? `roster_${comp}_${date}.json` : `roster_${date}.json`;
+  }
+
+  function exportJson(){
+    sanitizeState();
+    let removed = 0;
+    state.grades.forEach((grade)=>{
+      const before = grade.rows.length;
+      grade.rows = ensureUniqueRows(grade.rows);
+      removed += (before - grade.rows.length);
+    });
+    const payload = {};
+    state.grades.forEach((grade)=> {
+      payload[grade.name] = grade.rows.map((row)=> ({ name: row.name, town: row.town || '' }));
+    });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filenameForExport();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setStatus(removed > 0 ? `Removed ${removed} empty/duplicate rows before download.` : 'Roster file downloaded.', removed > 0 ? 'warn' : 'ok');
+    render();
+    scheduleSave();
+  }
+
+  function importJsonText(text){
+    const js = JSON.parse(text);
+    if (!js || typeof js !== 'object' || Array.isArray(js)) throw new Error('Invalid JSON: expected top-level object keyed by grade.');
+    const nextGrades = [];
+    for (const [gradeName, list] of Object.entries(js)) {
+      if (!Array.isArray(list)) continue;
+      const rows = list.map((v)=> {
+        const entry = typeof v === 'string'
+          ? normalizeRosterEntry(v, '')
+          : normalizeRosterEntry(String(v?.name || ''), String(v?.town || ''));
+        return { name: entry.name, town: entry.town || '' };
+      }).filter((r)=> !!r.name);
+      nextGrades.push({ name: canonicalGradeName(gradeName), rows: ensureUniqueRows(rows) });
+    }
+    state.grades = nextGrades;
+    sanitizeState();
+    render();
+    scheduleSave();
+    setStatus('Roster file loaded.', 'ok');
+  }
+
+  function init(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.schemaVersion === 1) {
+          state = {
+            schemaVersion: 1,
+            competitionName: String(parsed.competitionName || ''),
+            grades: Array.isArray(parsed.grades) ? parsed.grades : []
+          };
+        }
+      }
+    } catch (_err) {}
+
+    sanitizeState();
+    render();
+  }
+
+  competitionNameInput.addEventListener('input', ()=>{
+    state.competitionName = competitionNameInput.value;
+    scheduleSave();
+  });
+
+  function selectedGradeValue(){
+    return gradeSelect.value === '__custom__' ? newGradeInput.value : gradeSelect.value;
+  }
+
+  gradeSelect.addEventListener('change', ()=>{
+    const custom = gradeSelect.value === '__custom__';
+    customGradeWrap.classList.toggle('hidden', !custom);
+    if (custom) newGradeInput.focus();
+  });
+
+  addGradeBtn.addEventListener('click', ()=> addGrade(selectedGradeValue()));
+  newGradeInput.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addGrade(selectedGradeValue());
+    }
+  });
+
+  gradesContainer.addEventListener('input', (e)=>{
+    const action = e.target.getAttribute('data-action');
+    const gi = Number(e.target.getAttribute('data-grade-index'));
+    const ri = Number(e.target.getAttribute('data-row-index'));
+    const grade = state.grades[gi];
+    if (!grade) return;
+    if (action === 'quick-name' || action === 'quick-town') {
+      // Keep input-only state in DOM until Add Competitor is clicked.
+    }
+  });
+
+  gradesContainer.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const action = btn.getAttribute('data-action');
+    const gi = Number(btn.getAttribute('data-grade-index'));
+    const ri = Number(btn.getAttribute('data-row-index'));
+    const grade = state.grades[gi];
+
+    if (action === 'remove-grade') {
+      state.grades.splice(gi, 1);
+      render();
+      scheduleSave();
+      return;
+    }
+    if (!grade) return;
+
+    if (action === 'add-row') {
+      grade.rows.push({ name: '', town: '' });
+      render();
+      scheduleSave();
+    } else if (action === 'quick-add') {
+      const nameEl = gradesContainer.querySelector(`input[data-action="quick-name"][data-grade-index="${gi}"]`);
+      const townEl = gradesContainer.querySelector(`input[data-action="quick-town"][data-grade-index="${gi}"]`);
+      const entry = normalizeRosterEntry(nameEl ? nameEl.value : '', townEl ? townEl.value : '');
+      if (!entry.name) {
+        setStatus('Please enter a competitor name.', 'warn');
+        return;
+      }
+      const key = `${normalizeKey(entry.name)}|${normalizeKey(entry.town)}`;
+      const exists = grade.rows.some((row)=> `${normalizeKey(row.name)}|${normalizeKey(row.town)}` === key);
+      if (exists) {
+        setStatus('That competitor is already in this grade.', 'warn');
+        return;
+      }
+      grade.rows.push({ name: entry.name, town: entry.town || '' });
+      if (nameEl) nameEl.value = '';
+      if (townEl) townEl.value = '';
+      setStatus('', 'muted');
+      render();
+      scheduleSave();
+    } else if (action === 'delete-row') {
+      grade.rows.splice(ri, 1);
+      render();
+      scheduleSave();
+    } else if (action === 'clear-grade') {
+      grade.rows = [];
+      render();
+      scheduleSave();
+    } else if (action === 'toggle-bulk') {
+      const wrap = gradesContainer.querySelector(`[data-role="bulk-wrap"][data-grade-index="${gi}"]`);
+      if (wrap) wrap.classList.toggle('hidden');
+    } else if (action === 'parse-add') {
+      const textArea = gradesContainer.querySelector(`textarea[data-action="bulk-text"][data-grade-index="${gi}"]`);
+      parseAndAdd(gi, textArea ? textArea.value : '');
+      if (textArea) textArea.value = '';
+    }
+  });
+
+  exportBtn.addEventListener('click', exportJson);
+  importBtn.addEventListener('click', ()=> importFile.click());
+  importFile.addEventListener('change', async ()=>{
+    const f = importFile.files && importFile.files[0];
+    if (!f) return;
+    try {
+      importJsonText(await f.text());
+    } catch (err) {
+      setStatus(`Import failed: ${err.message || err}`, 'err');
+    } finally {
+      importFile.value = '';
+    }
+  });
+
+  init();
+})();
+</script>
+</body>
+<!-- Manual checklist:
+- Fresh load shows no grade cards
+- Adding a grade creates a card
+- Import shows only imported grades
+- Refresh restores only saved grades
+- Buttons black/grey with white text
+- Borders thicker and black
+- Saved competitors plain text
+- Women’s grade present
+- Offline still works
+- Export/import still works
+- Numbering column appears and reflows on delete
+- Total badge updates correctly
+- Competitor table header row is grey
+-->
+</html>
