@@ -175,6 +175,20 @@ Each array item: object with string fields {name, town} (town may be empty strin
 
   const ACRONYM_WHITELIST = {
     NZ: 'NZ',
+    US: 'US',
+    USA: 'USA',
+    UK: 'UK',
+    UAE: 'UAE',
+    EU: 'EU',
+    SA: 'SA',
+    AU: 'AU',
+    AUS: 'AUS',
+    NSW: 'NSW',
+    VIC: 'VIC',
+    QLD: 'QLD',
+    ACT: 'ACT',
+    WA: 'WA',
+    NT: 'NT',
     'A&P': 'A&P'
   };
 
@@ -194,6 +208,8 @@ Each array item: object with string fields {name, town} (town may be empty strin
           replacementCore = 'Mt';
         } else if (Object.prototype.hasOwnProperty.call(ACRONYM_WHITELIST, coreUpper)) {
           replacementCore = ACRONYM_WHITELIST[coreUpper];
+        } else if (/^[A-Z]{2,4}$/.test(core)) {
+          replacementCore = core;
         } else {
           const apostropheParts = core.split("'").map(capitalizeWordSegment);
           replacementCore = apostropheParts.join("'");
