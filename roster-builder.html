@@ -292,8 +292,8 @@ Each array item: object with string fields {name, town} (town may be empty strin
       const trs = rows.map((row, rIndex)=> `
         <tr>
           <td>${rIndex + 1}</td>
-          <td>${escapeHtml(row.name || '')}</td>
-          <td>${escapeHtml(row.town || '')}</td>
+          <td><input type="text" data-action="edit-name" data-grade-index="${index}" data-row-index="${rIndex}" value="${escapeHtml(row.name || '')}"></td>
+          <td><input type="text" data-action="edit-town" data-grade-index="${index}" data-row-index="${rIndex}" value="${escapeHtml(row.town || '')}"></td>
           <td><button type="button" class="secondary" data-action="delete-row" data-grade-index="${index}" data-row-index="${rIndex}">Remove</button></td>
         </tr>
       `).join('');
@@ -335,6 +335,7 @@ Each array item: object with string fields {name, town} (town may be empty strin
           </div>
           <div class="competitors-area">
             <p class="competitors-label">Competitors</p>
+            <p class="muted">Tip: You can tap a name or town below to fix spelling.</p>
             <table>
               <thead><tr><th>#</th><th>Name</th><th>Town</th><th>Remove</th></tr></thead>
               <tbody>${trs || emptyState}</tbody>
@@ -520,7 +521,81 @@ Each array item: object with string fields {name, town} (town may be empty strin
     if (!grade) return;
     if (action === 'quick-name' || action === 'quick-town') {
       // Keep input-only state in DOM until Add Competitor is clicked.
+      return;
     }
+    if (action === 'edit-name' || action === 'edit-town') {
+      const row = grade.rows[ri];
+      if (!row) return;
+      if (action === 'edit-name') {
+        row.name = e.target.value;
+      } else {
+        row.town = e.target.value;
+      }
+      scheduleSave();
+    }
+  });
+
+  gradesContainer.addEventListener('focusin', (e)=>{
+    const action = e.target.getAttribute('data-action');
+    if (action !== 'edit-name' && action !== 'edit-town') return;
+    const gi = Number(e.target.getAttribute('data-grade-index'));
+    const ri = Number(e.target.getAttribute('data-row-index'));
+    const grade = state.grades[gi];
+    const row = grade && grade.rows[ri];
+    if (!row) return;
+    e.target.dataset.prevName = row.name || '';
+    e.target.dataset.prevTown = row.town || '';
+  });
+
+  function normalizeEditedRow(target){
+    const action = target.getAttribute('data-action');
+    if (action !== 'edit-name' && action !== 'edit-town') return;
+    const gi = Number(target.getAttribute('data-grade-index'));
+    const ri = Number(target.getAttribute('data-row-index'));
+    const grade = state.grades[gi];
+    const row = grade && grade.rows[ri];
+    if (!row) return;
+
+    const previousName = target.dataset.prevName != null ? target.dataset.prevName : (row.name || '');
+    const previousTown = target.dataset.prevTown != null ? target.dataset.prevTown : (row.town || '');
+
+    const normalized = normalizeRosterEntry(row.name, row.town);
+    if (!normalized.name) {
+      row.name = previousName;
+      row.town = previousTown;
+      setStatus('Name can’t be blank.', 'err');
+      render();
+      scheduleSave();
+      return;
+    }
+
+    row.name = normalized.name;
+    row.town = normalized.town || '';
+
+    const editedKey = `${normalizeKey(row.name)}|${normalizeKey(row.town)}`;
+    const duplicate = grade.rows.some((candidate, idx)=> idx !== ri && `${normalizeKey(candidate.name)}|${normalizeKey(candidate.town)}` === editedKey);
+    if (duplicate) {
+      row.name = previousName;
+      row.town = previousTown;
+      setStatus('Duplicate skipped (same name + town already exists).', 'warn');
+      render();
+      scheduleSave();
+      return;
+    }
+
+    if (row.name !== previousName || row.town !== previousTown) {
+      setStatus('', 'muted');
+      render();
+      scheduleSave();
+    }
+  }
+
+  gradesContainer.addEventListener('blur', (e)=>{
+    normalizeEditedRow(e.target);
+  }, true);
+
+  gradesContainer.addEventListener('change', (e)=>{
+    normalizeEditedRow(e.target);
   });
 
   gradesContainer.addEventListener('click', (e)=>{
@@ -606,7 +681,11 @@ Each array item: object with string fields {name, town} (town may be empty strin
 - Refresh restores only saved grades
 - Buttons black/grey with white text
 - Borders thicker and black
-- Saved competitors plain text
+- Add competitor → edit name in table → refresh → edit persists
+- Edit town → refresh → persists
+- Try to blank the name → prevented/reverted
+- Edit to create a duplicate → prevented/reverted
+- Export JSON still matches existing importer expectations
 - Women’s grade present
 - Offline still works
 - Export/import still works
