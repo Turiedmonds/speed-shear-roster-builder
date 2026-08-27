@@ -26,25 +26,93 @@
           <select id="grade" name="grade" required><option value="">Select grade / event</option></select>
           <div id="gradeAvailability" class="grade-availability"></div>
         </div>
+
         <div class="field-grid">
           <div class="field"><label for="phone">Mobile number</label><input id="phone" name="phone" type="tel" autocomplete="tel"></div>
           <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email"></div>
         </div>
-        <p class="help">Please provide at least one contact method so competition staff can contact you about your entry if needed.</p>
+        <p class="help">Please provide at least one contact method. If you provide an email address, the Waimarino Shears entry system will send you an automatic entry receipt.</p>
 
-        <section class="privacy-box">
-          <h2>Privacy and entry information</h2>
-          <p>Your details are collected for competition entry, contact about your entry or attendance, event administration and timing-system operation. Your contact details are not included in the timing-system roster.</p>
-          <p>You can request access to or correction of your personal information by contacting <a id="privacyEmail" href="mailto:Waimarinoshears@gmail.com">Waimarinoshears@gmail.com</a>.</p>
-          <label class="check-row"><input id="privacyAccepted" type="checkbox" required><span>I have read and accept this privacy notice.</span></label>
-        </section>
+        <div class="privacy-consent">
+          <label class="check-row" for="privacyAccepted">
+            <input id="privacyAccepted" type="checkbox" required>
+            <span>I have read and agree to the <button id="privacyDetailsBtn" class="inline-link" type="button">Privacy Notice &amp; Entry Information</button>.</span>
+          </label>
+        </div>
 
-        <section class="entry-status-box"><strong>Submitting this form does not confirm payment or check-in.</strong><p>Your entry will be sent to the competition organiser. You still need to follow the organiser's payment and arrival/check-in process.</p></section>
         <button id="submitBtn" class="primary" type="submit">Submit Entry</button>
         <div id="statusBox" class="status hidden"></div>
       </form>
 
-      <footer>Entry form provided by Waimarino Shears Incorporated.</footer>
+      <dialog id="privacyDialog" class="privacy-dialog">
+        <div class="dialog-head">
+          <div>
+            <p class="dialog-eyebrow">Competitor entry</p>
+            <h2>Privacy Notice &amp; Entry Information</h2>
+          </div>
+          <button id="privacyCloseTop" class="dialog-close" type="button" aria-label="Close">×</button>
+        </div>
+
+        <div class="dialog-body">
+          <section>
+            <h3>Privacy Act 2020</h3>
+            <p>Waimarino Shears Incorporated operates this online entry system for the competition organiser. Personal information submitted through this form is handled in line with the <strong>New Zealand Privacy Act 2020</strong> and the Information Privacy Principles.</p>
+          </section>
+
+          <section>
+            <h3>What information is collected</h3>
+            <p>The entry record may contain your name, hometown, grade or event, mobile number, email address, entry reference, submission time, and later check-in or paid/cleared status recorded by competition entry staff.</p>
+          </section>
+
+          <section>
+            <h3>Why it is collected and who may use it</h3>
+            <p>The information is collected for competition entry, contacting you about your entry or attendance, competition administration, check-in, entry-fee management, draw preparation, timing-system setup and operation, competition records, and technical or data queries relating to the event.</p>
+            <p>Your entry information may be accessed by the competition organiser, authorised competition entry or timing staff, and Waimarino Shears as the system operator. Contact details are not included in the timing-system roster or public results.</p>
+          </section>
+
+          <section>
+            <h3>Data life cycle</h3>
+            <ol class="lifecycle-list">
+              <li>Your information is collected when you submit this form.</li>
+              <li>It is stored in the competition's Entry Manager record.</li>
+              <li>It is used for the competition purposes listed above and for directly related purposes.</li>
+              <li>It is protected against unauthorised access, use, change, loss or disclosure.</li>
+              <li>Personal information is kept only for as long as it is needed for a lawful competition, record-keeping, technical or administrative purpose, then removed or anonymised when it is no longer required.</li>
+            </ol>
+          </section>
+
+          <section>
+            <h3>Access or correction</h3>
+            <p>You may ask for access to personal information held about you, or ask for it to be corrected. Privacy requests can be sent to <a id="privacyEmail" href="mailto:Waimarinoshears@gmail.com">Waimarinoshears@gmail.com</a>. Entry-specific questions should normally go to the competition organiser listed below.</p>
+          </section>
+
+          <section class="entry-rules-box">
+            <h3>Entry, payment and check-in</h3>
+            <p>Submitting this form means your entry has been received. On competition day, you must check in with the competition entry staff. If your entry fee has not already been paid or cleared, you will need to pay it at check-in unless the organiser has told you otherwise.</p>
+            <p><strong>Your name will only be included in the draw for your grade or event once entry staff have recorded you as checked in and paid/cleared.</strong></p>
+          </section>
+
+          <section>
+            <h3>Automatic entry receipt</h3>
+            <p>If you provide an email address, an automatic receipt will be sent from the Waimarino Shears entry system after your entry is accepted. The email will identify the competition and give you the organiser's contact details. SMS confirmation is not currently sent.</p>
+          </section>
+
+          <section class="organiser-box">
+            <h3>Competition organiser</h3>
+            <dl>
+              <div><dt>Contact</dt><dd id="organiserName">Competition organiser</dd></div>
+              <div><dt>Phone</dt><dd id="organiserPhone">—</dd></div>
+              <div><dt>Email</dt><dd><a id="organiserEmail" href="#">—</a></dd></div>
+            </dl>
+          </section>
+        </div>
+
+        <div class="dialog-actions">
+          <button id="privacyCloseBottom" class="primary dialog-primary" type="button">Close</button>
+        </div>
+      </dialog>
+
+      <footer>Online entry system provided by Waimarino Shears. Competition administration remains with the competition organiser.</footer>
     </section>
   </main>
   <script src="competitor-entry.js"></script>
