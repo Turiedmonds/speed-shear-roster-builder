@@ -17,7 +17,7 @@
   };
   let saveTimer;
 
-  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));}
   function clean(v){return String(v||'').trim().replace(/\s+/g,' ');}
   function key(v){return clean(v).toLowerCase();}
   function smartTitle(v){return clean(v).split(' ').map(w=>w.split('-').map(p=>p?p.charAt(0).toUpperCase()+p.slice(1).toLowerCase():p).join('-')).join(' ');}
@@ -80,7 +80,7 @@
   function submissionPayload(grades,mode){
     syncHeaderToState();
     return {
-      schemaVersion:2,type:'speed_shear_roster_submission',bookingReference:state.bookingReference,competition:{...state.competition},submission:{mode,submittedAt:new Date().toISOString()},
+      schemaVersion:2,type:'speed_shear_roster_submission',bookingReference:state.bookingReference,accessToken:state.accessToken,competition:{...state.competition},submission:{mode,submittedAt:new Date().toISOString()},
       grades:Object.fromEntries(grades.map(g=>[g.name,g.competitors.filter(c=>c.checkedIn).map(c=>({name:c.name,town:c.town||''}))]))
     };
   }
@@ -88,7 +88,7 @@
   async function confirmSubmission(grades,label){
     const missing=unconfirmed(grades); const included=grades.reduce((n,g)=>n+checkedCount(g),0);
     if(!included){setStatus('There are no checked-in competitors to submit.','warn');return false;}
-    if(!missing)return true;
+    if(!missing.length)return true;
     els.dialogTitle.textContent=`Submit ${label}?`;
     els.dialogBody.innerHTML=`<p><strong>${included} checked-in competitor${included===1?'':'s'} will be submitted.</strong></p><p>${missing.length} competitor${missing.length===1?' has':'s have'} not been checked in and will not be included:</p><ul>${missing.map(x=>`<li><strong>${esc(x.name)}</strong>${grades.length>1?` — ${esc(x.grade)}`:''}</li>`).join('')}</ul>`;
     els.dialog.showModal();
