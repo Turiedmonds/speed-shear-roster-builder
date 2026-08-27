@@ -1,5 +1,5 @@
 (() => {
-  const VERSION='1.0.0';
+  const VERSION='1.0.1';
   const params=new URLSearchParams(location.search);
   const accessToken=params.get('access')||'';
   const stateKey=accessToken?`waimarinoSpeedShearEntryManagerV3_${accessToken}`:'waimarinoSpeedShearEntryManagerV3_manual';
@@ -164,7 +164,7 @@
     const grade=gradeName(card);
     if(!dialog||!confirm||!cancel)return;
     title.textContent=`Submit ${grade} confirmed entries?`;
-    body.innerHTML=`<p>This will submit the confirmed ${escapeHtml(grade)} entries.</p><div class="workflow-note"><strong>After submission:</strong> the ${escapeHtml(grade)} card will automatically collapse and move to the bottom of the list. You can still expand it again at any time.</div>`;
+    body.innerHTML=`<p>This will submit the confirmed ${escapeHtml(grade)} entries and close ${escapeHtml(grade)} to new public entries.</p><div class="workflow-note"><strong>After submission:</strong> the ${escapeHtml(grade)} card will automatically collapse and move to the bottom of the list. You can still expand it again at any time.</div>`;
     const cleanup=()=>{confirm.onclick=null;cancel.onclick=null;};
     cancel.onclick=()=>{cleanup();dialog.close();};
     confirm.onclick=()=>{
