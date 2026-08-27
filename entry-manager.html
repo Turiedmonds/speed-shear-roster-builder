@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Waimarino Shears Speed Shear Entry Manager</title>
+  <link rel="stylesheet" href="entry-manager.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="brand-card">
+      <img class="brand-logo" src="https://turiedmonds.github.io/waimarino-shears-speed-shear-booking-pack/assets/Waimarino%20Shears%20Logo.png" alt="Waimarino Shears Incorporated logo">
+      <div>
+        <p class="eyebrow">Waimarino Shears Incorporated</p>
+        <h1>Speed Shear Entry Manager</h1>
+        <p class="sub">Manage entries, check-ins and timing-system roster submissions.</p>
+      </div>
+    </header>
+
+    <section class="card competition-card">
+      <div class="grid two">
+        <div><label>Competition</label><input id="competitionName" type="text" placeholder="Competition name"></div>
+        <div><label>Competition date</label><input id="competitionDate" type="date"></div>
+        <div><label>Venue / location</label><input id="venue" type="text" placeholder="Venue"></div>
+        <div><label>Booking Reference</label><input id="bookingReference" type="text" placeholder="e.g. WS-2026-0001"></div>
+      </div>
+      <div id="setupNotice" class="notice hidden"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div><h2>Grades / Events</h2><p>Add competitors manually or paste a list. Check competitors in when they arrive and payment/registration is accepted.</p></div>
+      </div>
+      <div class="grade-add-row">
+        <select id="gradeSelect">
+          <option>Open</option><option>Senior</option><option>Intermediate</option><option>Junior</option><option>Women's</option><option value="__custom__">Custom Grade...</option>
+        </select>
+        <input id="customGrade" class="hidden" type="text" placeholder="Custom grade / event">
+        <button id="addGradeBtn" type="button">Add Grade / Event</button>
+      </div>
+      <div id="gradesContainer"></div>
+    </section>
+
+    <section class="card actions-card">
+      <button id="submitAllBtn" type="button" class="primary">Submit All Checked-In Entries</button>
+      <button id="downloadAllBtn" type="button" class="secondary">Download Full Roster</button>
+      <button id="loadBtn" type="button" class="secondary">Load Roster File</button>
+      <input id="loadFile" type="file" accept="application/json" hidden>
+      <div id="globalStatus" class="status"></div>
+    </section>
+  </main>
+
+  <dialog id="confirmDialog">
+    <form method="dialog" class="dialog-card">
+      <h3 id="dialogTitle">Confirm submission</h3>
+      <div id="dialogBody"></div>
+      <div class="dialog-actions">
+        <button value="cancel" class="secondary">Go Back</button>
+        <button value="confirm" class="primary">Submit Checked-In Entries</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="savedToast" class="saved-toast">Saved ✓</div>
+  <script src="entry-manager.js"></script>
+</body>
+</html>
