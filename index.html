@@ -1,11 +1,17 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=entry-manager.html">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Waimarino Shears Speed Shear Entry Manager</title>
+  <script>
+    const target = new URL('entry-manager.html', window.location.href);
+    target.search = window.location.search;
+    target.hash = window.location.hash;
+    window.location.replace(target.href);
+  </script>
 </head>
 <body>
-  <p>If you are not redirected, open <a href="entry-manager.html">Speed Shear Entry Manager</a>.</p>
+  <p>Opening Speed Shear Entry Manager…</p>
 </body>
 </html>
