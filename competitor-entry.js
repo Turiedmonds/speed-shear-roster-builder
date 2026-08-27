@@ -1,6 +1,6 @@
 (() => {
-  const CONFIG_ENDPOINT = '';
-  const SUBMISSION_ENDPOINT = '';
+  const CONFIG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwOkoKs3Is6bSumWYe71zH2mOEZ4h0YhY-PO2JPiea2WClMs6kIMjzYtEZmqg3MlgQC-w/exec';
+  const SUBMISSION_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwOkoKs3Is6bSumWYe71zH2mOEZ4h0YhY-PO2JPiea2WClMs6kIMjzYtEZmqg3MlgQC-w/exec';
   const params = new URLSearchParams(location.search);
   const entryToken = params.get('entry') || '';
   let latestSetup = null;
