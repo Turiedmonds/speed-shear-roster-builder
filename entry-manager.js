@@ -1,7 +1,7 @@
 (() => {
   const SCHEMA_VERSION = 3;
-  const CONFIG_ENDPOINT = '';
-  const SUBMISSION_ENDPOINT = '';
+  const CONFIG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwOkoKs3Is6bSumWYe71zH2mOEZ4h0YhY-PO2JPiea2WClMs6kIMjzYtEZmqg3MlgQC-w/exec';
+  const SUBMISSION_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwOkoKs3Is6bSumWYe71zH2mOEZ4h0YhY-PO2JPiea2WClMs6kIMjzYtEZmqg3MlgQC-w/exec';
   const params = new URLSearchParams(location.search);
   const linkToken = params.get('access') || '';
   const STORAGE_KEY = linkToken ? `waimarinoSpeedShearEntryManagerV3_${linkToken}` : 'waimarinoSpeedShearEntryManagerV3_manual';
