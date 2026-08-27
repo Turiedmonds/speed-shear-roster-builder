@@ -10,7 +10,7 @@ function doGet(e) {
   try {
     const action = String(e && e.parameter && e.parameter.action || '').trim();
     if (action === 'entry-manager') return entryManagerJsonResponse_(entryManagerPublicSetup_(e.parameter.access || ''));
-    if (action === 'competitor-entry') return entryManagerJsonResponse_(entryManagerCompetitorSetup_(e.parameter.entry || ''));
+    if (action === 'competitor-entry') return entryManagerJsonResponse_(entryManagerCompetitorSetupV4_(e.parameter.entry || ''));
     if (action === 'competitor-entry-result') return entryManagerJsonResponse_(entryManagerPublicSubmissionResult_(e.parameter.entry || '', e.parameter.requestId || ''));
     return entryManagerJsonResponse_({ok:true, service:'Waimarino Shears Entry Manager'});
   } catch (error) {
@@ -29,7 +29,7 @@ function doPost(e) {
     }
     if (payload.type === 'speed_shear_competitor_entry') {
       try {
-        const result = entryManagerSaveCompetitorEntry_(payload);
+        const result = entryManagerSaveCompetitorEntryV4_(payload);
         entryManagerStorePublicSubmissionResult_(payload.entryToken || '', payload.requestId || '', result);
         return entryManagerJsonResponse_(result);
       } catch (error) {
