@@ -32,6 +32,21 @@ function doPost(e) {
     if (payload.type === 'speed_shear_competitor_entry') {
       return entryManagerJsonResponse_(entryManagerSaveCompetitorEntry_(payload));
     }
+    if (payload.type === 'speed_shear_manager_entry_settings') {
+      return entryManagerJsonResponse_(entryManagerSaveEntrySettings_(payload));
+    }
+    if (payload.type === 'speed_shear_manager_grade_add') {
+      return entryManagerJsonResponse_(entryManagerAddGrade_(payload));
+    }
+    if (payload.type === 'speed_shear_manager_grade_remove') {
+      return entryManagerJsonResponse_(entryManagerRemoveGrade_(payload));
+    }
+    if (payload.type === 'speed_shear_manager_competitor_upsert') {
+      return entryManagerJsonResponse_(entryManagerUpsertCompetitor_(payload));
+    }
+    if (payload.type === 'speed_shear_manager_competitor_checkin') {
+      return entryManagerJsonResponse_(entryManagerSetCheckIn_(payload));
+    }
     if (payload.type === 'speed_shear_manager_competitor_update') {
       return entryManagerJsonResponse_(entryManagerUpdateCompetitor_(payload));
     }
