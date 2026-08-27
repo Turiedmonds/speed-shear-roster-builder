@@ -12,42 +12,23 @@
       <header class="entry-header">
         <p class="eyebrow">Speed Shear Competitor Entry</p>
         <h1 id="competitionName">Competition entry</h1>
-        <div class="competition-meta">
-          <span id="competitionDate"></span>
-          <span id="competitionVenue"></span>
-        </div>
+        <div class="competition-meta"><span id="competitionDate"></span><span id="competitionVenue"></span></div>
       </header>
 
       <div id="loadingBox" class="notice">Loading competition details…</div>
       <div id="errorBox" class="notice error hidden"></div>
 
       <form id="entryForm" class="hidden" novalidate>
-        <div class="field">
-          <label for="name">Competitor name</label>
-          <input id="name" name="name" type="text" autocomplete="name" required>
-        </div>
-
-        <div class="field">
-          <label for="town">Hometown</label>
-          <input id="town" name="town" type="text" autocomplete="address-level2">
-        </div>
-
+        <div class="field"><label for="name">Competitor name</label><input id="name" name="name" type="text" autocomplete="name" required></div>
+        <div class="field"><label for="town">Hometown</label><input id="town" name="town" type="text" autocomplete="address-level2"></div>
         <div class="field">
           <label for="grade">Grade / event</label>
-          <select id="grade" name="grade" required>
-            <option value="">Select grade / event</option>
-          </select>
+          <select id="grade" name="grade" required><option value="">Select grade / event</option></select>
+          <div id="gradeAvailability" class="grade-availability"></div>
         </div>
-
         <div class="field-grid">
-          <div class="field">
-            <label for="phone">Mobile number</label>
-            <input id="phone" name="phone" type="tel" autocomplete="tel">
-          </div>
-          <div class="field">
-            <label for="email">Email address</label>
-            <input id="email" name="email" type="email" autocomplete="email">
-          </div>
+          <div class="field"><label for="phone">Mobile number</label><input id="phone" name="phone" type="tel" autocomplete="tel"></div>
+          <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email"></div>
         </div>
         <p class="help">Please provide at least one contact method so competition staff can contact you about your entry if needed.</p>
 
@@ -55,17 +36,10 @@
           <h2>Privacy and entry information</h2>
           <p>Your details are collected for competition entry, contact about your entry or attendance, event administration and timing-system operation. Your contact details are not included in the timing-system roster.</p>
           <p>You can request access to or correction of your personal information by contacting <a id="privacyEmail" href="mailto:Waimarinoshears@gmail.com">Waimarinoshears@gmail.com</a>.</p>
-          <label class="check-row">
-            <input id="privacyAccepted" type="checkbox" required>
-            <span>I have read and accept this privacy notice.</span>
-          </label>
+          <label class="check-row"><input id="privacyAccepted" type="checkbox" required><span>I have read and accept this privacy notice.</span></label>
         </section>
 
-        <section class="entry-status-box">
-          <strong>Submitting this form does not confirm payment or check-in.</strong>
-          <p>Your entry will be sent to the competition organiser. You still need to follow the organiser's payment and arrival/check-in process.</p>
-        </section>
-
+        <section class="entry-status-box"><strong>Submitting this form does not confirm payment or check-in.</strong><p>Your entry will be sent to the competition organiser. You still need to follow the organiser's payment and arrival/check-in process.</p></section>
         <button id="submitBtn" class="primary" type="submit">Submit Entry</button>
         <div id="statusBox" class="status hidden"></div>
       </form>
