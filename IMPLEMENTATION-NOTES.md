@@ -57,6 +57,6 @@ The public form states the collection purpose and provides Waimarino Shears cont
    - `competitor-entry.js`
    - Booking Pack `EntryManagerHandoff.gs`
 4. Enable the Booking Pack handoff only after testing.
-5. Wire the returned links into the internal Waimarino Shears booking email.
+5. Wire the returned private manager and public competitor-entry links into the internal Waimarino Shears booking email.
 6. Test a complete booking, online entry, check-in and roster submission.
 7. Change the organiser-facing URL to the final clean Waimarino Shears URL after the workflow is proven.
