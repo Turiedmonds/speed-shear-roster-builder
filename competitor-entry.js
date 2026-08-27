@@ -167,7 +167,11 @@
     if (els.privacyDialog?.open) els.privacyDialog.close();
   }
 
-  els.privacyDetailsBtn?.addEventListener('click', openPrivacy);
+  els.privacyDetailsBtn?.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    openPrivacy();
+  });
   els.privacyCloseTop?.addEventListener('click', closePrivacy);
   els.privacyCloseBottom?.addEventListener('click', closePrivacy);
 
@@ -184,6 +188,7 @@
     if (!name) return setStatus('Please enter your name.', 'error');
     if (!grade) return setStatus('Please choose your grade or event.', 'error');
     if (!phone && !email) return setStatus('Please provide a mobile number or email address.', 'error');
+    if (email && !els.email.validity.valid) return setStatus('Please enter a valid email address.', 'error');
     if (!els.privacyAccepted.checked) return setStatus('Please read and agree to the Privacy Notice & Entry Information before submitting.', 'error');
     if (!SUBMISSION_ENDPOINT) return setStatus('The entry form is ready, but the live submission connection has not been deployed yet.', 'error');
 
