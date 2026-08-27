@@ -1,29 +1,33 @@
 (() => {
-  const STORAGE_KEY = 'waimarinoSpeedShearEntryManagerV2';
   const SCHEMA_VERSION = 2;
   const CONFIG_ENDPOINT = '';
   const SUBMISSION_ENDPOINT = '';
+  const params = new URLSearchParams(location.search);
+  const linkToken = params.get('access') || '';
+  const STORAGE_KEY = linkToken ? `waimarinoSpeedShearEntryManagerV2_${linkToken}` : 'waimarinoSpeedShearEntryManagerV2_manual';
 
   const $ = id => document.getElementById(id);
   const els = {
     competitionName:$('competitionName'),competitionDate:$('competitionDate'),venue:$('venue'),bookingReference:$('bookingReference'),setupNotice:$('setupNotice'),
+    publicEntryCard:$('publicEntryCard'),publicEntryUrl:$('publicEntryUrl'),copyPublicEntryBtn:$('copyPublicEntryBtn'),refreshEntriesBtn:$('refreshEntriesBtn'),
     gradeSelect:$('gradeSelect'),customGrade:$('customGrade'),addGradeBtn:$('addGradeBtn'),gradesContainer:$('gradesContainer'),
     submitAllBtn:$('submitAllBtn'),downloadAllBtn:$('downloadAllBtn'),loadBtn:$('loadBtn'),loadFile:$('loadFile'),globalStatus:$('globalStatus'),
     dialog:$('confirmDialog'),dialogTitle:$('dialogTitle'),dialogBody:$('dialogBody'),savedToast:$('savedToast')
   };
 
   let state = {
-    schemaVersion:SCHEMA_VERSION,type:'speed_shear_entry_manager',bookingReference:'',accessToken:'',competition:{name:'',date:'',venue:''},grades:[],submissionHistory:[]
+    schemaVersion:SCHEMA_VERSION,type:'speed_shear_entry_manager',bookingReference:'',accessToken:linkToken,publicEntryUrl:'',competition:{name:'',date:'',venue:''},grades:[],submissionHistory:[]
   };
   let saveTimer;
 
-  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));}
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function clean(v){return String(v||'').trim().replace(/\s+/g,' ');}
   function key(v){return clean(v).toLowerCase();}
   function smartTitle(v){return clean(v).split(' ').map(w=>w.split('-').map(p=>p?p.charAt(0).toUpperCase()+p.slice(1).toLowerCase():p).join('-')).join(' ');}
   function competitorKey(c){return `${key(c.name)}|${key(c.town)}`;}
   function uid(){return crypto.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;}
   function gradeById(id){return state.grades.find(g=>g.id===id);}
+  function gradeByName(name){return state.grades.find(g=>key(g.name)===key(name));}
   function setStatus(msg,kind=''){els.globalStatus.className=`status ${kind}`;els.globalStatus.textContent=msg||'';}
 
   function syncHeaderToState(){
@@ -33,25 +37,57 @@
     state.bookingReference=clean(els.bookingReference.value);
   }
   function syncStateToHeader(){
-    els.competitionName.value=state.competition.name||'';els.competitionDate.value=state.competition.date||'';els.venue.value=state.competition.venue||'';els.bookingReference.value=state.bookingReference||'';
+    els.competitionName.value=state.competition.name||'';
+    els.competitionDate.value=state.competition.date||'';
+    els.venue.value=state.competition.venue||'';
+    els.bookingReference.value=state.bookingReference||'';
+    if(state.publicEntryUrl){els.publicEntryUrl.value=state.publicEntryUrl;els.publicEntryCard.classList.remove('hidden');}
   }
+  function persist(){syncHeaderToState();localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
   function scheduleSave(){
-    clearTimeout(saveTimer); saveTimer=setTimeout(()=>{syncHeaderToState();localStorage.setItem(STORAGE_KEY,JSON.stringify(state));els.savedToast.classList.add('show');setTimeout(()=>els.savedToast.classList.remove('show'),900);},500);
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>{persist();els.savedToast.classList.add('show');setTimeout(()=>els.savedToast.classList.remove('show'),900);},500);
   }
 
+  function newGrade(name){return {id:uid(),name,competitors:[],submissionVersion:0,lastSubmittedAt:null};}
   function addGrade(name){
     name=clean(name); if(!name)return;
     if(state.grades.some(g=>key(g.name)===key(name))){setStatus(`${name} already exists.`,'warn');return;}
-    state.grades.push({id:uid(),name,competitors:[],submissionVersion:0,lastSubmittedAt:null});
+    state.grades.push(newGrade(name));
     els.customGrade.value=''; render(); scheduleSave();
   }
 
   function addCompetitor(gradeId,name,town='',extra={}){
     const grade=gradeById(gradeId); if(!grade)return false;
-    const c={id:uid(),name:smartTitle(name),town:smartTitle(town),phone:clean(extra.phone),email:clean(extra.email),source:extra.source||'manual',checkedIn:Boolean(extra.checkedIn),createdAt:new Date().toISOString()};
+    const c={
+      id:extra.id||uid(),name:smartTitle(name),town:smartTitle(town),phone:clean(extra.phone),email:clean(extra.email),
+      source:extra.source||'manual',checkedIn:Boolean(extra.checkedIn),createdAt:extra.createdAt||new Date().toISOString()
+    };
     if(!c.name)return false;
     if(grade.competitors.some(x=>competitorKey(x)===competitorKey(c)))return false;
     grade.competitors.push(c); return true;
+  }
+
+  function mergeRemoteCompetitors(entries){
+    let added=0;
+    (entries||[]).forEach(entry=>{
+      let grade=gradeByName(entry.grade);
+      if(!grade){grade=newGrade(entry.grade);state.grades.push(grade);}
+      const existingById=grade.competitors.find(c=>entry.id&&c.id===entry.id);
+      if(existingById){
+        existingById.name=smartTitle(entry.name);
+        existingById.town=smartTitle(entry.town);
+        existingById.phone=clean(entry.phone);
+        existingById.email=clean(entry.email);
+        existingById.source=entry.source||existingById.source;
+        existingById.createdAt=entry.createdAt||existingById.createdAt;
+        return;
+      }
+      if(grade.competitors.some(c=>competitorKey(c)===competitorKey(entry)))return;
+      addCompetitor(grade.id,entry.name,entry.town,entry);
+      added++;
+    });
+    return added;
   }
 
   function parseLine(line){
@@ -63,16 +99,24 @@
   }
 
   function checkedCount(g){return g.competitors.filter(c=>c.checkedIn).length;}
+  function publicCount(g){return g.competitors.filter(c=>c.source==='public-entry').length;}
   function render(){
     syncStateToHeader();
     if(!state.grades.length){els.gradesContainer.innerHTML='<p class="status">No grades or events added yet.</p>';return;}
     els.gradesContainer.innerHTML=state.grades.map(g=>{
-      const rows=g.competitors.map((c,i)=>`<tr data-cid="${c.id}"><td>${i+1}</td><td><input data-edit="name" value="${esc(c.name)}"></td><td><input data-edit="town" value="${esc(c.town)}"></td><td><button class="check-btn ${c.checkedIn?'checked':''}" data-action="toggle-check">${c.checkedIn?'Checked In ✓':'Not Checked In'}</button></td><td><button class="secondary" data-action="remove-competitor">Remove</button></td></tr>`).join('');
+      const rows=g.competitors.map((c,i)=>`<tr data-cid="${esc(c.id)}">
+        <td>${i+1}</td>
+        <td><input data-edit="name" value="${esc(c.name)}"></td>
+        <td><input data-edit="town" value="${esc(c.town)}"></td>
+        <td><div>${esc(c.phone||'')}</div><div class="small-note">${esc(c.email||'')}</div></td>
+        <td><button class="check-btn ${c.checkedIn?'checked':''}" data-action="toggle-check">${c.checkedIn?'Checked In ✓':'Not Checked In'}</button></td>
+        <td><button class="secondary" data-action="remove-competitor">Remove</button></td>
+      </tr>`).join('');
       return `<article class="grade-card" data-grade-id="${g.id}">
-        <div class="grade-head"><div><h3>${esc(g.name)}</h3><div class="badges"><span class="badge">Total: ${g.competitors.length}</span><span class="badge green">Checked in: ${checkedCount(g)}</span>${g.submissionVersion?`<span class="badge">Submitted v${g.submissionVersion}</span>`:''}</div></div><div class="grade-actions"><button data-action="submit-grade">Submit ${esc(g.name)} Entries</button><button class="secondary" data-action="download-grade">Download</button><button class="secondary" data-action="remove-grade">Remove Grade</button></div></div>
+        <div class="grade-head"><div><h3>${esc(g.name)}</h3><div class="badges"><span class="badge">Total: ${g.competitors.length}</span><span class="badge green">Checked in: ${checkedCount(g)}</span>${publicCount(g)?`<span class="badge public">Online entries: ${publicCount(g)}</span>`:''}${g.submissionVersion?`<span class="badge">Submitted v${g.submissionVersion}</span>`:''}</div></div><div class="grade-actions"><button data-action="submit-grade">Submit ${esc(g.name)} Entries</button><button class="secondary" data-action="download-grade">Download</button><button class="secondary" data-action="remove-grade">Remove Grade</button></div></div>
         <div class="quick-row"><input data-role="quick-name" placeholder="Competitor name"><input data-role="quick-town" placeholder="Hometown (optional)"><button data-action="add-competitor">Add Competitor</button></div>
         <div class="bulk"><details><summary><strong>Add a list of names</strong></summary><textarea data-role="bulk-text" placeholder="One competitor per line. Name or Name, Town"></textarea><div class="bulk-actions"><button data-action="bulk-add">Add From List</button><span class="status" data-role="bulk-status"></span></div></details></div>
-        <table class="competitor-table"><thead><tr><th>#</th><th>Name</th><th>Town</th><th>Check-in</th><th>Remove</th></tr></thead><tbody>${rows||'<tr><td colspan="5">No competitors added yet.</td></tr>'}</tbody></table>
+        <table class="competitor-table"><thead><tr><th>#</th><th>Name</th><th>Town</th><th>Contact</th><th>Check-in</th><th>Remove</th></tr></thead><tbody>${rows||'<tr><td colspan="6">No competitors added yet.</td></tr>'}</tbody></table>
       </article>`;
     }).join('');
   }
@@ -101,7 +145,7 @@
     const payload=submissionPayload(grades,mode);
     if(SUBMISSION_ENDPOINT){
       try{await fetch(SUBMISSION_ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload)});setStatus(`${label} submission sent.`,'ok');}
-      catch(e){setStatus(`Could not send submission. A roster file has been downloaded as backup.`,'warn');downloadJson(payload,filename(payload,mode==='all'?'AllEntries':label));}
+      catch(e){setStatus('Could not send submission. A roster file has been downloaded as backup.','warn');downloadJson(payload,filename(payload,mode==='all'?'AllEntries':label));}
     }else{
       downloadJson(payload,filename(payload,mode==='all'?'AllEntries':label));
       setStatus('Backend connection is not deployed yet. Submission file downloaded for testing.','warn');
@@ -110,9 +154,46 @@
     state.submissionHistory.push({mode,grades:grades.map(g=>g.name),submittedAt:new Date().toISOString()});render();scheduleSave();
   }
 
+  async function fetchCompetitionSetup(showMessage=false){
+    if(!state.accessToken&&!linkToken)return;
+    const token=state.accessToken||linkToken;
+    if(!CONFIG_ENDPOINT){
+      els.setupNotice.textContent='This competition link is ready for backend connection. The live booking handoff has not been deployed yet.';
+      els.setupNotice.classList.remove('hidden');
+      return;
+    }
+    try{
+      const r=await fetch(`${CONFIG_ENDPOINT}?action=entry-manager&access=${encodeURIComponent(token)}`,{cache:'no-store'});
+      const setup=await r.json();
+      if(!setup.ok)throw new Error(setup.error||'Could not load competition');
+      applySetup(setup);
+      if(showMessage)setStatus('Entries refreshed.','ok');
+    }catch(e){setStatus('Could not refresh this competition.','warn');}
+  }
+
+  function applySetup(setup){
+    state.bookingReference=setup.bookingReference||state.bookingReference;
+    state.accessToken=setup.accessToken||state.accessToken||linkToken;
+    state.publicEntryUrl=setup.competitorEntryUrl||state.publicEntryUrl;
+    state.competition={...state.competition,...(setup.competition||{})};
+    const names=Array.isArray(setup.grades)?setup.grades:Object.keys(setup.competitionSetup?.events||{});
+    names.forEach(name=>{if(!gradeByName(name))state.grades.push(newGrade(name));});
+    const added=mergeRemoteCompetitors(setup.competitors||[]);
+    els.setupNotice.textContent='Competition details and grades/events were loaded from the booking request. Please check them before adding competitors.';
+    els.setupNotice.classList.remove('hidden');
+    render();persist();
+    if(added)setStatus(`${added} new online entr${added===1?'y':'ies'} loaded.`,'ok');
+  }
+
   els.gradeSelect.addEventListener('change',()=>els.customGrade.classList.toggle('hidden',els.gradeSelect.value!=='__custom__'));
   els.addGradeBtn.addEventListener('click',()=>addGrade(els.gradeSelect.value==='__custom__'?els.customGrade.value:els.gradeSelect.value));
   [els.competitionName,els.competitionDate,els.venue,els.bookingReference].forEach(el=>el.addEventListener('input',scheduleSave));
+  els.copyPublicEntryBtn.addEventListener('click',async()=>{
+    if(!state.publicEntryUrl)return;
+    try{await navigator.clipboard.writeText(state.publicEntryUrl);setStatus('Public competitor entry link copied.','ok');}
+    catch(_){els.publicEntryUrl.select();document.execCommand('copy');setStatus('Public competitor entry link copied.','ok');}
+  });
+  els.refreshEntriesBtn.addEventListener('click',()=>fetchCompetitionSetup(true));
 
   els.gradesContainer.addEventListener('click',async e=>{
     const btn=e.target.closest('button[data-action]'); if(!btn)return;
@@ -130,32 +211,46 @@
     if(action==='remove-grade'){state.grades=state.grades.filter(x=>x.id!==g.id);render();scheduleSave();}
     if(action==='submit-grade')await sendSubmission([g],'grade',g.name);
     if(action==='download-grade'){const p=submissionPayload([g],'grade');downloadJson(p,filename(p,g.name.replace(/\s+/g,'')));}
-    const row=btn.closest('tr[data-cid]'); if(row){const c=g.competitors.find(x=>x.id===row.dataset.cid);if(!c)return;if(action==='toggle-check'){c.checkedIn=!c.checkedIn;render();scheduleSave();}if(action==='remove-competitor'){g.competitors=g.competitors.filter(x=>x.id!==c.id);render();scheduleSave();}}
+    const row=btn.closest('tr[data-cid]');
+    if(row){
+      const c=g.competitors.find(x=>x.id===row.dataset.cid);if(!c)return;
+      if(action==='toggle-check'){c.checkedIn=!c.checkedIn;render();scheduleSave();}
+      if(action==='remove-competitor'){g.competitors=g.competitors.filter(x=>x.id!==c.id);render();scheduleSave();}
+    }
   });
 
   els.gradesContainer.addEventListener('change',e=>{
-    const input=e.target.closest('input[data-edit]'); if(!input)return; const card=input.closest('.grade-card'),row=input.closest('tr[data-cid]'),g=gradeById(card.dataset.gradeId),c=g?.competitors.find(x=>x.id===row.dataset.cid); if(!c)return;
+    const input=e.target.closest('input[data-edit]'); if(!input)return;
+    const card=input.closest('.grade-card'),row=input.closest('tr[data-cid]'),g=gradeById(card.dataset.gradeId),c=g?.competitors.find(x=>x.id===row.dataset.cid); if(!c)return;
     const previous={name:c.name,town:c.town}; c[input.dataset.edit]=smartTitle(input.value);
-    if(!c.name||g.competitors.some(x=>x.id!==c.id&&competitorKey(x)===competitorKey(c))){Object.assign(c,previous);setStatus('That edit would create a blank or duplicate competitor.','warn');} render();scheduleSave();
+    if(!c.name||g.competitors.some(x=>x.id!==c.id&&competitorKey(x)===competitorKey(c))){Object.assign(c,previous);setStatus('That edit would create a blank or duplicate competitor.','warn');}
+    render();scheduleSave();
   });
 
   els.submitAllBtn.addEventListener('click',()=>sendSubmission(state.grades,'all','all entries'));
   els.downloadAllBtn.addEventListener('click',()=>{const p=submissionPayload(state.grades,'all');downloadJson(p,filename(p,'FullRoster'));});
   els.loadBtn.addEventListener('click',()=>els.loadFile.click());
-  els.loadFile.addEventListener('change',async()=>{const f=els.loadFile.files?.[0];if(!f)return;try{const p=JSON.parse(await f.text());if(p.type==='roster_pack'&&p.rosters){state.competition.name=p.competitionName||state.competition.name;state.grades=Object.entries(p.rosters).map(([name,list])=>({id:uid(),name,competitors:(list||[]).map(v=>({id:uid(),name:smartTitle(v.name||v),town:smartTitle(v.town||''),phone:'',email:'',source:'import',checkedIn:false,createdAt:new Date().toISOString()})),submissionVersion:0,lastSubmittedAt:null}));render();scheduleSave();setStatus('Roster file loaded.','ok');}else throw new Error('Unsupported file');}catch(e){setStatus('Could not load that roster file.','warn');}finally{els.loadFile.value='';}});
+  els.loadFile.addEventListener('change',async()=>{
+    const f=els.loadFile.files?.[0];if(!f)return;
+    try{
+      const p=JSON.parse(await f.text());
+      if(p.type==='roster_pack'&&p.rosters){
+        state.competition.name=p.competitionName||state.competition.name;
+        state.grades=Object.entries(p.rosters).map(([name,list])=>{const g=newGrade(name);(list||[]).forEach(v=>addCompetitorToGrade_(g,v));return g;});
+        render();scheduleSave();setStatus('Roster file loaded.','ok');
+      }else throw new Error('Unsupported file');
+    }catch(e){setStatus('Could not load that roster file.','warn');}
+    finally{els.loadFile.value='';}
+  });
+  function addCompetitorToGrade_(g,v){
+    const c={id:uid(),name:smartTitle(v.name||v),town:smartTitle(v.town||''),phone:'',email:'',source:'import',checkedIn:false,createdAt:new Date().toISOString()};
+    if(c.name&&!g.competitors.some(x=>competitorKey(x)===competitorKey(c)))g.competitors.push(c);
+  }
 
-  function applySetup(setup){
-    state.bookingReference=setup.bookingReference||state.bookingReference;state.accessToken=setup.accessToken||state.accessToken;state.competition={...state.competition,...(setup.competition||{})};
-    const names=Array.isArray(setup.grades)?setup.grades:Object.keys(setup.competitionSetup?.events||{});
-    names.forEach(name=>{if(!state.grades.some(g=>key(g.name)===key(name)))state.grades.push({id:uid(),name,competitors:[],submissionVersion:0,lastSubmittedAt:null});});
-    els.setupNotice.textContent='Competition details and grades/events were loaded from the booking request. Please check them before adding competitors.';els.setupNotice.classList.remove('hidden');render();scheduleSave();
-  }
-  async function loadCompetitionFromLink(){
-    const params=new URLSearchParams(location.search); const token=params.get('access'); if(!token)return;
-    state.accessToken=token;
-    if(!CONFIG_ENDPOINT){els.setupNotice.textContent='This competition link is ready for backend connection. The live booking handoff has not been deployed yet.';els.setupNotice.classList.remove('hidden');return;}
-    try{const r=await fetch(`${CONFIG_ENDPOINT}?access=${encodeURIComponent(token)}`);const setup=await r.json();if(!setup.ok)throw new Error(setup.error||'Could not load competition');applySetup(setup);}catch(e){setStatus('Could not load this competition link.','warn');}
-  }
-  try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(saved?.schemaVersion===SCHEMA_VERSION)state=saved;}catch(_){}
-  render();loadCompetitionFromLink();
+  try{
+    const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(saved?.schemaVersion===SCHEMA_VERSION)state={...state,...saved,accessToken:linkToken||saved.accessToken||''};
+  }catch(_){}
+  render();
+  if(linkToken)fetchCompetitionSetup(false);
 })();
