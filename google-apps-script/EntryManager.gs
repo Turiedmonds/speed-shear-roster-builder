@@ -3,19 +3,22 @@ const ENTRY_MANAGER_SETTINGS = {
   senderName: 'Waimarino Shears Entry Manager',
   driveFolderName: 'Waimarino Speed Shear Entry Manager',
   publicBaseUrl: 'https://turiedmonds.github.io/speed-shear-roster-builder/',
+  competitorEntryPath: 'competitor-entry.html',
   schemaVersion: 2
 };
 
 function entryManagerCreateCompetition_(pack) {
   if (!pack || !pack.identity || !pack.identity.bookingReference) throw new Error('Booking Reference is required.');
   const reference = String(pack.identity.bookingReference).trim();
-  const token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  const managerToken = entryManagerToken_();
+  const publicEntryToken = entryManagerToken_();
   const setup = pack.competitionSetup || {};
   const record = {
     schemaVersion: ENTRY_MANAGER_SETTINGS.schemaVersion,
     type: 'speed_shear_entry_manager_competition',
     bookingReference: reference,
-    accessToken: token,
+    managerToken,
+    publicEntryToken,
     createdAt: new Date().toISOString(),
     competition: {
       name: String(pack.booking && pack.booking.competitionName || ''),
@@ -32,6 +35,7 @@ function entryManagerCreateCompetition_(pack) {
       events: JSON.parse(JSON.stringify(setup.events || {})),
       program: JSON.parse(JSON.stringify(setup.program || []))
     },
+    competitors: [],
     submissions: []
   };
 
@@ -39,15 +43,22 @@ function entryManagerCreateCompetition_(pack) {
   const blob = Utilities.newBlob(JSON.stringify(record, null, 2), 'application/json', reference + '_EntryManager.json');
   const file = folder.createFile(blob);
   const props = PropertiesService.getScriptProperties();
-  props.setProperty('entryManagerToken_' + token, file.getId());
+  props.setProperty('entryManagerToken_' + managerToken, file.getId());
+  props.setProperty('entryPublicToken_' + publicEntryToken, file.getId());
   props.setProperty('entryManagerReference_' + reference, file.getId());
 
   return {
     bookingReference: reference,
-    accessToken: token,
-    entryManagerUrl: entryManagerUrl_(token),
+    managerToken,
+    publicEntryToken,
+    entryManagerUrl: entryManagerUrl_(managerToken),
+    competitorEntryUrl: entryManagerCompetitorUrl_(publicEntryToken),
     fileId: file.getId()
   };
+}
+
+function entryManagerToken_() {
+  return Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
 }
 
 function entryManagerFolder_() {
@@ -59,31 +70,115 @@ function entryManagerUrl_(token) {
   return ENTRY_MANAGER_SETTINGS.publicBaseUrl + '?access=' + encodeURIComponent(token);
 }
 
-function entryManagerReadByToken_(token) {
+function entryManagerCompetitorUrl_(token) {
+  return ENTRY_MANAGER_SETTINGS.publicBaseUrl + ENTRY_MANAGER_SETTINGS.competitorEntryPath + '?entry=' + encodeURIComponent(token);
+}
+
+function entryManagerReadByManagerToken_(token) {
+  return entryManagerReadByProperty_('entryManagerToken_', token, 'managerToken');
+}
+
+function entryManagerReadByPublicToken_(token) {
+  return entryManagerReadByProperty_('entryPublicToken_', token, 'publicEntryToken');
+}
+
+function entryManagerReadByProperty_(prefix, token, field) {
   const clean = String(token || '').trim();
   if (!clean) throw new Error('Access token is missing.');
-  const id = PropertiesService.getScriptProperties().getProperty('entryManagerToken_' + clean);
+  const id = PropertiesService.getScriptProperties().getProperty(prefix + clean);
   if (!id) throw new Error('Competition link was not found.');
-  const record = JSON.parse(DriveApp.getFileById(id).getBlob().getDataAsString());
-  if (record.accessToken !== clean) throw new Error('Competition link is invalid.');
-  return record;
+  const file = DriveApp.getFileById(id);
+  const record = JSON.parse(file.getBlob().getDataAsString());
+  if (record[field] !== clean) throw new Error('Competition link is invalid.');
+  return {record, file};
 }
 
 function entryManagerPublicSetup_(token) {
-  const record = entryManagerReadByToken_(token);
+  const found = entryManagerReadByManagerToken_(token);
+  const record = found.record;
   return {
     ok: true,
     bookingReference: record.bookingReference,
+    accessToken: record.managerToken,
     competition: record.competition,
     grades: record.grades,
-    competitionSetup: record.competitionSetup
+    competitionSetup: record.competitionSetup,
+    competitorEntryUrl: entryManagerCompetitorUrl_(record.publicEntryToken),
+    competitors: (record.competitors || []).map(entry => ({
+      id: entry.id,
+      grade: entry.grade,
+      name: entry.name,
+      town: entry.town || '',
+      phone: entry.phone || '',
+      email: entry.email || '',
+      source: entry.source || 'public-entry',
+      checkedIn: entry.checkedIn === true,
+      createdAt: entry.createdAt || ''
+    }))
+  };
+}
+
+function entryManagerCompetitorSetup_(token) {
+  const record = entryManagerReadByPublicToken_(token).record;
+  return {
+    ok: true,
+    competition: record.competition,
+    grades: record.grades,
+    privacyContact: ENTRY_MANAGER_SETTINGS.receiverEmail
+  };
+}
+
+function entryManagerSaveCompetitorEntry_(payload) {
+  if (!payload || payload.type !== 'speed_shear_competitor_entry') throw new Error('Unsupported competitor entry.');
+  const token = String(payload.entryToken || '').trim();
+  const found = entryManagerReadByPublicToken_(token);
+  const record = found.record;
+  const grade = String(payload.grade || '').trim();
+  const name = entryManagerClean_(payload.name);
+  const town = entryManagerClean_(payload.town);
+  const phone = entryManagerClean_(payload.phone);
+  const email = entryManagerClean_(payload.email).toLowerCase();
+
+  if (!name) throw new Error('Competitor name is required.');
+  if (!grade || (record.grades || []).indexOf(grade) < 0) throw new Error('Please choose a valid grade or event.');
+  if (!phone && !email) throw new Error('Please provide a phone number or email address.');
+  if (payload.privacyAccepted !== true) throw new Error('Privacy acknowledgement is required.');
+
+  record.competitors = Array.isArray(record.competitors) ? record.competitors : [];
+  const duplicate = record.competitors.some(item =>
+    String(item.grade || '').toLowerCase() === grade.toLowerCase() &&
+    entryManagerClean_(item.name).toLowerCase() === name.toLowerCase() &&
+    entryManagerClean_(item.town).toLowerCase() === town.toLowerCase()
+  );
+  if (duplicate) throw new Error('This competitor is already entered in that grade.');
+
+  const entry = {
+    id: Utilities.getUuid(),
+    grade,
+    name,
+    town,
+    phone,
+    email,
+    source: 'public-entry',
+    checkedIn: false,
+    createdAt: new Date().toISOString()
+  };
+  record.competitors.push(entry);
+  found.file.setContent(JSON.stringify(record, null, 2));
+
+  return {
+    ok: true,
+    competitionName: record.competition && record.competition.name || '',
+    grade,
+    competitorName: name
   };
 }
 
 function entryManagerSaveSubmission_(payload) {
   if (!payload || payload.type !== 'speed_shear_roster_submission') throw new Error('Unsupported roster submission.');
   const token = String(payload.accessToken || '').trim();
-  const record = entryManagerReadByToken_(token);
+  const found = entryManagerReadByManagerToken_(token);
+  const record = found.record;
   if (String(payload.bookingReference || '') !== record.bookingReference) throw new Error('Booking Reference does not match this competition.');
 
   const submittedAt = new Date().toISOString();
@@ -102,10 +197,7 @@ function entryManagerSaveSubmission_(payload) {
 
   record.submissions = Array.isArray(record.submissions) ? record.submissions : [];
   record.submissions.push({submittedAt, mode: submission.submission.mode, grades: Object.keys(submission.grades)});
-
-  const props = PropertiesService.getScriptProperties();
-  const recordId = props.getProperty('entryManagerReference_' + record.bookingReference);
-  if (recordId) DriveApp.getFileById(recordId).setContent(JSON.stringify(record, null, 2));
+  found.file.setContent(JSON.stringify(record, null, 2));
 
   const filename = entryManagerSubmissionFilename_(submission);
   const attachment = Utilities.newBlob(JSON.stringify(submission, null, 2), 'application/json', filename);
@@ -135,6 +227,10 @@ function entryManagerSubmissionSubject_(submission) {
   return label + ' — ' + submission.bookingReference + ' — ' + String(submission.competition && submission.competition.name || 'Speed Shear');
 }
 
+function entryManagerClean_(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
 function entryManagerJsonResponse_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -142,8 +238,10 @@ function entryManagerJsonResponse_(obj) {
 /*
 Deployment integration (done later, after frontend review):
 - Booking receiver calls entryManagerCreateCompetition_(pack) immediately after assignBookingReference_(pack).
-- The returned entryManagerUrl is added only to the INTERNAL Waimarino Shears booking email.
-- The organiser confirmation email does not contain the Entry Manager link.
-- Web-app GET with ?action=entry-manager&access=TOKEN returns entryManagerPublicSetup_(TOKEN).
-- Web-app POST with action roster submission calls entryManagerSaveSubmission_(payload).
+- Internal Waimarino booking email receives entryManagerUrl and competitorEntryUrl.
+- Organiser confirmation email does not receive either link automatically.
+- Manager GET: ?action=entry-manager&access=TOKEN -> entryManagerPublicSetup_(TOKEN).
+- Public competitor GET: ?action=competitor-entry&entry=TOKEN -> entryManagerCompetitorSetup_(TOKEN).
+- Public competitor POST calls entryManagerSaveCompetitorEntry_(payload).
+- Roster submission POST calls entryManagerSaveSubmission_(payload).
 */
