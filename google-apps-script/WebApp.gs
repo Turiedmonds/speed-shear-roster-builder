@@ -32,6 +32,12 @@ function doPost(e) {
     if (payload.type === 'speed_shear_competitor_entry') {
       return entryManagerJsonResponse_(entryManagerSaveCompetitorEntry_(payload));
     }
+    if (payload.type === 'speed_shear_manager_competitor_update') {
+      return entryManagerJsonResponse_(entryManagerUpdateCompetitor_(payload));
+    }
+    if (payload.type === 'speed_shear_manager_competitor_remove') {
+      return entryManagerJsonResponse_(entryManagerRemoveCompetitor_(payload));
+    }
     if (payload.type === 'speed_shear_roster_submission') {
       return entryManagerJsonResponse_(entryManagerSaveSubmission_(payload));
     }
