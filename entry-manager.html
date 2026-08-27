@@ -33,12 +33,45 @@
           <h2>Public Competitor Entry Link</h2>
           <p>Share this link with competitors. Entries submitted through it appear here as Not Checked In.</p>
         </div>
+        <span id="publicEntryStatus" class="badge">Public entries: Open</span>
       </div>
       <div class="public-link-row">
         <input id="publicEntryUrl" type="text" readonly aria-label="Public competitor entry link">
         <button id="copyPublicEntryBtn" type="button">Copy Link</button>
         <button id="refreshEntriesBtn" type="button" class="secondary">Refresh Entries</button>
       </div>
+
+      <div class="entry-control-panel">
+        <h3>Entry Controls</h3>
+        <div class="grid three">
+          <div>
+            <label for="publicEntriesOpen">Public entry link</label>
+            <select id="publicEntriesOpen">
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
+            <p class="small-note">You can close or reopen the public link manually at any time.</p>
+          </div>
+          <div>
+            <label for="autoCloseAt">Automatically close public entries</label>
+            <input id="autoCloseAt" type="datetime-local">
+            <p class="small-note">Leave blank if you do not want an automatic cutoff.</p>
+          </div>
+          <div>
+            <label for="allowOnDayEntries">On-the-day entries</label>
+            <select id="allowOnDayEntries">
+              <option value="no">Not allowed</option>
+              <option value="yes">Allowed</option>
+            </select>
+            <p class="small-note">When public entries are closed, staff can add late/on-the-day competitors only if this is allowed.</p>
+          </div>
+        </div>
+        <div class="entry-control-actions">
+          <button id="saveEntryControlsBtn" type="button">Save Entry Controls</button>
+          <span id="entryControlsStatus" class="status"></span>
+        </div>
+      </div>
+
       <p class="small-note">This public link is different from your private Entry Manager link. Sharing it does not give competitors access to this page.</p>
     </section>
 
