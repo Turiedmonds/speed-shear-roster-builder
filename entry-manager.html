@@ -10,11 +10,12 @@
   <main class="wrap">
     <header class="brand-card">
       <img class="brand-logo" src="https://turiedmonds.github.io/waimarino-shears-speed-shear-booking-pack/assets/Waimarino%20Shears%20Logo.png" alt="Waimarino Shears Incorporated logo">
-      <div>
+      <div class="brand-copy">
         <p class="eyebrow">Waimarino Shears Incorporated</p>
         <h1>Speed Shear Entry Manager</h1>
-        <p class="sub">Manage entries, check-ins and timing-system roster submissions.</p>
+        <p class="sub">Manage entries, confirmations and timing-system roster submissions.</p>
       </div>
+      <button id="settingsToggleBtn" class="secondary settings-btn" type="button" aria-expanded="false" aria-controls="settingsPanel">Settings</button>
     </header>
 
     <section class="card competition-card">
@@ -27,63 +28,74 @@
       <div id="setupNotice" class="notice hidden"></div>
     </section>
 
-    <section id="publicEntryCard" class="card">
+    <section id="settingsPanel" class="card settings-panel hidden">
       <div class="section-head">
         <div>
-          <h2>Public Competitor Entry Link</h2>
-          <p>Share this link with competitors. Public entry controls do not stop staff from adding competitors manually.</p>
+          <p class="eyebrow">Competition Settings</p>
+          <h2>Public Competitor Entry</h2>
+          <p>Manage the public entry link, closing schedule and overall public-entry status.</p>
         </div>
         <span id="publicEntryStatus" class="badge">Public entries: Open</span>
       </div>
+
       <div class="public-link-row">
         <input id="publicEntryUrl" type="text" readonly placeholder="Public entry link will be created when the backend is connected" aria-label="Public competitor entry link">
         <button id="copyPublicEntryBtn" type="button">Copy Link</button>
         <button id="refreshEntriesBtn" type="button" class="secondary">Refresh Entries</button>
       </div>
 
-      <div class="entry-control-panel">
-        <h3>Public Entry Controls</h3>
-        <div class="grid two">
-          <div>
-            <label>Manual control</label>
-            <div class="entry-control-actions">
-              <button id="openPublicEntriesBtn" type="button">Open Public Entries</button>
-              <button id="closePublicEntriesBtn" type="button" class="secondary">Close Public Entries</button>
-            </div>
-            <p class="small-note">A temporary close can keep the scheduled cutoff in place so you can reopen entries later.</p>
+      <div class="settings-grid">
+        <div class="setting-block">
+          <label>Public entry link</label>
+          <div class="entry-control-actions">
+            <button id="openPublicEntriesBtn" type="button">Open Public Entries</button>
+            <button id="closePublicEntriesBtn" type="button" class="secondary">Close Public Entries</button>
           </div>
-          <div>
-            <label for="autoCloseAt">Custom public-entry closing date/time</label>
-            <input id="autoCloseAt" type="datetime-local">
-            <p id="defaultCutoffNote" class="small-note">If left blank, the public form automatically shuts down 12 hours after the competition day ends.</p>
-          </div>
+          <button class="help-link" type="button" data-help="public-close">How public closing works</button>
         </div>
-        <div class="entry-control-actions">
-          <button id="saveEntryControlsBtn" type="button">Save Closing Time</button>
-          <button id="clearScheduleBtn" type="button" class="secondary">Use Default Final Shutdown</button>
+
+        <div class="setting-block">
+          <label for="autoCloseAt">Custom closing date/time</label>
+          <input id="autoCloseAt" type="datetime-local">
+          <p id="defaultCutoffNote" class="small-note">If left blank, the public form automatically shuts down 12 hours after the competition day ends.</p>
+          <div class="entry-control-actions">
+            <button id="saveEntryControlsBtn" type="button">Save Closing Time</button>
+            <button id="clearScheduleBtn" type="button" class="secondary">Use Default Final Shutdown</button>
+          </div>
           <span id="entryControlsStatus" class="status"></span>
         </div>
       </div>
-
-      <p class="small-note">This public link is different from your private Entry Manager link. Sharing it does not give competitors access to this page.</p>
     </section>
 
-    <section class="card">
-      <div class="section-head">
-        <div><h2>Grades / Events</h2><p>Manual entry is always available here. Public entry availability and optional limits are controlled separately for each grade.</p></div>
+    <section class="card grade-builder-card">
+      <div class="section-head compact-head">
+        <div>
+          <p class="eyebrow">Setup</p>
+          <h2>Add Grade / Event</h2>
+        </div>
       </div>
       <div class="grade-add-row">
         <select id="gradeSelect">
-          <option>Open</option><option>Senior</option><option>Intermediate</option><option>Junior</option><option>Women's</option><option value="__custom__">Custom Grade...</option>
+          <option>Open</option><option>Senior</option><option>Intermediate</option><option>Junior</option><option>Novice</option><option>Women's</option><option value="__custom__">Custom Grade / Event...</option>
         </select>
         <input id="customGrade" class="hidden" type="text" placeholder="Custom grade / event">
         <button id="addGradeBtn" type="button">Add Grade / Event</button>
+      </div>
+    </section>
+
+    <section class="card entries-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Competition Entries</p>
+          <h2>Grades / Events</h2>
+          <p>Reorder the cards to match your running order. Collapse grades you are not working on.</p>
+        </div>
       </div>
       <div id="gradesContainer"></div>
     </section>
 
     <section class="card actions-card">
-      <button id="submitAllBtn" type="button" class="primary">Submit All Checked-In Entries</button>
+      <button id="submitAllBtn" type="button" class="primary">Submit All Confirmed Entries</button>
       <button id="downloadAllBtn" type="button" class="secondary">Download Full Roster</button>
       <button id="loadBtn" type="button" class="secondary">Load Roster File</button>
       <input id="loadFile" type="file" accept="application/json" hidden>
@@ -96,6 +108,26 @@
       <h3 id="dialogTitle">Confirm</h3>
       <div id="dialogBody"></div>
       <div id="dialogActions" class="dialog-actions"></div>
+    </div>
+  </dialog>
+
+  <dialog id="detailsDialog">
+    <div class="dialog-card details-dialog-card">
+      <div class="dialog-title-row">
+        <div>
+          <p class="eyebrow">Competitor Details</p>
+          <h3 id="detailsName">Competitor</h3>
+        </div>
+        <button id="closeDetailsBtn" class="secondary compact-btn" type="button">Close</button>
+      </div>
+      <div class="grid two">
+        <div><label for="detailsPhone">Phone</label><input id="detailsPhone" type="tel" placeholder="Optional"></div>
+        <div><label for="detailsEmail">Email</label><input id="detailsEmail" type="email" placeholder="Optional"></div>
+      </div>
+      <p id="detailsSource" class="small-note"></p>
+      <div class="dialog-actions">
+        <button id="saveDetailsBtn" type="button" class="primary">Save Details</button>
+      </div>
     </div>
   </dialog>
 
