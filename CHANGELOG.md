@@ -15,7 +15,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - The frontend now sends the write, then polls for the actual backend result before treating the operation as confirmed.
 - This replaces the old “request sent = assume saved” behaviour without changing the central competition data model.
 - The pattern matches the already-proven send-then-confirm approach used by the public competitor form.
-- A safe production manager-write smoke test remains to be completed.
+- **Production smoke test passed:** a competitor was changed from Not Confirmed to Confirmed, the page was refreshed, and the Confirmed state remained correctly saved after reload.
 
 ### Shared Booking Receiver ↔ Entry Manager secret rotated
 
