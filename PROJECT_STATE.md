@@ -34,7 +34,9 @@ As at 28 August 2026:
 - Deposit Paid → Awaiting Deposit switching has been verified on the test competition.
 - Cancel Competition has been verified to move the test competition out of the Active portal list.
 - Public competitor access has been verified blocked after cancellation.
-- Manager access has also now been verified blocked after cancellation: the GitHub Pages bootstrap guard prevents the cached organiser UI from loading and shows **Competition unavailable** instead.
+- Manager access has also been verified blocked after cancellation: the GitHub Pages bootstrap guard prevents the cached organiser UI from loading and shows **Competition unavailable** instead.
+- **Restore Competition has now been verified:** the same test competition returned to the Active list and the same manager/public links both worked again after restore.
+- Permanent Delete verification is the remaining lifecycle test.
 
 ## Relationship to Booking Pack
 
@@ -185,9 +187,9 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 Continue using **Entry Manager Test Competition** only:
 
-1. Restore Competition and confirm the same manager/public links work again;
-2. Cancel again;
-3. Delete Permanently;
-4. confirm the competition disappears from the portal and both old links remain blocked.
+1. Cancel the restored test competition again;
+2. Delete Permanently from the Cancelled view;
+3. confirm the competition disappears from the portal;
+4. confirm both old manager/public links remain blocked after deletion.
 
 Do not delete a real booking while this verification is being completed.
