@@ -4,6 +4,14 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Tidy public-entry route — end-to-end submission passed
+
+- Submitted a test competitor through `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`.
+- The submission was accepted and returned an Entry Reference.
+- The competitor receipt email was received successfully.
+- The new competitor appeared under the correct grade in the matching competition's Entry Manager.
+- This completes the remaining end-to-end verification for the tidy public-entry route.
+
 ### Tidy manager/public links — live verification passed
 
 - Verified the private Entry Manager tidy route keeps `https://entries.waimarinoshears.com/manage/?c=<20-char-code>` visible and opens the correct competition.
