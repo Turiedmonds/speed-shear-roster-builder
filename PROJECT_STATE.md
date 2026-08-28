@@ -35,7 +35,9 @@ As at 29 August 2026:
 - Portal Version 6 post-deploy refresh passed: the active competition list and card loaded normally again with no ReferenceError.
 - **Tidy manager/public URLs are verified live:** Portal/Open links load the correct competition while keeping `/manage/?c=...` and `/enter/?c=...` visible in the browser.
 - **Full tidy public-entry submission is verified end-to-end:** a test competitor submitted through `/enter/?c=...`, received an entry reference and email receipt, and appeared under the correct grade in the matching Entry Manager.
-- Entry Manager source now includes a **30-second silent background public-entry check** that only requests a visible refresh when a genuinely new public-entry competitor is detected and the organiser is not editing.
+- Entry Manager includes a **30-second silent background public-entry check** that only requests a visible refresh when a genuinely new public-entry competitor is detected and the organiser is not editing.
+- **Background-refresh live smoke test passed:** unfinished Manual Entry text remained untouched across polling; a new public competitor was held while that draft remained and then appeared automatically after the manual competitor was added.
+- Responsive grade-control source is now committed: manual Add Competitor, per-grade Online Entries On/Off, entry-limit save, competitor text edits and competitor-detail save avoid unnecessary whole-grade redraws while still using Version 7 backend confirmation.
 - Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
@@ -143,6 +145,20 @@ The Close Entries confirmation explains that the grade will close to new public 
 
 Compatibility note: organiser-facing **Confirmed** is stored in the existing `checkedIn` field.
 
+### Responsive grade controls
+
+The Entry Manager now uses the same immediate-response principle as the already-smoothed Confirmed button for common grade actions:
+
+- Manual **Add Competitor** inserts the competitor row and updates counts immediately, clears the quick-entry fields and returns focus to the competitor-name field while the central save confirmation continues in the background;
+- if that save fails, the new row is removed and the typed name/town are restored;
+- per-grade control wording is **`<Grade> — Online Entries`** with simple **On / Off** buttons;
+- On / Off changes update immediately without rebuilding the grade card, then retain the Version 7 confirmed-save check and roll back if the backend rejects the change;
+- optional entry-limit changes update the grade summary immediately and roll back on save failure;
+- editing an existing competitor name/town no longer redraws the grade after a successful save;
+- saving competitor phone/email details no longer redraws the entire grade after the dialog closes.
+
+The backend confirmation delay still exists by design, but it should no longer make these common controls feel frozen or cause a visible whole-card flicker.
+
 ### Silent public-entry background refresh
 
 `entry-manager-live-refresh.js` is loaded by `entry-manager-bootstrap.js` for token-based Entry Manager sessions.
@@ -156,7 +172,7 @@ Compatibility note: organiser-facing **Confirmed** is stored in the existing `ch
 - network/background-check failures are intentionally silent and never interrupt the organiser;
 - manual/no-token mode does not poll.
 
-This is intentionally conservative: protecting unfinished organiser input takes priority over showing a new public entry immediately. A live smoke test is still required after GitHub Pages publishes the change.
+Live verification passed using unfinished Manual Entry text: the draft remained untouched across the poll interval, a new online competitor did not interrupt the draft, and the new competitor appeared automatically after the manual entry was completed.
 
 ## Manager cancellation access gate
 
@@ -229,7 +245,7 @@ Lifecycle-control verification used the separate **Entry Manager Test Competitio
 
 ## Next planned work
 
-1. After GitHub Pages publishes the safe background-refresh change, smoke-test it on a test competition by leaving the Entry Manager open, submitting a public entry from another browser/tab and confirming it appears within about 30 seconds without manually refreshing.
-2. During that test, leave unfinished text in a Manual Entry field across at least one polling interval and confirm the text is not cleared or changed.
+1. After GitHub Pages publishes the responsive grade-control change, smoke-test Manual Add Competitor and per-grade Online Entries On / Off on the test competition and confirm the controls react immediately without a visible whole-card redraw.
+2. Continue the broader Entry Manager button regression pass if any other controls still feel slow or unnecessarily redraw the page.
 
-The Version 7 manager-write verification, tidy manager/public URL verification, full tidy public-entry submission test and shared-secret rotation are complete.
+The Version 7 manager-write verification, tidy manager/public URL verification, full tidy public-entry submission test, shared-secret rotation and 30-second polling safety test are complete.
