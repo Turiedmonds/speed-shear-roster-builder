@@ -188,7 +188,7 @@
     function operatorAction(reference, action, value) {
       if (actionBusy) return;
 
-      if (action === 'cancelCompetition' && !confirm('Cancel this competition?\n\nIts Entry Manager and public entry links will be blocked after the Entry Manager backend update is deployed.')) return;
+      if (action === 'cancelCompetition' && !confirm('Cancel this competition?\n\nIts Entry Manager and public entry links will be blocked immediately.')) return;
       if (action === 'restoreCompetition' && !confirm('Restore this competition and make its links available again?')) return;
       if (action === 'deleteCompetition' && !confirm('Permanently delete this cancelled competition?\n\nThis moves its central competition record to Google Drive Trash. This cannot be undone from the portal.')) return;
 
