@@ -4,6 +4,21 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### Entry Manager — Close Entries wording and smoother confirmation UI
+
+- Replaced organiser-facing **Submit Confirmed Entries** wording with normal Speed Shear industry language: **Close Entries** for a grade and **Close All Entries** for the overall action.
+- Previously closed grades now show **Update Closed Entries** when an updated confirmed roster needs to be sent.
+- Updated the close-entry confirmation to explain that the grade will close to new public entries and the confirmed roster will be sent to Waimarino Shears.
+- If competitors are not Confirmed, the warning now lists them and offers **Close Entries Anyway** rather than technical submission wording.
+- Kept the existing backend submission payload, JSON/PDF generation and Waimarino Shears handoff unchanged.
+- Changed the Manual Entry helper text to: **“Add competitor entries manually if they were not received through the online entry form.”**
+- Changed Checked / Paid confirmation handling so the clicked button colour/text and the grade Confirmed count update immediately while the existing central save continues.
+- Removed the full grade-card `render()` from the Checked / Paid toggle path, eliminating the previous delayed colour change and visible card/page flicker.
+- Reduced the desktop/tablet width of the grade **Close Entries** button so it sizes to its label with sensible padding/minimum width; it remains full width on small/mobile layouts.
+- Bumped Entry Manager frontend asset versions in `entry-manager.html` / `entry-manager-bootstrap.js` so browsers fetch the updated JS/CSS.
+- This is a GitHub Pages frontend change only; no Entry Manager Apps Script redeployment is required.
+- Production GitHub Pages publication/browser smoke testing remains pending before these UI changes are marked verified live.
+
 ### Normal browser profile — verified
 
 - Created a dedicated Microsoft Edge profile named **Waimarino Shears** for normal Operator Portal use.
