@@ -204,8 +204,8 @@ function operatorPortalSummary_(record) {
     lifecycle: operatorPortalLifecycle_(competition.date),
     rosterStatus: rosterStatus,
     grades: gradeSummaries,
-    entryManagerUrl: control.status === 'active' ? operatorPortalShortUrl_('m.html?c=', record.managerToken) : '',
-    competitorEntryUrl: control.status === 'active' ? operatorPortalShortUrl_('e.html?c=', record.publicEntryToken) : '',
+    entryManagerUrl: control.status === 'active' ? operatorPortalShortUrl_('manage/?c=', record.managerToken) : '',
+    competitorEntryUrl: control.status === 'active' ? operatorPortalShortUrl_('enter/?c=', record.publicEntryToken) : '',
     updatedAt: operatorPortalLatestTimestamp_(record)
   };
 }
@@ -257,15 +257,4 @@ function operatorPortalNumberOrNull_(value) {
   if (value === '' || value === null || typeof value === 'undefined') return null;
   const number = Number(value);
   return isFinite(number) && number > 0 ? number : null;
-}
-
-function operatorPortalSort_(a, b) {
-  if (a.operatorStatus !== b.operatorStatus) return a.operatorStatus === 'cancelled' ? 1 : -1;
-
-  const rank = { Today: 0, Upcoming: 1, Past: 2, 'Unknown date': 3 };
-  const rankDiff = (rank[a.lifecycle] || 0) - (rank[b.lifecycle] || 0);
-  if (rankDiff) return rankDiff;
-
-  if (a.lifecycle === 'Past') return String(b.date).localeCompare(String(a.date));
-  return String(a.date).localeCompare(String(b.date));
 }
