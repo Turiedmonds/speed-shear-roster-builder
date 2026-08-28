@@ -25,20 +25,21 @@ Public page: **Speed Shear Competitor Entry**
 As at 29 August 2026:
 
 - GitHub Pages custom domain is active: `entries.waimarinoshears.com`.
-- **Speed Shear Entry Manager Apps Script: Version 6 live.**
-- Version 6 was deployed on **29 August 2026 at 5:29 AM** using the existing Entry Manager web-app deployment URL.
+- **Speed Shear Entry Manager Apps Script: Version 7 live.**
+- Version 7 retains the existing web-app deployment URL and adds confirmed manager-write result checking.
 - **System Operator Portal Apps Script: Version 6 live.**
-- Portal Version 5 was deployed at **5:33 AM** for tidy `/manage/` and `/enter/` link generation, but its `Code.gs` was missing the existing `operatorPortalSort_()` helper and therefore failed while loading the competition list.
-- **Portal Version 6 was deployed at 5:46 AM on 29 August 2026** using the existing Portal web-app deployment URL and restores the missing sort helper while retaining the tidy links.
+- Portal Version 5 was deployed for tidy `/manage/` and `/enter/` link generation, but its `Code.gs` was missing the existing `operatorPortalSort_()` helper and therefore failed while loading the competition list.
+- Portal Version 6 restored the missing sort helper while retaining the tidy links.
 - The Portal Version 5 regression affected portal rendering only; it did **not** alter or delete any central competition records.
-- **Portal Version 6 post-deploy refresh passed:** the active competition list and card loaded normally again with no ReferenceError.
+- Portal Version 6 post-deploy refresh passed: the active competition list and card loaded normally again with no ReferenceError.
 - Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
 - The live Portal custom Cancel / Restore / Delete dialogs are verified from Version 4 and retained in Version 6.
 - A dedicated normal Edge profile signed into only the authorised Waimarino Shears Google account successfully opens the private Portal without InPrivate.
 - Entry Manager UI improvements are user smoke-tested successfully: Manual Entry helper wording, **Close Entries / Close All Entries**, smoother Checked / Paid confirmation state, and narrower desktop Close Entries button.
-- Tidy GitHub Pages routes are published and current Apps Script deployments now generate them directly.
+- Tidy GitHub Pages routes are published and current Apps Script deployments generate them directly.
+- The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. The replacement value is intentionally not stored in GitHub or chat.
 
 ## Preferred competition-specific links
 
@@ -70,9 +71,23 @@ Published routes:
 
 Current competition tokens did not change.
 
-### Version 6 Entry Manager link generation
+### Version 7 Entry Manager backend
 
-Live `google-apps-script/WebApp.gs` now generates `/manage/` and `/enter/` directly for new booking handoffs and returned competition links. It retains the Version 5 lifecycle/availability guard and the existing web-app deployment URL.
+Live `google-apps-script/WebApp.gs` retains the Version 6 `/manage/` and `/enter/` link generation and the Version 5 lifecycle/availability guard.
+
+Version 7 adds reliable manager-write acknowledgement without changing the stored competition format:
+
+- frontend manager writes still use the Apps Script-compatible `fetch(..., mode:'no-cors')` POST;
+- each write includes a unique `requestId`;
+- the backend runs the write and stores its real success/error result briefly in Apps Script Cache;
+- `GET action=manager-write-result` retrieves that result using the same manager token + request ID;
+- the frontend polls for the result before treating the operation as confirmed;
+- the cache key is a SHA-256 digest of manager token + request ID, so raw tokens are not used as cache-key text;
+- cached results expire after 300 seconds.
+
+This uses the same send-then-confirm pattern already proven by the public competitor-entry flow, while preserving the existing Apps Script transport compatibility.
+
+A production manager-write smoke test is still pending.
 
 ### Version 6 Portal link generation and repair
 
@@ -100,7 +115,9 @@ Booking Pack repository:
 
 The Booking Receiver sends an authorised setup payload containing Booking Reference, competition name/date/venue, selected competition contact, grades/events and Programme of Events.
 
-The shared Script Property is `ENTRY_MANAGER_SHARED_SECRET`. Never put its value in GitHub, documentation, emails or user-facing output.
+The shared Script Property is `ENTRY_MANAGER_SHARED_SECRET`. It is configured separately in both Apps Script projects and the values must match. Never put its value in GitHub, documentation, emails or user-facing output.
+
+The shared secret was rotated on 29 August 2026 in both projects after the prior development value had been exposed in conversation history. No Apps Script deployment is required for Script Property changes.
 
 A booking can create its central competition record before the organiser pays the required deposit. Waimarino Shears does **not** release the organiser Entry Manager link until the required booking/deposit stage has been met.
 
@@ -119,8 +136,6 @@ Checked / Paid confirmation updates the clicked button and grade Confirmed count
 The Close Entries confirmation explains that the grade will close to new public entries and the confirmed roster will be sent to Waimarino Shears. If competitors are not Confirmed, the warning lists them and offers **Close Entries Anyway**.
 
 Compatibility note: organiser-facing **Confirmed** is stored in the existing `checkedIn` field.
-
-Private manager writes still use `fetch(..., mode:'no-cors')`, so an already-open manager page cannot reliably read backend error responses. Version 6 still rejects cancelled competition writes server-side.
 
 ## Manager cancellation access gate
 
@@ -191,16 +206,11 @@ Latest full Entry Manager/public-entry verification before the tidy-link change 
 
 Lifecycle-control verification used the separate **Entry Manager Test Competition**, which has now been permanently deleted as intended.
 
-## Security note
-
-The shared Booking Receiver ↔ Entry Manager secret was exposed during development/testing conversation history. Rotate it in both Apps Script projects before final production-hardening. Never record the replacement value here.
-
 ## Next planned work
 
-1. Confirm the live Version 6 Portal **Open Entry Manager** and **Open Public Entry** buttons keep `/manage/?c=...` and `/enter/?c=...` visible in the browser.
-2. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
-3. Improve the private Entry Manager write path so it no longer depends on `fetch(..., mode:'no-cors')` and can show reliable backend save errors.
-4. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
-5. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+1. Smoke-test one safe Entry Manager write on Version 7 and confirm the new acknowledgement path works.
+2. Confirm the live Portal **Open Entry Manager** and **Open Public Entry** buttons keep `/manage/?c=...` and `/enter/?c=...` visible in the browser.
+3. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
+4. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
 
-Known technical item: private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The lifecycle guard itself is verified and does not depend on resolving that limitation.
+The previous shared-secret rotation item is complete.
