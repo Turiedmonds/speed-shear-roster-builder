@@ -14,7 +14,7 @@ Public side: **Speed Shear Competitor Entry**
 
 ## Start here in a new ChatGPT/Codex session
 
-Before making changes, read in this order:
+Read in this order before making changes:
 
 1. `README.md`
 2. `PROJECT_STATE.md`
@@ -30,25 +30,19 @@ The organiser handles competitor enquiries, entry changes/cancellations, payment
 
 ## Competition creation
 
-The separate Booking Pack repository is:
+Booking Pack repository:
 
 `Turiedmonds/waimarino-shears-speed-shear-booking-pack`
 
 After a booking submission, the Booking Receiver sends an authorised setup payload containing the Booking Reference, competition details, selected competition contact, grades/events and Programme of Events.
 
-The Entry Manager backend creates/reuses one central Google Drive competition record and generates:
+The Entry Manager backend creates/reuses one central Google Drive competition record and generates private organiser and public competitor links. The central Drive record remains the source of truth.
 
-- private organiser/Entry Manager token;
-- public competitor-entry token;
-- short private/public links.
+A record may exist before the required deposit is paid. Waimarino Shears decides when the organiser’s private Entry Manager link is released.
 
-The central Drive records remain the source of truth.
+## Links
 
-## Link structure
-
-Custom domain:
-
-`https://entries.waimarinoshears.com`
+Custom domain: `https://entries.waimarinoshears.com`
 
 Short links:
 
@@ -59,18 +53,7 @@ Legacy full-token links remain supported.
 
 ## Private Entry Manager
 
-Current organiser features include:
-
-- booking-loaded competition details;
-- grades/events and Programme viewer;
-- manual and bulk competitor entry;
-- public/online competitors in the same tables;
-- competitor contact details;
-- Confirmed / Not Confirmed status;
-- global/custom public closing controls;
-- per-grade opening and entry limits;
-- grade reorder/collapse;
-- JSON/PDF roster submission workflow.
+Current organiser features include booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitor entry, competitor contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade opening/entry limits, grade reorder/collapse and JSON/PDF roster submission.
 
 The internal compatibility field remains `checkedIn` even where the UI says Confirmed.
 
@@ -94,53 +77,40 @@ Portal source:
 
 The portal uses the same central Drive records; it does not create a second competition database.
 
-### Current operator workflow
+### Live Version 2
 
-A booking record may exist before the required deposit is paid.
+The portal is now deployed as **Version 2** and remains restricted to **Only myself**.
 
-The portal source now supports:
+Version 2 includes:
 
-- **Awaiting Deposit** / **Deposit Paid** status;
+- **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled competition status;
-- search and lifecycle/status filtering;
+- active/cancelled/lifecycle filtering;
 - entry/grade/roster summaries;
-- Open Entry Manager / Open Public Entry buttons for active competitions;
+- Open Entry Manager / Open Public Entry for active competitions;
 - **Cancel Competition**;
 - **Restore Competition**;
-- two-step **Delete Permanently** for cancelled records.
+- **Delete Permanently** only after cancellation;
+- fixed no-limit grade display.
 
-Marking a deposit paid does **not** automatically send the organiser link. Waimarino Shears still decides when to release that private link.
+Marking a deposit paid does **not** automatically email or release the organiser Entry Manager link.
 
-### Cancellation and deletion protection
-
-Repository backend source now includes:
-
-- `google-apps-script/OperatorControlGuard.gs`
-- updated `google-apps-script/WebApp.gs`
-
-Once deployed, the backend guard rejects manager/public access when the central competition record is cancelled or moved to Google Drive Trash.
-
-Permanent deletion intentionally requires cancellation first. Deletion moves the central JSON record to Drive Trash. Old token mappings may remain internally, but the guard refuses to open a cancelled/trashed record. A stale trashed Booking Reference mapping is cleared if that reference is legitimately created again later.
+Functional Cancel / blocked-link / Restore / Delete testing is still required on a test competition before these controls are considered fully verified.
 
 ### Portal security
 
-The portal is a separate Google Apps Script web app from the public Entry Manager backend.
-
-Verified live portal deployment:
-
-- **Version 1 — 28 August 2026**;
+- separate Google Apps Script web app/project;
 - executes as the Waimarino Shears Google account;
-- **Who has access: Only myself**.
-
-Do not change it to unrestricted `Anyone` access.
+- **Who has access: Only myself**;
+- do not change it to unrestricted `Anyone` access.
 
 When several Google accounts are signed into one browser, Google can route the private Apps Script URL through the wrong account and show Page Not Found. Use a browser profile/session signed into the authorised Waimarino account rather than weakening access.
 
-## Backend
+## Entry Manager backend
 
 Google Apps Script project: **Speed Shear Entry Manager**
 
-Current verified live backend: **Version 4 — 28 August 2026**.
+Current live backend: **Version 5 — 28 August 2026**.
 
 Main source files:
 
@@ -148,41 +118,23 @@ Main source files:
 - `google-apps-script/EntryManager.gs`
 - `google-apps-script/EntryManagerV3.gs`
 - `google-apps-script/CompetitorEntryV4.gs`
-- `google-apps-script/OperatorControlGuard.gs` — repository source added for the next deployment.
+- `google-apps-script/OperatorControlGuard.gs`
 
-Required Script Property:
+Version 5 blocks manager/public access and writes for cancelled competitions and rejects trashed/deleted competition records. The existing web-app URL was retained.
 
-- `ENTRY_MANAGER_SHARED_SECRET`
+Required Script Property: `ENTRY_MANAGER_SHARED_SECRET`. Never commit or document its value.
 
-Never commit or document its value.
+## Cancellation/deletion model
 
-## Deployment status
+Cancel keeps the central record for history but blocks organiser/public access server-side. Restore reactivates the same record and tokens. Permanent delete requires cancellation first and moves the central competition JSON file to Google Drive Trash.
 
-### Live now
-
-- Entry Manager backend: **Version 4**.
-- System Operator Portal: **Version 1**, private and verified.
-
-### Repository source awaiting deployment
-
-The next update adds deposit/cancel/restore/delete controls and the backend cancellation guard.
-
-Deploy in this order:
-
-1. Add `OperatorControlGuard.gs` to the existing Entry Manager Apps Script project.
-2. Replace live `WebApp.gs` with the current repository version.
-3. Deploy the Entry Manager backend as a new version, retaining its existing web-app URL.
-4. Replace portal `Code.gs` and `Index.html` with the current repository versions.
-5. Deploy the portal as a new version while retaining **Only myself**.
-6. Test Cancel and Restore on a test competition before deleting test records.
-
-The portal update now writes to Drive, so Google may request updated Drive permission.
+Old token mappings may remain internally, but Version 5 checks the central file and refuses cancelled/trashed records.
 
 ## Important current limitation
 
-`entry-manager.js` still sends private manager writes using `fetch(..., mode:'no-cors')`. The browser cannot read/verify the backend response body. This remains a future robustness task.
+`entry-manager.js` still sends private manager writes using `fetch(..., mode:'no-cors')`. The browser cannot read/verify the backend response body. Version 5 still blocks cancelled competition writes server-side, but an already-open manager page may not show a clean error until refreshed/reopened.
 
-## Verified Entry Manager test
+## Verified Entry Manager baseline
 
 Latest full Entry Manager/public-entry verification used:
 
@@ -191,4 +143,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and legacy redirects were verified.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and legacy redirects were verified before the lifecycle-control update.
