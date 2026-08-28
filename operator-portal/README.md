@@ -13,12 +13,11 @@ It does **not** create a second competition database. It reads and updates the e
 ## Current live state — 28 August 2026
 
 - **System Operator Portal: Version 3 live**.
-- Version 2 was an intermediate deployment containing the updated `Code.gs` only.
-- Version 3 contains both updated portal files (`Code.gs` and `Index.html`).
 - Executes as the Waimarino Shears Google account.
 - Access remains **Only myself**.
 - **Speed Shear Entry Manager backend: Version 5 live** with cancellation/deletion guard.
-- Portal Version 3 / backend Version 5 still require functional Cancel / blocked-link / Restore / Delete testing on a test competition before the lifecycle controls are treated as fully verified.
+- Deposit / Cancel / blocked-link / Restore / Delete lifecycle is fully verified end-to-end using a disposable test competition.
+- The repository `Index.html` now contains the uniform custom Waimarino confirmation dialogs, but that source is **not live yet**. A new portal Apps Script version must still be deployed.
 
 ## Booking / deposit workflow
 
@@ -54,6 +53,22 @@ This moves the central competition JSON file to Google Drive Trash. Version 5 re
 
 If the same Booking Reference is later legitimately created again, the setup guard clears a stale trashed reference mapping so a new record can be created.
 
+## Uniform custom dialogs
+
+The portal originally used browser `confirm()` for Cancel, Restore and Delete. In an Apps Script page this produced the cluttered browser heading such as **“An embedded page at … script.googleusercontent.com says”**.
+
+Repository `google-apps-script/Index.html` now replaces those three native browser confirmations with the common Waimarino Shears modal pattern:
+
+- white rounded card;
+- Waimarino red top accent;
+- dark overlay;
+- Waimarino Shears branding;
+- consistent action layout;
+- red destructive confirmation for Cancel/Delete;
+- no change to the tested lifecycle server calls.
+
+Google sign-in, Drive authorisation and other platform security prompts cannot be restyled.
+
 ## Security model
 
 The portal is a **separate Google Apps Script web app** from the public Entry Manager backend.
@@ -69,7 +84,7 @@ Do not change the portal to unrestricted `Anyone` access.
 Portal Apps Script project:
 
 - `google-apps-script/Code.gs` — server-side Drive reader/writer and operator controls.
-- `google-apps-script/Index.html` — operator interface.
+- `google-apps-script/Index.html` — operator interface and custom confirmation dialogs.
 
 Existing public Entry Manager Apps Script project:
 
@@ -100,30 +115,52 @@ The portal supports search, active/cancelled/lifecycle filtering and refresh.
 
 ## Deployment
 
-Portal deployments should retain:
+Portal deployments must retain:
 
 - Execute as: Waimarino Shears Google account;
 - Who has access: **Only myself**.
 
-When portal source changes, replace the complete `Code.gs` and `Index.html`, Save to Drive, then edit the existing deployment and choose **New version** so the web-app URL stays the same.
+For the current pending dialog update:
 
-The portal writes to Drive, so Google may request Drive authorisation when scopes change.
+1. replace the complete live Apps Script `Index.html` with the repository version;
+2. save to Drive;
+3. open **Deploy → Manage deployments**;
+4. edit the existing deployment;
+5. choose **New version**;
+6. deploy while retaining the existing URL and **Only myself** access;
+7. update repo docs with the new live version after confirmation.
 
-## Multiple Google accounts
+`Code.gs` does not need to change for this popup-only update.
 
-Because the portal is `Only myself`, a browser signed into several Google accounts can sometimes route the Apps Script URL using the wrong account and show Google Page Not Found / unable-to-open-file.
+The portal writes to Drive, so Google may request Drive authorisation when scopes change. This dialog-only update does not add a new Drive scope.
 
-Use a browser profile or session signed into the authorised Waimarino Shears account. Do not weaken portal access to solve this routing issue.
+## Normal browser use / multiple Google accounts
 
-## Required verification after Version 3
+InPrivate was used during setup because a normal browser session with several signed-in Google accounts could route the `Only myself` Apps Script URL through the wrong account.
 
-Use a test competition only:
+**InPrivate is not required for normal portal use.**
 
-1. confirm the Version 3 UI shows Awaiting Deposit / Deposit Paid and operator controls;
-2. mark Deposit Paid and back to Awaiting Deposit;
+Recommended setup:
+
+1. create a dedicated Edge or Chrome browser profile for Waimarino Shears;
+2. sign only the authorised Waimarino Shears Google account into that profile;
+3. bookmark the portal URL there.
+
+This keeps the portal private while avoiding the multi-account routing problem. Do not weaken portal access to solve it.
+
+## Verified lifecycle baseline
+
+The full lifecycle was tested on **Entry Manager Test Competition** and passed:
+
+1. Awaiting Deposit → Deposit Paid;
+2. Deposit Paid → Awaiting Deposit;
 3. Cancel Competition;
-4. verify its old manager and public links are blocked;
-5. Restore Competition and verify those same links work again;
-6. Cancel again;
-7. Delete Permanently;
-8. verify the record disappears from the portal and old links remain blocked.
+4. old manager/public links blocked;
+5. Restore Competition;
+6. same manager/public links worked again;
+7. Cancel again;
+8. Delete Permanently;
+9. record disappeared from the portal;
+10. old manager/public links remained blocked after deletion.
+
+That disposable test competition has now been permanently removed. Do not repeat destructive testing on real bookings.
