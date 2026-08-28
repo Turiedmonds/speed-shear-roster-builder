@@ -4,6 +4,12 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### Tidy competition-specific links — GitHub Pages published
+
+- GitHub Pages deployment containing the new `/enter/`, `/manage/`, legacy forwarders and Entry Manager tidy Copy Link changes completed successfully.
+- The tidy public and manager routes are therefore published on `entries.waimarinoshears.com` and are ready for browser smoke testing.
+- Apps Script Version 5 / Portal Version 4 remain the current live Apps Script deployments; their repository URL-generation changes still require separate later redeployments to make newly generated email/portal link strings use `/enter/` and `/manage/` directly.
+
 ### Tidy competition-specific links — source implemented
 
 - Added preferred public route: `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`.
@@ -19,7 +25,6 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Updated `google-apps-script/WebApp.gs` repository source so the next backend deployment generates `/manage/` and `/enter/` directly for booking handoffs and future returned links.
 - Updated `operator-portal/google-apps-script/Code.gs` repository source so the next Portal deployment generates `/manage/` and `/enter/` directly.
 - The Apps Script URL-generation source changes are **not yet live** until those two Apps Script projects are redeployed; the GitHub Pages routes/forwarders do not require those redeployments to work.
-- GitHub Pages deployment verification and a safe browser/public-entry smoke test are the next checks.
 
 ### Entry Manager — Close Entries update user-verified
 
@@ -72,7 +77,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 - Audited the current Entries / Entry Manager / Public Competitor Entry / Operator Portal frontend popup behaviour.
 - Confirmed organiser **Entry Manager** already uses custom `<dialog>` confirmation/workflow screens and does not use browser-native confirmation boxes for its current workflows.
-- Confirmed **Speed Shear Competitor Entry** already uses a custom privacy dialog and no native browser confirmation path was found.
+- Confirmed **Speed Shear Competitor Entry** already uses a custom privacy dialog and no browser-native confirmation path was found.
 - Identified the remaining native browser popups in the **System Operator Portal**: Cancel Competition, Restore Competition and Delete Permanently.
 - Updated `operator-portal/google-apps-script/Index.html` so those three actions now use a uniform Waimarino Shears custom dialog.
 - New dialog presentation uses a white rounded card, Waimarino red top accent, dark overlay, consistent action layout and red destructive confirmation.
