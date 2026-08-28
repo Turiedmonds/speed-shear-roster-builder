@@ -4,6 +4,20 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Entry Manager — safe 30-second public-entry background refresh
+
+- Added `entry-manager-live-refresh.js` and loaded it through `entry-manager-bootstrap.js` for token-based Entry Manager sessions.
+- The manager now checks the shared competition record every **30 seconds** for genuinely new public-entry competitors.
+- Polling is silent: if nothing has changed, there is no page redraw, status message, flash or visible activity.
+- A visible refresh is only requested when a new `source: public-entry` competitor ID is detected that is not already displayed.
+- The refresh is deferred while the organiser is using an input/textarea/select, a dialog is open, a grade is being dragged, or Manual Entry/Bulk Entry draft text exists.
+- This specifically protects unfinished competitor names and other typed text from the historical problem where polling could rebuild a roster UI and wipe a partially typed entry.
+- When a pending refresh becomes safe, it uses the existing trusted Refresh Entries path so the internal Entry Manager state and displayed rows remain consistent.
+- Scroll position is preserved around the refresh.
+- Background network errors are ignored silently so polling cannot interrupt competition operation.
+- Manual/no-token mode does not poll.
+- Live smoke testing remains to be completed after GitHub Pages publishes this source change.
+
 ### Tidy public-entry route — end-to-end submission passed
 
 - Submitted a test competitor through `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`.
