@@ -6,8 +6,8 @@
   <title>Waimarino Shears Speed Shear Entries — Entry Manager</title>
   <link rel="stylesheet" href="entry-manager.css">
   <link rel="stylesheet" href="entry-manager-polish.css?v=1.0.0">
-  <link rel="stylesheet" href="entry-manager-workflow.css?v=1.0.0">
-  <link rel="stylesheet" href="entry-manager-tidy.css?v=1.0.0">
+  <link rel="stylesheet" href="entry-manager-workflow.css?v=1.1.0">
+  <link rel="stylesheet" href="entry-manager-tidy.css?v=1.1.0">
   <style>
     body.entry-manager-access-checking { visibility: hidden; }
   </style>
@@ -100,7 +100,7 @@
     </section>
 
     <section class="card actions-card">
-      <button id="submitAllBtn" type="button" class="primary submit-all-primary">Submit All Confirmed Entries</button>
+      <button id="submitAllBtn" type="button" class="primary submit-all-primary">Close All Entries</button>
       <button id="downloadAllBtn" type="button" class="secondary">Download Full Roster</button>
       <button id="loadBtn" type="button" class="secondary">Load Roster File</button>
       <input id="loadFile" type="file" accept="application/json" hidden>
@@ -151,16 +151,16 @@
 
   <dialog id="submissionWorkflowDialog">
     <div class="dialog-card submission-workflow-card">
-      <h3 id="submissionWorkflowTitle">Submit confirmed entries?</h3>
+      <h3 id="submissionWorkflowTitle">Close entries?</h3>
       <div id="submissionWorkflowBody"></div>
       <div class="dialog-actions">
         <button id="submissionWorkflowCancel" type="button" class="secondary">Go Back</button>
-        <button id="submissionWorkflowConfirm" type="button" class="workflow-confirm-btn">Continue to Submit</button>
+        <button id="submissionWorkflowConfirm" type="button" class="workflow-confirm-btn">Close Entries</button>
       </div>
     </div>
   </dialog>
 
   <div id="savedToast" class="saved-toast">Saved ✓</div>
-  <script src="entry-manager-bootstrap.js?v=20260828-guard1"></script>
+  <script src="entry-manager-bootstrap.js?v=20260828-entry1"></script>
 </body>
 </html>
