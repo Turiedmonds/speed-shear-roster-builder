@@ -74,7 +74,8 @@ function entryManagerSaveCompetitorEntryV4_(payload) {
         grade,
         competitorName: name,
         entryReference: String(duplicate.entryReference || ''),
-        confirmationEmailSent: false
+        confirmationEmailSent: false,
+        organiserNotificationSent: false
       };
     }
 
@@ -110,6 +111,10 @@ function entryManagerSaveCompetitorEntryV4_(payload) {
     confirmationEmailSent = entryManagerSendCompetitorReceiptV4_(recordForReceipt, savedEntry);
   }
 
+  const organiserNotificationSent = savedEntry
+    ? entryManagerSendNewEntryNotificationV4_(recordForReceipt, savedEntry)
+    : false;
+
   return {
     ok: true,
     duplicate: false,
@@ -118,6 +123,7 @@ function entryManagerSaveCompetitorEntryV4_(payload) {
     competitorName: name,
     entryReference: savedEntry && savedEntry.entryReference || '',
     confirmationEmailSent,
+    organiserNotificationSent,
     gradeStatus: entryManagerGradeSummary_(recordForReceipt, grade)
   };
 }
@@ -134,6 +140,104 @@ function entryManagerNextPublicEntryReferenceV4_(record) {
   record.nextPublicEntryNumber = next;
   const bookingReference = String(record.bookingReference || 'ENTRY').replace(/\s+/g, '-');
   return bookingReference + '-E' + String(next).padStart(3, '0');
+}
+
+function entryManagerSendNewEntryNotificationV4_(record, entry) {
+  if (!record || !entry) return false;
+
+  const competition = record.competition || {};
+  const organiser = record.organiser || {};
+  const competitionName = String(competition.name || 'Speed Shear Competition');
+  const organiserName = String(organiser.name || 'Competition organiser');
+  const organiserEmail = String(organiser.email || '').trim();
+  const backupEmail = String(ENTRY_MANAGER_SETTINGS.receiverEmail || '').trim();
+  const to = organiserEmail || backupEmail;
+
+  if (!to) return false;
+
+  const managerUrl = entryManagerUrl_(record.managerToken || '');
+  const totalEntries = Array.isArray(record.competitors) ? record.competitors.length : 0;
+  const gradeEntries = (record.competitors || []).filter(item =>
+    entryManagerClean_(item.grade).toLowerCase() === entryManagerClean_(entry.grade).toLowerCase()
+  ).length;
+
+  const subject = 'New competitor entry — ' + competitionName + ' — ' + entry.grade + ' — ' + entry.name;
+  const html = `
+    <div style="font-family:Arial,sans-serif;color:#171717;max-width:700px;margin:0 auto">
+      <div style="border-top:7px solid #EB1D27;padding:22px 0 8px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#EB1D27">New Competitor Entry</div>
+        <h2 style="margin:7px 0 4px;font-size:24px">${entryManagerHtmlEscapeV4_(competitionName)}</h2>
+        <div style="color:#666">${entryManagerHtmlEscapeV4_(entryManagerReceiptDateV4_(competition.date))}${competition.venue ? ' · ' + entryManagerHtmlEscapeV4_(competition.venue) : ''}</div>
+      </div>
+
+      <p style="line-height:1.5">A new online competitor entry has been received. The competition organiser is responsible for managing this entry.</p>
+
+      <table style="border-collapse:collapse;width:100%;margin:12px 0 18px">
+        ${entryManagerEmailRowV4_('Competitor', entry.name)}
+        ${entryManagerEmailRowV4_('Hometown', entry.town || '—')}
+        ${entryManagerEmailRowV4_('Grade / event', entry.grade)}
+        ${entryManagerEmailRowV4_('Phone', entry.phone || '—')}
+        ${entryManagerEmailRowV4_('Email', entry.email || '—')}
+        ${entryManagerEmailRowV4_('Entry reference', entry.entryReference || '—')}
+        ${entryManagerEmailRowV4_('Entries in this grade', String(gradeEntries))}
+        ${entryManagerEmailRowV4_('Total entries', String(totalEntries))}
+      </table>
+
+      <div style="margin:22px 0">
+        <a href="${entryManagerHtmlEscapeV4_(managerUrl)}" style="display:inline-block;background:#EB1D27;color:#fff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:6px">Open Entry Manager</a>
+      </div>
+
+      <div style="background:#f5f5f5;border-left:5px solid #666;padding:13px 15px;margin:18px 0;line-height:1.5">
+        <strong>Competition administration</strong><br>
+        Entry changes, cancellations, payments, check-in and competitor enquiries are handled by the competition organiser. Waimarino Shears provides and operates the entry/timing system and receives this message as a backup where applicable.
+      </div>
+
+      <div style="border-top:1px solid #ddd;margin-top:24px;padding-top:14px;font-size:12px;line-height:1.5;color:#777">
+        Competition contact: ${entryManagerHtmlEscapeV4_(organiserName)}${organiserEmail ? ' · ' + entryManagerHtmlEscapeV4_(organiserEmail) : ''}
+      </div>
+    </div>`;
+
+  const body = [
+    'New competitor entry — ' + competitionName,
+    '',
+    'Competitor: ' + entry.name,
+    'Hometown: ' + (entry.town || '—'),
+    'Grade / event: ' + entry.grade,
+    'Phone: ' + (entry.phone || '—'),
+    'Email: ' + (entry.email || '—'),
+    'Entry reference: ' + (entry.entryReference || '—'),
+    'Entries in this grade: ' + gradeEntries,
+    'Total entries: ' + totalEntries,
+    '',
+    'Open Entry Manager: ' + managerUrl,
+    '',
+    'The competition organiser manages entry changes, cancellations, payments, check-in and competitor enquiries. Waimarino Shears provides and operates the system.'
+  ].join('\n');
+
+  try {
+    const message = {
+      to,
+      subject,
+      body,
+      htmlBody: html,
+      name: 'Waimarino Shears Entry System',
+      replyTo: organiserEmail || backupEmail
+    };
+
+    if (
+      organiserEmail &&
+      backupEmail &&
+      organiserEmail.toLowerCase() !== backupEmail.toLowerCase()
+    ) {
+      message.bcc = backupEmail;
+    }
+
+    MailApp.sendEmail(message);
+    return true;
+  } catch (error) {
+    console.error('New competitor entry notification email failed:', error);
+    return false;
+  }
 }
 
 function entryManagerSendCompetitorReceiptV4_(record, entry) {
@@ -180,10 +284,13 @@ function entryManagerSendCompetitorReceiptV4_(record, entry) {
         ${entryManagerEmailRowV4_('Email', organiserEmail || '—')}
       </table>
 
-      <p style="line-height:1.5;color:#444">If you have a question about your entry, payment, check-in or the competition, contact the competition organiser above.</p>
+      <div style="background:#f5f5f5;border-left:5px solid #666;padding:13px 15px;margin:18px 0;line-height:1.5">
+        <strong>Need to change or cancel your entry?</strong><br>
+        Contact the competition organiser above. The organiser also handles entry fees, check-in and other competition questions.
+      </div>
 
       <div style="border-top:1px solid #ddd;margin-top:24px;padding-top:14px;font-size:12px;line-height:1.5;color:#777">
-        This email was sent automatically by the Waimarino Shears online entry system used by ${entryManagerHtmlEscapeV4_(competitionName)}. Waimarino Shears provides the entry and timing system; the competition organiser manages entries, entry fees, check-in, draws and competition administration.
+        This email was sent automatically by the Waimarino Shears online entry system used by ${entryManagerHtmlEscapeV4_(competitionName)}. Waimarino Shears provides and operates the entry and timing system; the competition organiser manages entries, changes and cancellations, entry fees, check-in, draws and competition administration.
       </div>
     </div>`;
 
@@ -202,7 +309,9 @@ function entryManagerSendCompetitorReceiptV4_(record, entry) {
     'Phone: ' + (organiserPhone || '—'),
     'Email: ' + (organiserEmail || '—'),
     '',
-    'This message was sent automatically by the Waimarino Shears online entry system.'
+    'For entry changes, cancellations, payment, check-in or competition questions, contact the competition organiser above.',
+    '',
+    'This message was sent automatically by the Waimarino Shears online entry system. Waimarino Shears provides and operates the system; the competition organiser manages the competition and its entries.'
   ].join('\n');
 
   try {
