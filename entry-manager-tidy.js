@@ -1,6 +1,38 @@
 (() => {
   let scheduled = false;
 
+  function tidyPublicEntryUrl_(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+
+    try {
+      const url = new URL(text, location.origin);
+      let code = '';
+
+      if (/\/enter\/?$/i.test(url.pathname)) {
+        code = String(url.searchParams.get('c') || '').trim().toLowerCase();
+      } else if (/\/e\.html$/i.test(url.pathname)) {
+        code = String(url.searchParams.get('c') || '').trim().toLowerCase();
+      } else if (/\/competitor-entry\.html$/i.test(url.pathname)) {
+        const token = String(url.searchParams.get('entry') || '').trim().toLowerCase();
+        if (/^[a-f0-9]{20,}$/.test(token)) code = token.slice(0, 20);
+      }
+
+      if (/^[a-f0-9]{20}$/.test(code)) {
+        return `${location.origin}/enter/?c=${encodeURIComponent(code)}`;
+      }
+    } catch (_) {}
+
+    return text;
+  }
+
+  function setGlobalStatus_(message, kind) {
+    const status = document.getElementById('globalStatus');
+    if (!status) return;
+    status.className = `status ${kind || ''}`;
+    status.textContent = message || '';
+  }
+
   function polishEntryManager_() {
     scheduled = false;
 
@@ -11,6 +43,12 @@
         'routine-setup-note',
         text === 'Competition details, entries, grade status and confirmation state are loaded from the shared competition record.'
       );
+    }
+
+    const publicEntryUrl = document.getElementById('publicEntryUrl');
+    if (publicEntryUrl && publicEntryUrl.value) {
+      const tidyUrl = tidyPublicEntryUrl_(publicEntryUrl.value);
+      if (tidyUrl && tidyUrl !== publicEntryUrl.value) publicEntryUrl.value = tidyUrl;
     }
 
     document.querySelectorAll('.grade-card').forEach(card => {
@@ -54,6 +92,27 @@
     scheduled = true;
     requestAnimationFrame(polishEntryManager_);
   }
+
+  document.addEventListener('click', async event => {
+    const button = event.target.closest('#copyPublicEntryBtn');
+    if (!button) return;
+
+    const input = document.getElementById('publicEntryUrl');
+    const tidyUrl = tidyPublicEntryUrl_(input && input.value);
+    if (!tidyUrl) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    if (input) input.value = tidyUrl;
+
+    try {
+      await navigator.clipboard.writeText(tidyUrl);
+      setGlobalStatus_('Public competitor entry link copied.', 'ok');
+    } catch (_) {
+      setGlobalStatus_('Could not copy the link automatically.', 'warn');
+    }
+  }, true);
 
   const observer = new MutationObserver(schedulePolish_);
   observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
