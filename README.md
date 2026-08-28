@@ -51,13 +51,26 @@ Short links:
 
 Legacy full-token links remain supported.
 
+## Uniform dialogs
+
+Application-controlled dialogs across the Waimarino Shears Speed Shear web tools use a common visual pattern: white rounded panel, Waimarino red top accent, dark overlay, consistent heading/actions and clearly marked destructive confirmation.
+
+Audit result in this repository:
+
+- Entry Manager already uses custom `<dialog>` confirmation/workflow screens rather than browser `confirm()` popups;
+- Public Competitor Entry already uses a custom privacy dialog and no browser-native confirmation path was found;
+- the System Operator Portal was the remaining area using browser-native confirmations for Cancel / Restore / Delete;
+- the repository portal `Index.html` has now been updated to custom Waimarino dialogs, but that change is not live until a new Apps Script portal version is deployed.
+
+Google/browser permission, sign-in and authorisation prompts cannot be restyled by the application.
+
 ## Private Entry Manager
 
 Current organiser features include booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitor entry, competitor contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade opening/entry limits, grade reorder/collapse and JSON/PDF roster submission.
 
 The internal compatibility field remains `checkedIn` even where the UI says Confirmed.
 
-The Entry Manager frontend now uses `entry-manager-bootstrap.js` to validate token access against the live backend before loading the organiser application. This prevents a cancelled/deleted competition from displaying a stale cached organiser screen from localStorage after the backend has rejected access.
+The Entry Manager frontend uses `entry-manager-bootstrap.js` to validate token access against the live backend before loading the organiser application. This prevents a cancelled/deleted competition from displaying a stale cached organiser screen from localStorage after the backend has rejected access.
 
 If token validation fails, the organiser application scripts are not loaded and the page shows the competition as unavailable. No-token/manual mode retains its historical local-only behaviour.
 
@@ -81,9 +94,9 @@ Portal source:
 
 The portal uses the same central Drive records; it does not create a second competition database.
 
-### Live Version 3
+### Current live Version 3
 
-The portal is deployed as **Version 3** and remains restricted to **Only myself**.
+The live portal remains **Version 3** and is restricted to **Only myself**.
 
 Version 3 includes:
 
@@ -97,18 +110,24 @@ Version 3 includes:
 - **Delete Permanently** only after cancellation;
 - fixed no-limit grade display.
 
+The deposit/cancel/restore/delete lifecycle, including stale-link blocking after permanent deletion, has been fully verified using a disposable test competition.
+
+### Pending portal dialog deployment
+
+Repository `Index.html` now replaces the browser-native Cancel / Restore / Delete confirmations with uniform custom Waimarino dialogs. To make that source live, replace the complete `Index.html` in the private portal Apps Script project and deploy a **new version** of the existing web-app deployment. Keep **Only myself** and the existing URL.
+
 Marking a deposit paid does **not** automatically email or release the organiser Entry Manager link.
 
-Deposit status changes and initial cancellation have been tested on the test competition. Public competitor access was confirmed blocked after cancellation. Manager cancellation re-testing is required after the new GitHub Pages bootstrap guard is published.
-
-### Portal security
+### Portal security and normal browser access
 
 - separate Google Apps Script web app/project;
 - executes as the Waimarino Shears Google account;
 - **Who has access: Only myself**;
 - do not change it to unrestricted `Anyone` access.
 
-When several Google accounts are signed into one browser, Google can route the private Apps Script URL through the wrong account and show Page Not Found. Use a browser profile/session signed into the authorised Waimarino account rather than weakening access.
+InPrivate was used for testing only because a browser session with several Google accounts could route the private Apps Script URL through the wrong account. InPrivate is not required for normal operation.
+
+Recommended normal setup: create a dedicated Edge/Chrome profile signed only into the authorised Waimarino Shears Google account and bookmark the portal there.
 
 ## Entry Manager backend
 
