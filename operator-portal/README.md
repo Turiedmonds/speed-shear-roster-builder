@@ -12,11 +12,13 @@ It does **not** create a second competition database. It reads and updates the e
 
 ## Current live state — 28 August 2026
 
-- **System Operator Portal: Version 2 live**.
+- **System Operator Portal: Version 3 live**.
+- Version 2 was an intermediate deployment containing the updated `Code.gs` only.
+- Version 3 contains both updated portal files (`Code.gs` and `Index.html`).
 - Executes as the Waimarino Shears Google account.
 - Access remains **Only myself**.
 - **Speed Shear Entry Manager backend: Version 5 live** with cancellation/deletion guard.
-- Version 2/Version 5 still require functional Cancel / blocked-link / Restore / Delete testing on a test competition before the lifecycle controls are treated as fully verified.
+- Portal Version 3 / backend Version 5 still require functional Cancel / blocked-link / Restore / Delete testing on a test competition before the lifecycle controls are treated as fully verified.
 
 ## Booking / deposit workflow
 
@@ -113,14 +115,15 @@ Because the portal is `Only myself`, a browser signed into several Google accoun
 
 Use a browser profile or session signed into the authorised Waimarino Shears account. Do not weaken portal access to solve this routing issue.
 
-## Required verification after Version 2
+## Required verification after Version 3
 
 Use a test competition only:
 
-1. mark Deposit Paid and back to Awaiting Deposit;
-2. Cancel Competition;
-3. verify its old manager and public links are blocked;
-4. Restore Competition and verify those same links work again;
-5. Cancel again;
-6. Delete Permanently;
-7. verify the record disappears from the portal and old links remain blocked.
+1. confirm the Version 3 UI shows Awaiting Deposit / Deposit Paid and operator controls;
+2. mark Deposit Paid and back to Awaiting Deposit;
+3. Cancel Competition;
+4. verify its old manager and public links are blocked;
+5. Restore Competition and verify those same links work again;
+6. Cancel again;
+7. Delete Permanently;
+8. verify the record disappears from the portal and old links remain blocked.
