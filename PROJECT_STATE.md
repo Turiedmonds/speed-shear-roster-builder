@@ -34,9 +34,10 @@ As at 28 August 2026:
 - Deposit Paid → Awaiting Deposit switching has been verified on the test competition.
 - Cancel Competition has been verified to move the test competition out of the Active portal list.
 - Public competitor access has been verified blocked after cancellation.
-- Manager access has also been verified blocked after cancellation: the GitHub Pages bootstrap guard prevents the cached organiser UI from loading and shows **Competition unavailable** instead.
-- **Restore Competition has now been verified:** the same test competition returned to the Active list and the same manager/public links both worked again after restore.
-- Permanent Delete verification is the remaining lifecycle test.
+- Manager access has also now been verified blocked after cancellation: the GitHub Pages bootstrap guard prevents the cached organiser UI from loading and shows **Competition unavailable** instead.
+- **Restore Competition has been verified:** the same test competition returned to the Active list and the same manager/public links both worked again after restore.
+- **Delete Permanently has now been verified at the portal/data-list level:** after re-cancelling the test competition, deletion succeeded, the Cancelled view showed 0 competitions, and the normal portal list dropped from 3 competitions to 2.
+- Final lifecycle check still required: refresh the old deleted test manager/public links and confirm both remain blocked after deletion.
 
 ## Relationship to Booking Pack
 
@@ -185,11 +186,10 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-Continue using **Entry Manager Test Competition** only:
+Final lifecycle check on the now-deleted **Entry Manager Test Competition**:
 
-1. Cancel the restored test competition again;
-2. Delete Permanently from the Cancelled view;
-3. confirm the competition disappears from the portal;
-4. confirm both old manager/public links remain blocked after deletion.
+1. refresh the old private Entry Manager tab and confirm it remains unavailable;
+2. refresh the old public competitor-entry tab and confirm it remains unavailable;
+3. once both pass, record the full deposit/cancel/restore/delete lifecycle as verified.
 
 Do not delete a real booking while this verification is being completed.
