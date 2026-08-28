@@ -31,6 +31,7 @@ As at 29 August 2026:
 - Portal Version 5 was deployed at **5:33 AM** for tidy `/manage/` and `/enter/` link generation, but its `Code.gs` was missing the existing `operatorPortalSort_()` helper and therefore failed while loading the competition list.
 - **Portal Version 6 was deployed at 5:46 AM on 29 August 2026** using the existing Portal web-app deployment URL and restores the missing sort helper while retaining the tidy links.
 - The Portal Version 5 regression affected portal rendering only; it did **not** alter or delete any central competition records.
+- **Portal Version 6 post-deploy refresh passed:** the active competition list and card loaded normally again with no ReferenceError.
 - Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
@@ -38,7 +39,6 @@ As at 29 August 2026:
 - A dedicated normal Edge profile signed into only the authorised Waimarino Shears Google account successfully opens the private Portal without InPrivate.
 - Entry Manager UI improvements are user smoke-tested successfully: Manual Entry helper wording, **Close Entries / Close All Entries**, smoother Checked / Paid confirmation state, and narrower desktop Close Entries button.
 - Tidy GitHub Pages routes are published and current Apps Script deployments now generate them directly.
-- Post-deploy refresh verification of Portal Version 6 is still pending.
 
 ## Preferred competition-specific links
 
@@ -78,7 +78,7 @@ Live `google-apps-script/WebApp.gs` now generates `/manage/` and `/enter/` direc
 
 Live `operator-portal/google-apps-script/Code.gs` generates `/manage/` and `/enter/` directly for the Portal's **Open Entry Manager** and **Open Public Entry** buttons.
 
-Version 5 accidentally omitted `operatorPortalSort_()` while changing those generated URL strings. The live portal then showed `ReferenceError: operatorPortalSort_ is not defined` and zero competitions because loading stopped before the list could be returned. Version 6 restores the exact existing sort helper. No competition record writes occur in that failed sort path, so the central records were unaffected.
+Version 5 accidentally omitted `operatorPortalSort_()` while changing those generated URL strings. The live portal then showed `ReferenceError: operatorPortalSort_ is not defined` and zero competitions because loading stopped before the list could be returned. Version 6 restores the exact existing sort helper. No competition record writes occur in that failed sort path, so the central records were unaffected. The subsequent Version 6 refresh confirmed normal competition listing was restored.
 
 ## Central competition records
 
@@ -161,7 +161,7 @@ Marking **Deposit Paid** does not automatically send or release the organiser li
 
 `operatorControl` is stored in the same competition JSON record, with fields such as `status`, `depositStatus`, `cancelledAt` and `updatedAt`.
 
-Permanent delete moves the central JSON file to Google Drive Trash and intentionally requires Cancel first.
+Permanent delete moves the central competition JSON file to Google Drive Trash and intentionally requires Cancel first.
 
 ## Security boundary
 
@@ -197,10 +197,10 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-1. Refresh the live Portal Version 6 and confirm the competition list loads without the Version 5 `operatorPortalSort_` error.
-2. Confirm the live Version 6 Portal buttons open `/manage/` and `/enter/` directly.
-3. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
-4. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
-5. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
+1. Confirm the live Version 6 Portal **Open Entry Manager** and **Open Public Entry** buttons keep `/manage/?c=...` and `/enter/?c=...` visible in the browser.
+2. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
+3. Improve the private Entry Manager write path so it no longer depends on `fetch(..., mode:'no-cors')` and can show reliable backend save errors.
+4. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
+5. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
 
 Known technical item: private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The lifecycle guard itself is verified and does not depend on resolving that limitation.
