@@ -4,7 +4,16 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root { font-family: Arial, sans-serif; color: #17202a; background: #f4f6f7; }
+    :root {
+      font-family: Arial, sans-serif;
+      color: #17202a;
+      background: #f4f6f7;
+      --ws-red: #EB1D27;
+      --ws-danger: #a11212;
+      --ws-line: #d8d8d8;
+    }
+
+    * { box-sizing: border-box; }
     body { margin: 0; background: #f4f6f7; }
     .shell { max-width: 1100px; margin: 0 auto; padding: 20px; }
     .header { margin-bottom: 18px; }
@@ -12,17 +21,44 @@
     h1 { margin: 5px 0 6px; font-size: 28px; }
     .muted { color: #667085; font-size: 14px; }
     .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0; }
-    input, select, button, a.button { min-height: 42px; border-radius: 8px; border: 1px solid #cfd4dc; font: inherit; }
+
+    input, select, button, a.button {
+      min-height: 42px;
+      border-radius: 8px;
+      border: 1px solid #cfd4dc;
+      font: inherit;
+    }
+
     input { flex: 1 1 260px; padding: 0 12px; background: #fff; }
     select { padding: 0 10px; background: #fff; }
-    button, a.button { padding: 0 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: #fff; color: #17202a; font-weight: 700; }
+
+    button, a.button {
+      padding: 0 14px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      color: #17202a;
+      font-weight: 700;
+    }
+
     button:disabled { opacity: .55; cursor: wait; }
     a.primary { background: #17202a; color: #fff; border-color: #17202a; }
     button.danger { color: #a11212; border-color: #d6a3a3; }
     button.delete { background: #a11212; color: #fff; border-color: #a11212; }
     .summary { margin: 12px 0 18px; font-weight: 700; }
     .grid { display: grid; gap: 14px; }
-    .card { background: #fff; border: 1px solid #e1e5ea; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e1e5ea;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+
     .card.cancelled { border-color: #d6a3a3; background: #fffafa; }
     .card-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
     .card h2 { margin: 0 0 5px; font-size: 21px; }
@@ -31,7 +67,14 @@
     .badge { padding: 5px 8px; border-radius: 999px; background: #eef1f4; font-size: 12px; font-weight: 700; white-space: nowrap; }
     .badge.paid { background: #e8f5ec; }
     .badge.cancelled { background: #f7dede; color: #851111; }
-    .details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 16px; margin: 14px 0; }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px 16px;
+      margin: 14px 0;
+    }
+
     .label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #667085; margin-bottom: 3px; }
     .value { font-size: 14px; word-break: break-word; }
     .counts { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
@@ -44,11 +87,84 @@
     .empty, .error, .loading, .notice { background: #fff; padding: 18px; border-radius: 10px; border: 1px solid #e1e5ea; }
     .error { color: #9b1c1c; }
     .notice { margin-bottom: 12px; }
+
+    /* Uniform Waimarino Shears modal styling. */
+    .ws-dialog {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: #171717;
+      width: min(540px, calc(100vw - 28px));
+      max-width: 540px;
+    }
+
+    .ws-dialog::backdrop { background: rgba(0,0,0,.58); }
+
+    .ws-dialog-card {
+      background: #fff;
+      border: 1px solid var(--ws-line);
+      border-top: 7px solid var(--ws-red);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.30);
+    }
+
+    .ws-dialog-eyebrow {
+      margin: 0 0 6px;
+      color: var(--ws-red);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .ws-dialog-title { margin: 0; font-size: 24px; line-height: 1.18; }
+    .ws-dialog-message { margin: 14px 0 0; color: #333; line-height: 1.5; white-space: pre-line; }
+
+    .ws-dialog-detail {
+      margin: 12px 0 0;
+      padding: 11px 12px;
+      border-left: 4px solid var(--ws-red);
+      border-radius: 8px;
+      background: #fff6f6;
+      color: #4b2a2c;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .ws-dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #ececec;
+    }
+
+    .ws-dialog-button {
+      min-height: 42px;
+      border-radius: 9px;
+      padding: 9px 15px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .ws-dialog-cancel { border: 1px solid #888; background: #fff; color: #222; }
+    .ws-dialog-confirm { border: 1px solid #111; background: #111; color: #fff; }
+    .ws-dialog[data-tone="danger"] .ws-dialog-confirm { border-color: var(--ws-danger); background: var(--ws-danger); }
+    .ws-dialog[data-tone="warning"] .ws-dialog-confirm { border-color: var(--ws-red); background: var(--ws-red); }
+
     @media (max-width: 600px) {
       .shell { padding: 14px; }
       .card-head { display: block; }
       .badges { justify-content: flex-start; margin-top: 10px; }
       .actions a.button, .actions button { width: 100%; }
+      .ws-dialog-card { padding: 18px; }
+      .ws-dialog-title { font-size: 21px; }
+      .ws-dialog-actions { display: grid; grid-template-columns: 1fr; }
+      .ws-dialog-button { width: 100%; }
     }
   </style>
 </head>
@@ -77,6 +193,19 @@
     <div id="summary" class="summary"></div>
     <div id="content" class="loading">Loading competitions…</div>
   </main>
+
+  <dialog id="operatorConfirmDialog" class="ws-dialog" aria-labelledby="operatorConfirmTitle" aria-describedby="operatorConfirmMessage">
+    <div class="ws-dialog-card">
+      <p class="ws-dialog-eyebrow">Waimarino Shears</p>
+      <h2 id="operatorConfirmTitle" class="ws-dialog-title">Confirm action</h2>
+      <div id="operatorConfirmMessage" class="ws-dialog-message"></div>
+      <div id="operatorConfirmDetail" class="ws-dialog-detail" hidden></div>
+      <div class="ws-dialog-actions">
+        <button id="operatorConfirmCancel" class="ws-dialog-button ws-dialog-cancel" type="button">Cancel</button>
+        <button id="operatorConfirmOk" class="ws-dialog-button ws-dialog-confirm" type="button">Continue</button>
+      </div>
+    </div>
+  </dialog>
 
   <script>
     let allCompetitions = [];
@@ -109,8 +238,14 @@
         if (status === 'cancelled' && item.operatorStatus !== 'cancelled') return false;
         if ((status === 'Today' || status === 'Upcoming' || status === 'Past') && (item.operatorStatus !== 'active' || item.lifecycle !== status)) return false;
         if (!search) return true;
-        return [item.name, item.venue, item.bookingReference, item.organiser && item.organiser.name, item.organiser && item.organiser.email, item.organiser && item.organiser.phone]
-          .join(' ').toLowerCase().includes(search);
+        return [
+          item.name,
+          item.venue,
+          item.bookingReference,
+          item.organiser && item.organiser.name,
+          item.organiser && item.organiser.email,
+          item.organiser && item.organiser.phone
+        ].join(' ').toLowerCase().includes(search);
       });
 
       document.getElementById('summary').textContent = filtered.length + ' competition' + (filtered.length === 1 ? '' : 's');
@@ -148,8 +283,10 @@
         : actionButton('Mark Deposit Paid', 'setDeposit', item.bookingReference, 'paid');
 
       const operatorButtons = isCancelled
-        ? actionButton('Restore Competition', 'restoreCompetition', item.bookingReference) + actionButton('Delete Permanently', 'deleteCompetition', item.bookingReference, '', 'delete')
-        : depositButton + actionButton('Cancel Competition', 'cancelCompetition', item.bookingReference, '', 'danger');
+        ? actionButton('Restore Competition', 'restoreCompetition', item.bookingReference) +
+          actionButton('Delete Permanently', 'deleteCompetition', item.bookingReference, '', 'delete')
+        : depositButton +
+          actionButton('Cancel Competition', 'cancelCompetition', item.bookingReference, '', 'danger');
 
       return '<section class="card' + (isCancelled ? ' cancelled' : '') + '">' +
         '<div class="card-head">' +
@@ -185,12 +322,95 @@
         'onclick="operatorAction(\'' + escapeJs(reference) + '\',\'' + escapeJs(action) + '\',\'' + escapeJs(value || '') + '\')">' + escapeHtml(label) + '</button>';
     }
 
-    function operatorAction(reference, action, value) {
+    function operatorConfirmation(action) {
+      if (action === 'cancelCompetition') {
+        return showOperatorConfirm({
+          title: 'Cancel this competition?',
+          message: 'This will immediately block both the private Entry Manager link and the public competitor-entry link.',
+          detail: 'You can restore the competition later if the cancellation is reversed.',
+          confirmLabel: 'Cancel Competition',
+          cancelLabel: 'Keep Competition',
+          tone: 'danger'
+        });
+      }
+
+      if (action === 'restoreCompetition') {
+        return showOperatorConfirm({
+          title: 'Restore this competition?',
+          message: 'The existing Entry Manager and public competitor-entry links will become available again.',
+          confirmLabel: 'Restore Competition',
+          cancelLabel: 'Keep Cancelled',
+          tone: 'default'
+        });
+      }
+
+      if (action === 'deleteCompetition') {
+        return showOperatorConfirm({
+          title: 'Permanently delete this competition?',
+          message: 'This moves the central competition record to Google Drive Trash and removes it from the Operator Portal.',
+          detail: 'The old Entry Manager and public entry links will remain blocked. This action cannot be undone from the portal.',
+          confirmLabel: 'Delete Permanently',
+          cancelLabel: 'Keep Competition',
+          tone: 'danger'
+        });
+      }
+
+      return Promise.resolve(true);
+    }
+
+    function showOperatorConfirm(options) {
+      const dialog = document.getElementById('operatorConfirmDialog');
+      const title = document.getElementById('operatorConfirmTitle');
+      const message = document.getElementById('operatorConfirmMessage');
+      const detail = document.getElementById('operatorConfirmDetail');
+      const cancel = document.getElementById('operatorConfirmCancel');
+      const confirm = document.getElementById('operatorConfirmOk');
+
+      title.textContent = options.title || 'Confirm action';
+      message.textContent = options.message || '';
+      detail.textContent = options.detail || '';
+      detail.hidden = !options.detail;
+      cancel.textContent = options.cancelLabel || 'Cancel';
+      confirm.textContent = options.confirmLabel || 'Continue';
+      dialog.dataset.tone = options.tone || 'default';
+
+      return new Promise(resolve => {
+        let settled = false;
+
+        function cleanup() {
+          cancel.removeEventListener('click', cancelClick);
+          confirm.removeEventListener('click', confirmClick);
+          dialog.removeEventListener('cancel', dialogCancel);
+          dialog.removeEventListener('click', backdropClick);
+        }
+
+        function finish(value) {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          if (dialog.open) dialog.close();
+          resolve(value);
+        }
+
+        function cancelClick() { finish(false); }
+        function confirmClick() { finish(true); }
+        function dialogCancel(event) { event.preventDefault(); finish(false); }
+        function backdropClick(event) { if (event.target === dialog) finish(false); }
+
+        cancel.addEventListener('click', cancelClick);
+        confirm.addEventListener('click', confirmClick);
+        dialog.addEventListener('cancel', dialogCancel);
+        dialog.addEventListener('click', backdropClick);
+        dialog.showModal();
+        window.setTimeout(() => cancel.focus(), 0);
+      });
+    }
+
+    async function operatorAction(reference, action, value) {
       if (actionBusy) return;
 
-      if (action === 'cancelCompetition' && !confirm('Cancel this competition?\n\nIts Entry Manager and public entry links will be blocked immediately.')) return;
-      if (action === 'restoreCompetition' && !confirm('Restore this competition and make its links available again?')) return;
-      if (action === 'deleteCompetition' && !confirm('Permanently delete this cancelled competition?\n\nThis moves its central competition record to Google Drive Trash. This cannot be undone from the portal.')) return;
+      const confirmed = await operatorConfirmation(action);
+      if (!confirmed) return;
 
       actionBusy = true;
       render();
@@ -222,7 +442,10 @@
 
     function showMessage(text, isError) {
       const box = document.getElementById('message');
-      if (!text) { box.innerHTML = ''; return; }
+      if (!text) {
+        box.innerHTML = '';
+        return;
+      }
       box.innerHTML = '<div class="' + (isError ? 'error' : 'notice') + '">' + escapeHtml(text) + '</div>';
     }
 
