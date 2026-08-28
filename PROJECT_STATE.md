@@ -33,6 +33,7 @@ As at 29 August 2026:
 - Portal Version 6 restored the missing sort helper while retaining the tidy links.
 - The Portal Version 5 regression affected portal rendering only; it did **not** alter or delete any central competition records.
 - Portal Version 6 post-deploy refresh passed: the active competition list and card loaded normally again with no ReferenceError.
+- **Tidy manager/public URLs are verified live:** Portal/Open links load the correct competition while keeping `/manage/?c=...` and `/enter/?c=...` visible in the browser.
 - Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
@@ -96,6 +97,8 @@ Live `operator-portal/google-apps-script/Code.gs` generates `/manage/` and `/ent
 
 Version 5 accidentally omitted `operatorPortalSort_()` while changing those generated URL strings. The live portal then showed `ReferenceError: operatorPortalSort_ is not defined` and zero competitions because loading stopped before the list could be returned. Version 6 restores the exact existing sort helper. No competition record writes occur in that failed sort path, so the central records were unaffected. The subsequent Version 6 refresh confirmed normal competition listing was restored.
 
+Live tidy-link verification also passed: the private manager button opens the correct competition at `/manage/?c=...`, and the public entry button opens the same competition's public form at `/enter/?c=...`, with the short URLs remaining visible.
+
 ## Central competition records
 
 The source of truth remains one JSON record per competition in Google Drive folder:
@@ -148,7 +151,7 @@ Production testing confirmed cancelled and permanently deleted manager links sho
 
 Collects competitor name, hometown, grade/event, phone/email and privacy acknowledgement. At least one contact method is required. Successful entries save centrally, can receive an entry reference, send a competitor receipt, notify the organiser and send Waimarino Shears a backup copy where applicable.
 
-The next live check is a safe test submission through the new tidy `/enter/?c=...` route to confirm it arrives in the correct competition.
+The tidy `/enter/?c=...` route itself is verified to resolve and display the correct competition. A full safe public form submission through that tidy route remains optional if further end-to-end entry testing is wanted.
 
 ## System Operator Portal — Version 6 live
 
@@ -177,7 +180,7 @@ Marking **Deposit Paid** does not automatically send or release the organiser li
 
 `operatorControl` is stored in the same competition JSON record, with fields such as `status`, `depositStatus`, `cancelledAt` and `updatedAt`.
 
-Permanent delete moves the central competition JSON file to Google Drive Trash and intentionally requires Cancel first.
+Permanent delete moves the central JSON file to Google Drive Trash and intentionally requires Cancel first.
 
 ## Security boundary
 
@@ -209,8 +212,7 @@ Lifecycle-control verification used the separate **Entry Manager Test Competitio
 
 ## Next planned work
 
-1. Confirm the live Portal **Open Entry Manager** and **Open Public Entry** buttons keep `/manage/?c=...` and `/enter/?c=...` visible in the browser.
-2. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
-3. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+1. Optionally smoke-test a full public competitor submission through the tidy `/enter/?c=...` route; route resolution itself is already verified.
+2. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
 
-The previous Version 7 manager-write verification and shared-secret rotation items are complete.
+The Version 7 manager-write verification, tidy manager/public URL verification and shared-secret rotation items are complete.
