@@ -142,7 +142,7 @@
       const organiser = item.organiser || {};
       const grades = (item.grades || []).map(function (grade) {
         let text = escapeHtml(grade.name) + ': ' + grade.count;
-        if (grade.limit !== null) text += ' / ' + grade.limit;
+        if (grade.limit != null && grade.limit !== '') text += ' / ' + grade.limit;
         if (grade.submitted) text += ' · submitted';
         return '<span class="grade">' + text + '</span>';
       }).join('');
