@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Speed Shear Competitor Entry</title>
+  <meta property="og:title" content="Speed Shear Competitor Entry">
+  <meta property="og:description" content="Open the competition entry form to enter a Speed Shear competition.">
+  <style>
+    html,body{margin:0;width:100%;height:100%;font-family:Segoe UI,system-ui,-apple-system,Arial,sans-serif;background:#f4f4f4;color:#111}
+    .loading-card{max-width:560px;margin:12vh auto;background:#fff;border:1px solid #ddd;border-top:6px solid #EB1D27;border-radius:14px;padding:24px;box-shadow:0 3px 14px rgba(0,0,0,.08)}
+    .loading-card h1{font-size:22px;margin:0 0 8px}.loading-card p{line-height:1.5;color:#555;margin:0}
+    #entryFrame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#f4f4f4}
+    [hidden]{display:none!important}
+  </style>
+</head>
+<body>
+  <main id="loadingCard" class="loading-card">
+    <h1>Opening competitor entry…</h1>
+    <p id="status">Please wait while we open the correct competition entry form.</p>
+  </main>
+  <iframe id="entryFrame" title="Speed Shear Competitor Entry" hidden></iframe>
+
+  <script>
+    (() => {
+      const ENDPOINT = 'https://script.google.com/macros/s/AKfycbwOkoKs3Is6bSumWYe71zH2mOEZ4h0YhY-PO2JPiea2WClMs6kIMjzYtEZmqg3MlgQC-w/exec';
+      const code = (new URLSearchParams(location.search).get('c') || '').trim().toLowerCase();
+      const status = document.getElementById('status');
+      const loadingCard = document.getElementById('loadingCard');
+      const frame = document.getElementById('entryFrame');
+
+      if (!/^[a-f0-9]{20}$/.test(code)) {
+        status.textContent = 'This competitor entry link is incomplete or invalid.';
+        return;
+      }
+
+      fetch(`${ENDPOINT}?action=resolve-public-code&code=${encodeURIComponent(code)}`, { cache: 'no-store' })
+        .then(response => response.json())
+        .then(result => {
+          if (!result || result.ok !== true || !result.token) {
+            throw new Error(result && result.error || 'This competition entry link could not be found.');
+          }
+
+          frame.addEventListener('load', () => {
+            loadingCard.hidden = true;
+            frame.hidden = false;
+          }, { once: true });
+
+          frame.src = `../competitor-entry.html?entry=${encodeURIComponent(result.token)}`;
+        })
+        .catch(error => {
+          status.textContent = error && error.message
+            ? error.message
+            : 'This competition entry form could not be opened.';
+        });
+    })();
+  </script>
+</body>
+</html>
