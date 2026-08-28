@@ -14,22 +14,13 @@
   </main>
   <script>
     (() => {
-      const ENDPOINT = 'https://script.google.com/macros/s/AKfycbwOkoKs3Is6bSumWYe71zH2mOEZ4h0YhY-PO2JPiea2WClMs6kIMjzYtEZmqg3MlgQC-w/exec';
-      const code = new URLSearchParams(location.search).get('c') || '';
+      const code = (new URLSearchParams(location.search).get('c') || '').trim().toLowerCase();
       const status = document.getElementById('status');
-      if (!code) {
-        status.textContent = 'This Entry Manager link is incomplete.';
+      if (!/^[a-f0-9]{20}$/.test(code)) {
+        status.textContent = 'This Entry Manager link is incomplete or invalid.';
         return;
       }
-      fetch(`${ENDPOINT}?action=resolve-manager-code&code=${encodeURIComponent(code)}`, { cache: 'no-store' })
-        .then(response => response.json())
-        .then(result => {
-          if (!result || result.ok !== true || !result.token) throw new Error(result && result.error || 'Entry Manager link not found.');
-          location.replace(`entry-manager.html?access=${encodeURIComponent(result.token)}`);
-        })
-        .catch(error => {
-          status.textContent = error && error.message ? error.message : 'This Entry Manager link could not be opened.';
-        });
+      location.replace(`manage/?c=${encodeURIComponent(code)}`);
     })();
   </script>
 </body>
