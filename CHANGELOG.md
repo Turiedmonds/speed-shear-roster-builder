@@ -4,6 +4,25 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### System Operator Portal — source implementation
+
+- Added a new private **System Operator Portal** source area under `operator-portal/`.
+- Added `operator-portal/google-apps-script/Code.gs` as a read-only server-side reader of the existing `Waimarino Speed Shear Entry Manager` Google Drive competition records.
+- Added `operator-portal/google-apps-script/Index.html` as the operator interface.
+- Added search, lifecycle filtering and refresh.
+- Added competition name/date/venue/Booking Reference/organiser contact display.
+- Added total entry, Confirmed and Not Confirmed counts.
+- Added per-grade counts, limits and submitted status.
+- Added public-entry Open / Closed status and roster submission status.
+- Added private **Open Entry Manager** and **Open Public Entry** buttons using the existing 20-character short-link model.
+- The portal does not create or maintain a second competition database.
+- Full manager/public tokens remain in the existing central Drive records; the operator interface receives only the existing short URLs it needs to open.
+- The portal is intentionally designed as a **separate Google Apps Script web app/project** from the public Entry Manager deployment, while its source remains in this repository.
+- Added `operator-portal/README.md` with deployment and security instructions.
+- Security requirement: deploy the operator web app with Google access restricted to the authorised Waimarino Shears operator/account; do not deploy it as an unrestricted `Anyone` web app.
+- Repository source is implemented but the separate operator Apps Script project is **not yet deployed live**.
+- No Booking Pack, public competitor-entry or existing organiser Entry Manager behaviour was changed by this implementation.
+
 ### System naming and branding
 
 - Renamed the visible private system branding to **Speed Shear Entries**.
@@ -85,7 +104,3 @@ Using **WS-2026-0016 — Speedshear o ngā Taniwha**:
 ### Known open technical item
 
 - Private manager writes still use `fetch(..., mode:'no-cors')`, so the manager frontend cannot read/validate backend response bodies. This remains a future robustness task.
-
-### Next planned project
-
-- Build the **System Operator Portal** for Waimarino Shears using the existing Entry Manager competition records/tokens rather than creating a second source of truth.
