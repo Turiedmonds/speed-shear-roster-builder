@@ -4,6 +4,28 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### Tidy competition-specific links — source implemented
+
+- Added preferred public route: `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`.
+- Added preferred private organiser route: `https://entries.waimarinoshears.com/manage/?c=<20-char-code>`.
+- Added `enter/index.html` and `manage/index.html` as same-origin shells that resolve the competition-specific 20-character code, load the existing long-token application internally, and keep the tidy short URL visible in the browser.
+- Kept the full manager/public tokens internal; the tidy URL exposes only the existing 20-character short code.
+- Preserved competition binding: public codes resolve only against `entryPublicToken_...`; manager codes resolve only against `entryManagerToken_...`; the resolver still requires exactly one match and applies the Version 5 lifecycle/availability guard.
+- Updated legacy `e.html?c=...` to forward to `/enter/?c=...`.
+- Updated legacy `m.html?c=...` to forward to `/manage/?c=...`.
+- Existing old short links therefore remain valid and automatically end up on the cleaner route.
+- Legacy full-token links remain supported.
+- Updated Entry Manager frontend tidy helper so the displayed/copied Public Entry Link is normalised to `/enter/?c=...`, even while the current live backend Version 5 still returns an old `e.html` or long-token URL.
+- Updated `google-apps-script/WebApp.gs` repository source so the next backend deployment generates `/manage/` and `/enter/` directly for booking handoffs and future returned links.
+- Updated `operator-portal/google-apps-script/Code.gs` repository source so the next Portal deployment generates `/manage/` and `/enter/` directly.
+- The Apps Script URL-generation source changes are **not yet live** until those two Apps Script projects are redeployed; the GitHub Pages routes/forwarders do not require those redeployments to work.
+- GitHub Pages deployment verification and a safe browser/public-entry smoke test are the next checks.
+
+### Entry Manager — Close Entries update user-verified
+
+- User smoke-tested the live Entry Manager after the Close Entries/smoother confirmation update and reported that it is working well.
+- Treat the Manual Entry helper wording, **Close Entries / Close All Entries** labels, Checked / Paid immediate state update and narrower desktop grade action as production-smoke-tested.
+
 ### Entry Manager — Close Entries wording and smoother confirmation UI
 
 - Replaced organiser-facing **Submit Confirmed Entries** wording with normal Speed Shear industry language: **Close Entries** for a grade and **Close All Entries** for the overall action.
@@ -16,8 +38,8 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Removed the full grade-card `render()` from the Checked / Paid toggle path, eliminating the previous delayed colour change and visible card/page flicker.
 - Reduced the desktop/tablet width of the grade **Close Entries** button so it sizes to its label with sensible padding/minimum width; it remains full width on small/mobile layouts.
 - Bumped Entry Manager frontend asset versions in `entry-manager.html` / `entry-manager-bootstrap.js` so browsers fetch the updated JS/CSS.
-- This is a GitHub Pages frontend change only; no Entry Manager Apps Script redeployment is required.
-- Production GitHub Pages publication/browser smoke testing remains pending before these UI changes are marked verified live.
+- This is a GitHub Pages frontend change only; no Entry Manager Apps Script redeployment was required for that UI update.
+- Production browser smoke testing subsequently passed as recorded above.
 
 ### Normal browser profile — verified
 
@@ -40,10 +62,11 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 - Deployed **System Operator Portal Version 4** successfully on **28 August 2026 at 7:23 PM** using the existing web-app deployment.
 - Portal access remains **Only myself** and the existing deployment URL is retained.
-- Version 4 is the popup-only frontend update: `Code.gs` is unchanged.
+- Version 4 is the popup-only frontend update: `Code.gs` is unchanged from the live lifecycle logic.
 - Cancel Competition, Restore Competition and Delete Permanently now use the custom Waimarino Shears confirmation dialog rather than Apps Script/browser-native `confirm()` popups.
 - The underlying tested lifecycle calls and server-side behavior are unchanged.
 - Safe live smoke test subsequently passed as recorded above.
+- Repository `Code.gs` has since received the tidy `/manage/` and `/enter/` URL-generation change, which is pending a new Portal deployment.
 
 ### Uniform Waimarino dialogs — portal source updated
 
@@ -155,6 +178,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Added and verified `entries.waimarinoshears.com` custom domain.
 - Added private `m.html?c=<code>` and public `e.html?c=<code>` short-link resolver flow.
 - Legacy full-token and old GitHub-hosted links remain supported/redirected.
+- These original `m.html/e.html` short links are now retained as compatibility routes that forward to the newer `/manage/` and `/enter/` format.
 
 ### Public competitor entry V4
 
