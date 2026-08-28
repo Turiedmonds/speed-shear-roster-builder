@@ -30,18 +30,30 @@ As at 28 August 2026:
 - Portal executes as the Waimarino Shears Google account.
 - Portal access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
-- Portal Version 3 contains both updated portal files and the deposit/cancel/restore/delete controls.
-- The full operator lifecycle has now been verified on **Entry Manager Test Competition**:
-  - Awaiting Deposit → Deposit Paid worked;
-  - Deposit Paid → Awaiting Deposit worked;
-  - Cancel Competition removed the competition from the Active list;
-  - cancelled public entry access was blocked;
-  - cancelled manager access was blocked after the cached-screen bootstrap fix;
-  - Restore Competition returned the same competition to Active and the same manager/public links worked again;
-  - re-cancel + Delete Permanently removed the test competition from portal listings;
-  - after deletion, the old private manager link remained blocked with **Competition unavailable**;
-  - after deletion, the old public competitor-entry link remained blocked.
-- The lifecycle controls are therefore verified end-to-end for deposit state, cancellation, restoration, permanent deletion and stale-link blocking.
+- The full deposit/cancel/restore/delete lifecycle has been verified end-to-end on the now-deleted test competition.
+- A uniform Waimarino custom-dialog update has now been committed to the Operator Portal source. It is **not live yet**: the live portal remains Version 3 until the updated `Index.html` is copied into Apps Script and deployed as a new version.
+
+## Uniform custom-dialog standard
+
+The Speed Shear web tools are standardising application-controlled dialogs around one visual pattern:
+
+- white rounded panel;
+- Waimarino red top accent;
+- dark overlay;
+- **Waimarino Shears** eyebrow/branding;
+- consistent heading, body copy and action spacing;
+- destructive confirmation clearly shown in red;
+- avoid browser-native `alert()` / `confirm()` where the application controls the UI.
+
+Current audit/result in this repository:
+
+- organiser **Entry Manager** already used custom `<dialog>` workflows rather than browser-native confirmation boxes;
+- public **Speed Shear Competitor Entry** already used a custom privacy dialog and no native browser confirmations were found;
+- the **System Operator Portal** was the remaining native-popup area, using browser `confirm()` for Cancel, Restore and Delete;
+- `operator-portal/google-apps-script/Index.html` has now been updated to use the uniform custom Waimarino dialog for those three actions;
+- underlying portal lifecycle calls and server-side behavior are unchanged.
+
+Google/browser account, security and authorisation prompts are platform UI and cannot be restyled.
 
 ## Relationship to Booking Pack
 
@@ -85,20 +97,7 @@ Private manager writes still use `fetch(..., mode:'no-cors')`, so an already-ope
 
 ## Manager cancellation access gate
 
-Cancellation testing exposed an important browser-cache behaviour:
-
-- Version 5 correctly rejected a cancelled manager token server-side;
-- however `entry-manager.js` restored the previously saved localStorage copy before its server refresh completed;
-- when the server refresh failed, the old code only displayed a warning and left that cached organiser screen visible/editable locally;
-- public competitor access was correctly blocked and did not have this problem.
-
-Repository fix now live and verified:
-
-- `entry-manager-bootstrap.js` validates an `access` token against the live Entry Manager backend **before** loading the organiser application scripts;
-- `entry-manager.html` stays hidden while validation is in progress;
-- if the competition is cancelled/deleted/unavailable, the organiser application scripts are not loaded and the token-specific cached localStorage copy is removed;
-- if validation succeeds, the normal Entry Manager scripts load in their existing order;
-- no-token/manual mode retains the historical local-only behaviour.
+Version 5 correctly rejects cancelled/deleted manager access server-side. The GitHub Pages frontend also uses `entry-manager-bootstrap.js` to validate a token before loading organiser scripts, preventing stale cached organiser screens from appearing after cancellation/deletion.
 
 Production testing confirmed both cancelled and permanently deleted manager links show **Competition unavailable** rather than loading cached organiser controls.
 
@@ -108,7 +107,7 @@ Collects competitor name, hometown, grade/event, phone/email and privacy acknowl
 
 Competition administration remains the organiser’s responsibility.
 
-## System Operator Portal — Version 3 live
+## System Operator Portal
 
 Separate Apps Script project: **Waimarino Shears System Operator Portal**.
 
@@ -118,7 +117,9 @@ Repository source:
 - `operator-portal/google-apps-script/Index.html`
 - `operator-portal/README.md`
 
-Version 3 uses the same central Drive records and includes:
+### Live Version 3
+
+Version 3 currently remains live and includes:
 
 - **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled state;
@@ -126,8 +127,14 @@ Version 3 uses the same central Drive records and includes:
 - **Restore Competition**;
 - **Delete Permanently** only after cancellation;
 - active/cancelled/lifecycle filtering;
-- fixed no-limit grade display;
+- entry/grade/roster summaries;
 - active competition manager/public buttons.
+
+The lifecycle implementation is fully verified. Do not repeat destructive lifecycle testing on real bookings.
+
+### Pending next portal version
+
+The repository `Index.html` now replaces the three native browser confirmations with uniform custom Waimarino dialogs. This source change still needs to be copied into the separate Apps Script project and deployed by editing the existing deployment and choosing **New version**. Keep the same web-app deployment URL and **Only myself** access.
 
 Marking **Deposit Paid** does not automatically send or release the organiser link. Waimarino Shears still controls when that private link is sent.
 
@@ -169,9 +176,18 @@ Entry Manager backend remains publicly reachable because organisers/competitors 
 
 Do not make the portal public to work around Google multi-account routing.
 
-## Multiple Google accounts
+## Normal browser access / multiple Google accounts
 
-An `Only myself` Apps Script URL can show Google Page Not Found / unable-to-open-file when a browser session has several signed-in Google accounts and Google routes it through the wrong account. InPrivate with only the Waimarino account was verified. Prefer a browser profile/session signed into the authorised account.
+InPrivate was used only to avoid Google choosing the wrong signed-in account during testing. It is **not a security requirement** for the portal.
+
+Recommended normal-use setup:
+
+- create a dedicated Edge/Chrome browser profile for the Waimarino Shears Google account;
+- sign only the authorised Waimarino account into that profile;
+- bookmark the private portal there;
+- keep the Apps Script deployment restricted to **Only myself**.
+
+A normal browser session containing several Google accounts can route the private Apps Script URL through the wrong account and show Page Not Found / unable-to-open-file. Use a dedicated profile rather than weakening access.
 
 ## Verified competition baseline
 
@@ -192,6 +208,11 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-The System Operator Portal lifecycle implementation is now verified. Do not repeat destructive testing on real bookings.
+1. Copy the updated Operator Portal `Index.html` into the live Apps Script portal project.
+2. Deploy a **new version** of the existing portal deployment, retaining **Only myself** and the same URL.
+3. Open a Cancel/Restore/Delete dialog and cancel it to verify the new custom popup without changing a real booking.
+4. Set up a dedicated normal browser profile for the Waimarino Shears account so InPrivate is no longer needed.
+5. Smoke-test the Booking Pack custom-dialog layer after GitHub Pages publishes it.
+6. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
 
-Potential next work should be treated as a separate task. The remaining known technical item is the existing private-manager `fetch(..., mode:'no-cors')` write-response limitation; the server-side lifecycle guard itself is verified and does not depend on resolving that limitation.
+Known technical item: private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 lifecycle guard itself is verified and does not depend on resolving that limitation.
