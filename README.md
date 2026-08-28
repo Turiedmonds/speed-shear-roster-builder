@@ -121,9 +121,7 @@ On successful submission:
 
 ## System Operator Portal
 
-A private, read-only **System Operator Portal** is now implemented in repository source under:
-
-`operator-portal/`
+A private, read-only **System Operator Portal** is now live as a separate Google Apps Script web app.
 
 Its purpose is to give Waimarino Shears one permanent operator page to see and open all existing Speed Shear competitions without searching booking emails.
 
@@ -144,12 +142,13 @@ The portal shows:
 
 Architecture/security:
 
-- portal source remains in this repository;
+- portal source remains in this repository under `operator-portal/`;
 - portal runs as a **separate Google Apps Script web app/project** from the public Entry Manager backend;
 - it uses `DriveApp` server-side to read the existing records directly;
 - it does not require the Booking Receiver ↔ Entry Manager shared secret;
 - no permanent secret is stored in GitHub or browser JavaScript;
-- the operator web-app deployment must be restricted to the authorised Waimarino Shears Google account/operator;
+- live deployment executes as the Waimarino Shears Google account;
+- live access is restricted to **Only myself**;
 - do **not** deploy the operator portal as an unrestricted `Anyone` web app.
 
 Portal source files:
@@ -160,9 +159,13 @@ Portal source files:
 
 Current portal state as at 28 August 2026:
 
-- repository source implemented;
-- separate Apps Script project/web-app deployment not yet created;
-- therefore the operator portal is **not yet live**.
+- Apps Script **Version 1** deployed successfully;
+- private access verified by opening in an InPrivate browser signed into only the authorised Waimarino Shears Google account;
+- portal successfully loaded 3 existing competitions from the central Drive folder;
+- real competition/contact/entry-count data displayed correctly;
+- a small Version 1 display issue shows `/ undefined` on grades with no entry limit; repository `Index.html` is already corrected and awaits deployment as the next Apps Script version.
+
+When multiple Google accounts are signed into the same browser, Google may route an `Only myself` Apps Script URL through the wrong account and show a Page Not Found / unable-to-open-file screen. Use a browser profile/session signed into the authorised Waimarino account rather than weakening the portal access setting.
 
 ## Backend
 
@@ -222,7 +225,7 @@ Do not assume a manager-side save was centrally confirmed merely because a `no-c
 
 ## Verified production test
 
-Competition used for the latest end-to-end test:
+Competition used for the latest end-to-end Entry Manager/public-entry test:
 
 - **Speedshear o ngā Taniwha**
 - Booking Reference **WS-2026-0016**
@@ -241,4 +244,4 @@ Verified:
 
 ## Next planned project step
 
-Deploy and test the new private **System Operator Portal** Apps Script project using an appropriately restricted Google-account access setting. Do not weaken the access setting merely to make the page reachable.
+Deploy the corrected operator-portal `Index.html` as the next private Apps Script version, confirm the no-limit `undefined` display is gone, then test the portal's **Open Entry Manager** and **Open Public Entry** buttons.
