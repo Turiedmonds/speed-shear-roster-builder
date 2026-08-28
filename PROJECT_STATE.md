@@ -36,7 +36,7 @@ As at 28 August 2026:
 - A safe Version 4 smoke test on the real **Speedshear o ngā Taniwha** competition confirmed the branded **Cancel this competition?** dialog renders correctly in a narrow/mobile layout with **Keep Competition** and red **Cancel Competition** actions. The competition was not changed.
 - A dedicated normal Microsoft Edge profile named **Waimarino Shears**, signed into Google only with the authorised Waimarino Shears account, has been tested successfully. The private Operator Portal opens normally in that profile without InPrivate.
 - The Entry Manager organiser-UI update from 28 August 2026 is now user smoke-tested successfully: Manual Entry help text, **Close Entries** wording, smoother Checked / Paid confirmation state and narrower desktop Close Entries button are working as intended.
-- New tidy GitHub Pages routes have now been added in repository source: `/enter/?c=<20-char-code>` for the public competitor form and `/manage/?c=<20-char-code>` for the private Entry Manager. GitHub Pages publication must be confirmed before marking those routes live.
+- The tidy GitHub Pages routes are now published: `/enter/?c=<20-char-code>` for the public competitor form and `/manage/?c=<20-char-code>` for the private Entry Manager. The Pages deployment containing the functional route changes completed successfully on 28 August 2026.
 
 ## Uniform custom-dialog standard
 
@@ -104,7 +104,7 @@ Security/binding rules:
 - cancelled or deleted/trashed competitions remain blocked by the existing Version 5 guard;
 - a public code therefore opens only the public form for the competition whose public token it resolves to.
 
-New static routes:
+Published static routes:
 
 - `enter/index.html` resolves a public short code and loads the existing `competitor-entry.html?entry=<full-token>` internally in a same-origin full-page frame, so the browser address remains the tidy `/enter/?c=...` URL.
 - `manage/index.html` resolves a manager short code and loads the existing `entry-manager.html?access=<full-token>` internally in a same-origin full-page frame, so the browser address remains the tidy `/manage/?c=...` URL.
@@ -255,7 +255,7 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-1. Confirm GitHub Pages has published `/enter/`, `/manage/`, the legacy forwarders and the Entry Manager tidy Copy Link change; smoke-test the public route using a safe test entry.
+1. Smoke-test the now-published `/enter/` public route with a safe test entry and confirm the Entry Manager receives it under the correct competition.
 2. Deploy the updated repository `google-apps-script/WebApp.gs` as the next **Speed Shear Entry Manager** Apps Script version so future booking handoffs/emails return `/manage/` and `/enter/` directly.
 3. Deploy the updated repository `operator-portal/google-apps-script/Code.gs` as the next **System Operator Portal** version so its generated links are `/manage/` and `/enter/` directly.
 4. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
