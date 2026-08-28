@@ -119,6 +119,51 @@ On successful submission:
 - Waimarino Shears receives the notification as a backup copy when applicable;
 - the organiser remains the contact for changes/cancellations/payments/check-in.
 
+## System Operator Portal
+
+A private, read-only **System Operator Portal** is now implemented in repository source under:
+
+`operator-portal/`
+
+Its purpose is to give Waimarino Shears one permanent operator page to see and open all existing Speed Shear competitions without searching booking emails.
+
+The portal does **not** create a second competition database. It reads the same existing Google Drive JSON competition records from the `Waimarino Speed Shear Entry Manager` folder.
+
+The portal shows:
+
+- competition name/date/venue/Booking Reference;
+- organiser contact details;
+- total entries and Confirmed / Not Confirmed counts;
+- per-grade counts, limits and submitted state;
+- public entries Open / Closed;
+- roster submission state;
+- private Entry Manager link;
+- public competitor-entry link;
+- Today / Upcoming / Past lifecycle status;
+- search/filter/refresh controls.
+
+Architecture/security:
+
+- portal source remains in this repository;
+- portal runs as a **separate Google Apps Script web app/project** from the public Entry Manager backend;
+- it uses `DriveApp` server-side to read the existing records directly;
+- it does not require the Booking Receiver ↔ Entry Manager shared secret;
+- no permanent secret is stored in GitHub or browser JavaScript;
+- the operator web-app deployment must be restricted to the authorised Waimarino Shears Google account/operator;
+- do **not** deploy the operator portal as an unrestricted `Anyone` web app.
+
+Portal source files:
+
+- `operator-portal/google-apps-script/Code.gs`
+- `operator-portal/google-apps-script/Index.html`
+- `operator-portal/README.md`
+
+Current portal state as at 28 August 2026:
+
+- repository source implemented;
+- separate Apps Script project/web-app deployment not yet created;
+- therefore the operator portal is **not yet live**.
+
 ## Backend
 
 Google Apps Script project:
@@ -167,6 +212,8 @@ When Apps Script source changes:
 7. Deploy while retaining the existing web-app URL.
 8. Update `PROJECT_STATE.md` and `CHANGELOG.md` with the live version.
 
+The System Operator Portal is a separate Apps Script project and has its own deployment instructions in `operator-portal/README.md`.
+
 ## Important current limitation
 
 The private manager's `postManager()` currently uses `fetch(..., mode:'no-cors')` and therefore cannot read/verify the backend response body. This was retained during the current implementation but should be improved in a future robustness pass.
@@ -192,8 +239,6 @@ Verified:
 - Waimarino Shears backup email works;
 - old GitHub private/public links redirect correctly to the custom domain.
 
-## Next planned project
+## Next planned project step
 
-Build a **System Operator Portal** for Waimarino Shears: one permanent operator page to see/open all competitions and their private/public links without searching booking emails.
-
-Start that work only after reading `PROJECT_STATE.md` so the portal reuses the existing records/tokens rather than creating a parallel competition data store.
+Deploy and test the new private **System Operator Portal** Apps Script project using an appropriately restricted Google-account access setting. Do not weaken the access setting merely to make the page reachable.
