@@ -2,7 +2,7 @@ const ENTRY_MANAGER_SETTINGS = {
   receiverEmail: 'Waimarinoshears@gmail.com',
   senderName: 'Waimarino Shears Entry Manager',
   driveFolderName: 'Waimarino Speed Shear Entry Manager',
-  publicBaseUrl: 'https://turiedmonds.github.io/speed-shear-roster-builder/',
+  publicBaseUrl: 'https://entries.waimarinoshears.com/',
   competitorEntryPath: 'competitor-entry.html',
   schemaVersion: 2
 };
