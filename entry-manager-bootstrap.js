@@ -3,10 +3,10 @@
   const token = new URLSearchParams(location.search).get('access') || '';
   const MANAGER_STORAGE_PREFIX = 'waimarinoSpeedShearEntryManagerV3_';
   const appScripts = [
-    'entry-manager-workflow.js?v=1.0.0',
-    'entry-manager.js?v=20260828-guard1',
+    'entry-manager-workflow.js?v=1.1.0',
+    'entry-manager.js?v=20260828-entry1',
     'entry-manager-drag-autoscroll.js?v=1.0.0',
-    'entry-manager-tidy.js?v=1.0.0'
+    'entry-manager-tidy.js?v=1.1.0'
   ];
 
   function showPage() {
