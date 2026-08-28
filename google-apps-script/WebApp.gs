@@ -100,11 +100,11 @@ function entryManagerShortCode_(token) {
 }
 
 function entryManagerShortManagerUrl_(token) {
-  return ENTRY_MANAGER_PUBLIC_BASE_URL + 'm.html?c=' + encodeURIComponent(entryManagerShortCode_(token));
+  return ENTRY_MANAGER_PUBLIC_BASE_URL + 'manage/?c=' + encodeURIComponent(entryManagerShortCode_(token));
 }
 
 function entryManagerShortCompetitorUrl_(token) {
-  return ENTRY_MANAGER_PUBLIC_BASE_URL + 'e.html?c=' + encodeURIComponent(entryManagerShortCode_(token));
+  return ENTRY_MANAGER_PUBLIC_BASE_URL + 'enter/?c=' + encodeURIComponent(entryManagerShortCode_(token));
 }
 
 function entryManagerShortPublicUrlFromLong_(url) {
