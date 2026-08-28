@@ -4,19 +4,36 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
-### Operator lifecycle controls — live deployments
+### Cancelled Entry Manager cached-screen fix
+
+- Lifecycle testing confirmed the public competitor link was correctly blocked after cancellation.
+- Testing also found an already-resolved `entry-manager.html?access=...` URL could still display its previously cached localStorage organiser screen after cancellation.
+- The Version 5 backend was already rejecting the manager token and manager writes; the problem was frontend behaviour in `entry-manager.js`, which restored cached state before its server refresh and only showed a warning when that refresh failed.
+- Added `entry-manager-bootstrap.js`.
+- Updated `entry-manager.html` so the organiser application stays hidden until the manager token is validated against the live backend.
+- For token-based manager links, normal Entry Manager scripts now load only after successful validation.
+- Cancelled/deleted/unavailable manager access now prevents the organiser application from loading and removes the token-specific cached localStorage copy.
+- Manual/no-token mode retains its previous local-only behaviour.
+- This is a GitHub Pages frontend change and requires production refresh/re-test after Pages publishes the commit.
+
+### Operator lifecycle controls — live deployments and initial test
 
 - Deployed **Speed Shear Entry Manager Version 5** while retaining the existing web-app URL.
 - Version 5 includes `OperatorControlGuard.gs` plus the updated `WebApp.gs` lifecycle checks.
-- Cancelled competitions are now rejected server-side for manager access, public entry access, manager/public writes and short-code resolution.
+- Cancelled competitions are rejected server-side for manager access, public entry access, manager/public writes and short-code resolution.
 - Trashed/deleted central competition files are rejected.
 - Stale Booking Reference mappings to trashed files are cleared before a legitimate recreation.
 - Deployed **System Operator Portal Version 2** as an intermediate deployment containing the updated `Code.gs` only.
-- Deployed **System Operator Portal Version 3** after saving the updated `Index.html`; Version 3 now contains both updated portal files and is the current live portal.
+- Deployed **System Operator Portal Version 3** after saving the updated `Index.html`; Version 3 contains both updated portal files and is the current live portal.
 - Portal access remains **Only myself**.
 - Version 3 includes **Awaiting Deposit / Deposit Paid**, **Cancel Competition**, **Restore Competition**, **Delete Permanently** after cancellation, active/cancelled filtering and the no-limit grade-display fix.
 - Marking Deposit Paid does not automatically send/release the organiser Entry Manager link.
-- Backend Version 5 and Portal Version 3 deployments both succeeded. Functional Cancel / blocked-link / Restore / Delete verification is still pending and must be performed on a test competition before real cancellations/deletions are relied on.
+- On **Entry Manager Test Competition**:
+  - Awaiting Deposit → Deposit Paid worked;
+  - Deposit Paid → Awaiting Deposit worked;
+  - Cancel Competition worked and removed the record from the Active list;
+  - the public competitor entry link was confirmed blocked after cancellation;
+  - manager cancellation verification exposed the cached-screen issue described above and must now be re-tested after the frontend guard publishes.
 
 ### System Operator Portal — deposit and lifecycle controls
 
@@ -82,4 +99,4 @@ Using **WS-2026-0016 — Speedshear o ngā Taniwha**:
 
 ### Known open technical item
 
-- Private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 backend still blocks cancelled competitions server-side, but an already-open manager page may not display a clean error until refreshed/reopened.
+- Private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 backend still blocks cancelled competitions server-side.
