@@ -4,6 +4,15 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### System Operator Portal Version 4 — deployed
+
+- Deployed **System Operator Portal Version 4** successfully on **28 August 2026 at 7:23 PM** using the existing web-app deployment.
+- Portal access remains **Only myself** and the existing deployment URL is retained.
+- Version 4 is the popup-only frontend update: `Code.gs` is unchanged.
+- Cancel Competition, Restore Competition and Delete Permanently now use the custom Waimarino Shears confirmation dialog rather than Apps Script/browser-native `confirm()` popups.
+- The underlying tested lifecycle calls and server-side behavior are unchanged.
+- Safe smoke test still pending: open the Cancel Competition dialog on a real active competition and choose **Keep Competition** without changing competition state.
+
 ### Uniform Waimarino dialogs — portal source updated
 
 - Audited the current Entries / Entry Manager / Public Competitor Entry / Operator Portal frontend popup behaviour.
@@ -13,7 +22,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Updated `operator-portal/google-apps-script/Index.html` so those three actions now use a uniform Waimarino Shears custom dialog.
 - New dialog presentation uses a white rounded card, Waimarino red top accent, dark overlay, consistent action layout and red destructive confirmation.
 - The existing tested portal server calls and lifecycle logic are unchanged.
-- The repository source is updated, but the live portal is still **Version 3** until the new `Index.html` is copied to the separate Apps Script portal project and a new version is deployed.
+- The updated source was subsequently deployed as **System Operator Portal Version 4**.
 - InPrivate is not required by the portal security model. Recommended normal use is a dedicated browser profile signed only into the authorised Waimarino Shears Google account while retaining **Only myself** portal access.
 
 ### Operator lifecycle verification — complete
@@ -70,11 +79,13 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Trashed/deleted central competition files are rejected.
 - Stale Booking Reference mappings to trashed files are cleared before a legitimate recreation.
 - Deployed **System Operator Portal Version 2** as an intermediate deployment containing the updated `Code.gs` only.
-- Deployed **System Operator Portal Version 3** after saving the updated `Index.html`; Version 3 contains both updated portal files and is the current live portal.
+- Deployed **System Operator Portal Version 3** after saving the updated `Index.html`; Version 3 contained both updated lifecycle-control portal files.
+- **System Operator Portal Version 4** was subsequently deployed for the custom-dialog frontend update and is now the current live portal.
 - Portal access remains **Only myself**.
-- Version 3 includes **Awaiting Deposit / Deposit Paid**, **Cancel Competition**, **Restore Competition**, **Delete Permanently** after cancellation, active/cancelled filtering and the no-limit grade-display fix.
+- Version 3 introduced **Awaiting Deposit / Deposit Paid**, **Cancel Competition**, **Restore Competition**, **Delete Permanently** after cancellation, active/cancelled filtering and the no-limit grade-display fix.
+- Version 4 keeps those behaviors and replaces only the native confirmation presentation.
 - Marking Deposit Paid does not automatically send/release the organiser Entry Manager link.
-- Full lifecycle verification is now complete as recorded above.
+- Full lifecycle verification is complete as recorded above.
 
 ### System Operator Portal — deposit and lifecycle controls
 
