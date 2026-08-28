@@ -35,6 +35,7 @@ As at 28 August 2026:
 - Version 4 replaces the Portal's browser-native Cancel / Restore / Delete confirmations with uniform custom Waimarino dialogs. The lifecycle server calls are unchanged.
 - A safe Version 4 smoke test on the real **Speedshear o ngā Taniwha** competition confirmed the branded **Cancel this competition?** dialog renders correctly in a narrow/mobile layout with **Keep Competition** and red **Cancel Competition** actions. The competition was not changed.
 - A dedicated normal Microsoft Edge profile named **Waimarino Shears**, signed into Google only with the authorised Waimarino Shears account, has been tested successfully. The private Operator Portal opens normally in that profile without InPrivate.
+- A new Entry Manager organiser-UI update has been committed to GitHub Pages source on 28 August 2026. It changes Manual Entry help text, uses **Close Entries** industry wording, smooths Checked / Paid confirmation changes and reduces the desktop width of grade Close Entries buttons. Production publication/browser smoke testing is still required before treating those UI changes as verified live.
 
 ## Uniform custom-dialog standard
 
@@ -94,11 +95,23 @@ Legacy full-token links remain supported.
 
 ## Current organiser Entry Manager behaviour
 
-Supports booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitors, contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade controls/limits, grade reorder/collapse and JSON/PDF roster submission.
+Supports booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitors, contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade controls/limits, grade reorder/collapse and roster submission to Waimarino Shears.
+
+Repository source now uses normal Speed Shear industry wording for the organiser action: **Close Entries** for an individual grade and **Close All Entries** for the overall action. Closing a grade still performs the existing submission workflow behind the scenes: it closes that grade to new public entries and sends the confirmed roster through the backend. A previously closed grade displays **Update Closed Entries** for a later updated roster.
+
+Manual Entry helper text now says: **“Add competitor entries manually if they were not received through the online entry form.”**
+
+Checked / Paid confirmation now updates the clicked button and the grade's Confirmed count immediately, schedules the local save immediately, and lets the existing central save finish without calling the full grade-card `render()`. This removes the previous delayed colour change and whole-card flicker while preserving the same backend `speed_shear_manager_competitor_checkin` write.
+
+On desktop/tablet the grade **Close Entries** button now sizes to its content with a sensible minimum width rather than stretching across the full grade card. It remains full width on small/mobile layouts.
+
+The Close Entries confirmation explains that the grade will be closed to new public entries and the confirmed roster sent to Waimarino Shears. If some competitors are not Confirmed, a follow-up warning lists them and offers **Close Entries Anyway**. User-facing wording avoids technical JSON language; internal JSON/PDF generation and submission payloads are unchanged.
 
 Compatibility note: organiser-facing **Confirmed** is stored in the existing `checkedIn` field.
 
 Private manager writes still use `fetch(..., mode:'no-cors')`, so an already-open manager page cannot reliably read backend error responses. Version 5 still rejects cancelled competition writes server-side.
+
+The organiser-UI update above is a GitHub Pages frontend change only. It does **not** require a new Entry Manager Apps Script deployment. Production publication/browser smoke testing is pending.
 
 ## Manager cancellation access gate
 
@@ -213,7 +226,8 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-1. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
-2. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
+1. Confirm GitHub Pages has published the Entry Manager Close Entries/smooth confirmation update and smoke-test it in the browser.
+2. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+3. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
 
 Known technical item: private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 lifecycle guard itself is verified and does not depend on resolving that limitation.
