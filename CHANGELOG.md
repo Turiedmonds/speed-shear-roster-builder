@@ -4,6 +4,18 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### Uniform Waimarino dialogs — portal source updated
+
+- Audited the current Entries / Entry Manager / Public Competitor Entry / Operator Portal frontend popup behaviour.
+- Confirmed organiser **Entry Manager** already uses custom `<dialog>` confirmation/workflow screens and does not use browser-native confirmation boxes for its current workflows.
+- Confirmed **Speed Shear Competitor Entry** already uses a custom privacy dialog and no native browser confirmation path was found.
+- Identified the remaining native browser popups in the **System Operator Portal**: Cancel Competition, Restore Competition and Delete Permanently.
+- Updated `operator-portal/google-apps-script/Index.html` so those three actions now use a uniform Waimarino Shears custom dialog.
+- New dialog presentation uses a white rounded card, Waimarino red top accent, dark overlay, consistent action layout and red destructive confirmation.
+- The existing tested portal server calls and lifecycle logic are unchanged.
+- The repository source is updated, but the live portal is still **Version 3** until the new `Index.html` is copied to the separate Apps Script portal project and a new version is deployed.
+- InPrivate is not required by the portal security model. Recommended normal use is a dedicated browser profile signed only into the authorised Waimarino Shears Google account while retaining **Only myself** portal access.
+
 ### Operator lifecycle verification — complete
 
 - Completed the full lifecycle test on **Entry Manager Test Competition**.
