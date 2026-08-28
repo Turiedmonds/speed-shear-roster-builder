@@ -55,7 +55,7 @@ The tidy `/enter/` and `/manage/` pages keep the short address visible while the
 
 The Entry Manager **Copy Link** control normalises existing old short/full public URLs to the tidy `/enter/?c=...` form before copying, so current competitions do not need new tokens.
 
-**Speed Shear Entry Manager Version 6 is live** and generates `/manage/` and `/enter/` directly for booking handoffs and returned links. **System Operator Portal Version 6 is live** and its Open Entry Manager / Open Public Entry buttons generate the same tidy routes directly.
+**Speed Shear Entry Manager Version 7 is live** and retains the Version 6 tidy-link generation. **System Operator Portal Version 6 is live** and its Open Entry Manager / Open Public Entry buttons generate the same tidy routes directly.
 
 Portal Version 5 briefly failed to load competition cards because the tidy-link source edit accidentally removed the existing `operatorPortalSort_()` helper. Version 6 restored that helper without changing competition records, lifecycle behaviour or tokens.
 
@@ -85,6 +85,12 @@ The internal compatibility field remains `checkedIn` even where the UI says Conf
 The Entry Manager frontend uses `entry-manager-bootstrap.js` to validate token access against the live backend before loading the organiser application. This prevents a cancelled/deleted competition from displaying a stale cached organiser screen from localStorage after the backend has rejected access.
 
 If token validation fails, the organiser application scripts are not loaded and the page shows the competition as unavailable. No-token/manual mode retains its historical local-only behaviour.
+
+### Confirmed manager writes — Version 7
+
+The Entry Manager still sends Apps Script POST requests using the compatible `no-cors` method, but Version 7 no longer treats “request sent” as proof that the save succeeded.
+
+Each manager write now carries a temporary request ID. The backend stores the real success/error result briefly in Apps Script Cache, and the frontend polls `manager-write-result` for that result. The organiser UI can therefore distinguish a confirmed save from a rejected/failed save without changing the existing data model or public-entry flow.
 
 ## Public competitor entry
 
@@ -146,7 +152,7 @@ Recommended normal setup: use the dedicated Edge/Chrome profile signed only into
 
 Google Apps Script project: **Speed Shear Entry Manager**
 
-Current live backend: **Version 6 — 29 August 2026**.
+Current live backend: **Version 7 — 29 August 2026**.
 
 Main source files:
 
@@ -156,21 +162,19 @@ Main source files:
 - `google-apps-script/CompetitorEntryV4.gs`
 - `google-apps-script/OperatorControlGuard.gs`
 
-Version 6 retains the Version 5 cancellation/deletion guard and existing web-app URL, while changing generated short links to `/manage/` and `/enter/` directly.
+Version 7 retains the Version 6 tidy-link generation and Version 5 cancellation/deletion guard, and adds confirmed manager-write results using short-lived Apps Script Cache entries.
 
 Required Script Property: `ENTRY_MANAGER_SHARED_SECRET`. Never commit or document its value.
+
+The shared Booking Receiver ↔ Entry Manager secret was rotated on 29 August 2026 in both Apps Script projects. The replacement value is intentionally not recorded in GitHub or chat.
 
 ## Cancellation/deletion model
 
 Cancel keeps the central record for history but blocks organiser/public access server-side. Restore reactivates the same record and tokens. Permanent delete requires cancellation first and moves the central competition JSON file to Google Drive Trash.
 
-Old token mappings may remain internally, but Version 6 checks the central file and refuses cancelled/trashed records.
+Old token mappings may remain internally, but Version 7 checks the central file and refuses cancelled/trashed records.
 
 The frontend access bootstrap is an additional protection for already-resolved manager URLs: it verifies the full manager token before any cached organiser UI is loaded.
-
-## Important current limitation
-
-`entry-manager.js` still sends private manager writes using `fetch(..., mode:'no-cors')`. The browser cannot read/verify the backend response body. Version 6 still blocks cancelled competition writes server-side.
 
 ## Verified Entry Manager baseline
 
@@ -181,4 +185,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and lifecycle protections have been verified. The new tidy `/enter/` route remains to be smoke-tested with a safe public test entry, and Portal Version 6 should first be refreshed to confirm the repaired competition list loads normally.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and lifecycle protections have been verified. Version 7 deployment is complete; a safe manager-write smoke test remains useful to confirm the new acknowledgement path in production. The tidy `/enter/` route also remains to be smoke-tested with a safe public test entry.
