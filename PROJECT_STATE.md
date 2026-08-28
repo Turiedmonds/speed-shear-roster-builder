@@ -27,15 +27,18 @@ As at 29 August 2026:
 - GitHub Pages custom domain is active: `entries.waimarinoshears.com`.
 - **Speed Shear Entry Manager Apps Script: Version 6 live.**
 - Version 6 was deployed on **29 August 2026 at 5:29 AM** using the existing Entry Manager web-app deployment URL.
-- **System Operator Portal Apps Script: Version 5 live.**
-- Version 5 was deployed on **29 August 2026 at 5:33 AM** using the existing Portal web-app deployment URL.
+- **System Operator Portal Apps Script: Version 6 live.**
+- Portal Version 5 was deployed at **5:33 AM** for tidy `/manage/` and `/enter/` link generation, but its `Code.gs` was missing the existing `operatorPortalSort_()` helper and therefore failed while loading the competition list.
+- **Portal Version 6 was deployed at 5:46 AM on 29 August 2026** using the existing Portal web-app deployment URL and restores the missing sort helper while retaining the tidy links.
+- The Portal Version 5 regression affected portal rendering only; it did **not** alter or delete any central competition records.
 - Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
-- The live Portal custom Cancel / Restore / Delete dialogs are verified.
+- The live Portal custom Cancel / Restore / Delete dialogs are verified from Version 4 and retained in Version 6.
 - A dedicated normal Edge profile signed into only the authorised Waimarino Shears Google account successfully opens the private Portal without InPrivate.
 - Entry Manager UI improvements are user smoke-tested successfully: Manual Entry helper wording, **Close Entries / Close All Entries**, smoother Checked / Paid confirmation state, and narrower desktop Close Entries button.
 - Tidy GitHub Pages routes are published and current Apps Script deployments now generate them directly.
+- Post-deploy refresh verification of Portal Version 6 is still pending.
 
 ## Preferred competition-specific links
 
@@ -71,9 +74,11 @@ Current competition tokens did not change.
 
 Live `google-apps-script/WebApp.gs` now generates `/manage/` and `/enter/` directly for new booking handoffs and returned competition links. It retains the Version 5 lifecycle/availability guard and the existing web-app deployment URL.
 
-### Version 5 Portal link generation
+### Version 6 Portal link generation and repair
 
-Live `operator-portal/google-apps-script/Code.gs` now generates `/manage/` and `/enter/` directly for the Portal's **Open Entry Manager** and **Open Public Entry** buttons. Version 5 otherwise retains the already-tested Version 4 lifecycle and custom-dialog behaviour.
+Live `operator-portal/google-apps-script/Code.gs` generates `/manage/` and `/enter/` directly for the Portal's **Open Entry Manager** and **Open Public Entry** buttons.
+
+Version 5 accidentally omitted `operatorPortalSort_()` while changing those generated URL strings. The live portal then showed `ReferenceError: operatorPortalSort_ is not defined` and zero competitions because loading stopped before the list could be returned. Version 6 restores the exact existing sort helper. No competition record writes occur in that failed sort path, so the central records were unaffected.
 
 ## Central competition records
 
@@ -129,7 +134,7 @@ Collects competitor name, hometown, grade/event, phone/email and privacy acknowl
 
 The next live check is a safe test submission through the new tidy `/enter/?c=...` route to confirm it arrives in the correct competition.
 
-## System Operator Portal — Version 5 live
+## System Operator Portal — Version 6 live
 
 Separate Apps Script project: **Waimarino Shears System Operator Portal**.
 
@@ -139,7 +144,7 @@ Repository source:
 - `operator-portal/google-apps-script/Index.html`
 - `operator-portal/README.md`
 
-Version 5 includes:
+Version 6 includes:
 
 - **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled state;
@@ -149,7 +154,8 @@ Version 5 includes:
 - active/cancelled/lifecycle filtering;
 - entry/grade/roster summaries;
 - custom Waimarino confirmation dialogs;
-- tidy `/manage/` and `/enter/` button links.
+- tidy `/manage/` and `/enter/` button links;
+- restored `operatorPortalSort_()` helper required by competition-list loading.
 
 Marking **Deposit Paid** does not automatically send or release the organiser link. Waimarino Shears still controls when that private link is sent.
 
@@ -191,9 +197,10 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-1. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
-2. Confirm the live Version 5 Portal buttons open `/manage/` and `/enter/` directly.
-3. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
-4. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
+1. Refresh the live Portal Version 6 and confirm the competition list loads without the Version 5 `operatorPortalSort_` error.
+2. Confirm the live Version 6 Portal buttons open `/manage/` and `/enter/` directly.
+3. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
+4. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+5. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
 
 Known technical item: private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The lifecycle guard itself is verified and does not depend on resolving that limitation.
