@@ -6,12 +6,24 @@ Required Script Property:
 ENTRY_MANAGER_SHARED_SECRET = a long random secret shared only with the Booking Receiver Apps Script project.
 */
 
+const ENTRY_MANAGER_SHORT_CODE_LENGTH = 20;
+
 function doGet(e) {
   try {
     const action = String(e && e.parameter && e.parameter.action || '').trim();
-    if (action === 'entry-manager') return entryManagerJsonResponse_(entryManagerPublicSetup_(e.parameter.access || ''));
+    if (action === 'entry-manager') {
+      const setup = entryManagerPublicSetup_(e.parameter.access || '');
+      setup.competitorEntryUrl = entryManagerShortPublicUrlFromLong_(setup.competitorEntryUrl || '');
+      return entryManagerJsonResponse_(setup);
+    }
     if (action === 'competitor-entry') return entryManagerJsonResponse_(entryManagerCompetitorSetupV4_(e.parameter.entry || ''));
     if (action === 'competitor-entry-result') return entryManagerJsonResponse_(entryManagerPublicSubmissionResult_(e.parameter.entry || '', e.parameter.requestId || ''));
+    if (action === 'resolve-public-code') {
+      return entryManagerJsonResponse_({ok:true,token:entryManagerResolveTokenPrefix_('entryPublicToken_', e.parameter.code || '')});
+    }
+    if (action === 'resolve-manager-code') {
+      return entryManagerJsonResponse_({ok:true,token:entryManagerResolveTokenPrefix_('entryManagerToken_', e.parameter.code || '')});
+    }
     return entryManagerJsonResponse_({ok:true, service:'Waimarino Shears Entry Manager'});
   } catch (error) {
     console.error(error);
@@ -69,6 +81,40 @@ function entryManagerAuthoriseSetup_(payload) {
   delete payload.sharedSecret;
 }
 
+function entryManagerShortCode_(token) {
+  return String(token || '').trim().slice(0, ENTRY_MANAGER_SHORT_CODE_LENGTH);
+}
+
+function entryManagerShortManagerUrl_(token) {
+  return ENTRY_MANAGER_SETTINGS.publicBaseUrl + 'm.html?c=' + encodeURIComponent(entryManagerShortCode_(token));
+}
+
+function entryManagerShortCompetitorUrl_(token) {
+  return ENTRY_MANAGER_SETTINGS.publicBaseUrl + 'e.html?c=' + encodeURIComponent(entryManagerShortCode_(token));
+}
+
+function entryManagerShortPublicUrlFromLong_(url) {
+  const match = /[?&]entry=([^&#]+)/.exec(String(url || ''));
+  if (!match) return String(url || '');
+  let token = '';
+  try { token = decodeURIComponent(match[1]); } catch (_) { token = match[1]; }
+  return entryManagerShortCompetitorUrl_(token);
+}
+
+function entryManagerResolveTokenPrefix_(propertyPrefix, code) {
+  const cleanCode = String(code || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{20}$/.test(cleanCode)) throw new Error('This entry link code is invalid.');
+
+  const properties = PropertiesService.getScriptProperties().getProperties();
+  const matches = Object.keys(properties).filter(key => {
+    if (key.indexOf(propertyPrefix) !== 0) return false;
+    return key.slice(propertyPrefix.length).toLowerCase().indexOf(cleanCode) === 0;
+  });
+
+  if (matches.length !== 1) throw new Error('This entry link could not be found.');
+  return matches[0].slice(propertyPrefix.length);
+}
+
 function entryManagerCreateCompetitionFromSetup_(setupPayload) {
   const pack = {
     identity: {bookingReference: String(setupPayload.bookingReference || '')},
@@ -85,5 +131,12 @@ function entryManagerCreateCompetitionFromSetup_(setupPayload) {
       program: JSON.parse(JSON.stringify(setupPayload.competitionSetup && setupPayload.competitionSetup.program || []))
     }
   };
-  return {ok:true,...entryManagerCreateCompetition_(pack)};
+
+  const created = entryManagerCreateCompetition_(pack);
+  return {
+    ok:true,
+    ...created,
+    entryManagerUrl:entryManagerShortManagerUrl_(created.managerToken),
+    competitorEntryUrl:entryManagerShortCompetitorUrl_(created.publicEntryToken)
+  };
 }
