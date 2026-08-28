@@ -55,6 +55,7 @@ Current verified production state as at 28 August 2026:
 - `google-apps-script/WebApp.gs` uses the custom domain as `ENTRY_MANAGER_PUBLIC_BASE_URL`.
 - `google-apps-script/EntryManager.gs` uses `https://entries.waimarinoshears.com/` as `publicBaseUrl`.
 - Public competitor privacy version: **28 August 2026**.
+- System Operator Portal repository source is implemented under `operator-portal/` but is **not yet deployed live**.
 
 ## Relationship to Booking Pack
 
@@ -100,7 +101,7 @@ Token → Drive-file mappings are stored in Apps Script Properties using prefixe
 - `entryPublicToken_`
 - `entryManagerReference_`
 
-Do not duplicate competition data into a second portal database unless there is a compelling reason. The planned System Operator Portal should discover/read these existing records.
+Do not duplicate competition data into a second portal database unless there is a compelling reason.
 
 ## Link model
 
@@ -241,6 +242,67 @@ Deployment rule:
 7. keep the existing web-app URL;
 8. update this file + changelog with the new live version.
 
+## System Operator Portal — implemented source, not yet live
+
+Purpose:
+
+One permanent private/operator page where Waimarino Shears can see and open all competitions instead of searching booking emails.
+
+Repository source:
+
+- `operator-portal/google-apps-script/Code.gs`
+- `operator-portal/google-apps-script/Index.html`
+- `operator-portal/README.md`
+
+Architecture:
+
+- The portal remains source-controlled inside this existing repository.
+- It is designed to run in a **new/separate Google Apps Script project/web-app deployment**, not inside the existing public Speed Shear Entry Manager Apps Script project.
+- It reads the same existing Google Drive folder named `Waimarino Speed Shear Entry Manager` directly using server-side `DriveApp`.
+- It parses only records with `type === 'speed_shear_entry_manager_competition'`.
+- It does not create, copy or maintain a second competition database.
+- It does not need the Booking Receiver ↔ Entry Manager shared secret.
+- It does not expose full manager/public tokens to the browser; it derives the existing 20-character short manager/public URLs server-side.
+
+Current portal display includes:
+
+- competition name;
+- date;
+- Today / Upcoming / Past lifecycle;
+- venue;
+- Booking Reference;
+- organiser name/email/phone;
+- total entry count;
+- Confirmed count using the compatibility `checkedIn === true` field;
+- Not Confirmed count;
+- per-grade counts;
+- grade limits when configured;
+- grade submitted state;
+- effective public entries Open / Closed state;
+- overall roster status: Not submitted / Partly submitted / Submitted;
+- private **Open Entry Manager** button;
+- public **Open Public Entry** button;
+- search, lifecycle filter and refresh controls.
+
+Security boundary:
+
+- The private Apps Script deployment access setting is the primary protection.
+- Deploy only for the authorised Waimarino Shears operator/account; prefer **Only myself** if available in the deployment UI.
+- Do **not** deploy the portal as unrestricted `Anyone` access.
+- Do not put `ENTRY_MANAGER_SHARED_SECRET`, manager tokens, public tokens or another permanent access password into GitHub/client-side JavaScript.
+- If an appropriately private deployment option is not available, do not weaken security just to publish it; review the deployment options first.
+
+Current deployment state:
+
+- GitHub/source implementation: complete as at 28 August 2026.
+- Separate Apps Script project: not yet created by the operator.
+- Live portal web-app URL: none yet.
+- Portal must not be described as live until deployment and access restriction are tested.
+
+The first live setup requires the operator to create the separate Apps Script project under the same Google account that owns/can access the existing Entry Manager Drive folder, paste the complete repository `Code.gs` and `Index.html`, and deploy privately.
+
+No functional Booking Pack change is required for this portal version.
+
 ## Known technical limitation
 
 `entry-manager.js` currently sends private manager writes using:
@@ -296,33 +358,11 @@ That file previously described a pre-deployment state where the backend was not 
 
 The shared Booking Receiver ↔ Entry Manager secret was exposed during development/testing conversation history. Rotate it in both Apps Script projects before final production-hardening. Do not record the replacement secret value here.
 
-## Next planned work — System Operator Portal
+## Next planned work
 
-The next project should be a **System Operator Portal** for Waimarino Shears.
+Deploy and test the private **System Operator Portal** Apps Script project.
 
-Purpose:
-
-One permanent private/operator page where Waimarino Shears can see and open all competitions instead of searching booking emails.
-
-Minimum desired information per competition:
-
-- competition name;
-- date;
-- venue;
-- Booking Reference;
-- organiser/contact;
-- private Entry Manager link;
-- public competitor link;
-- current entry counts/status if practical;
-- useful lifecycle/status information.
-
-Architecture principle:
-
-The portal should use the existing central competition records and token mappings. It should not create a second independent source of truth.
-
-Initial recommendation:
-
-Build the portal inside this existing repository first unless a strong technical reason emerges for a separate repo.
+The next manual step is intentionally deployment/access setup rather than further feature work, because the source is now implemented but the actual available Google web-app access choices must be confirmed before publishing.
 
 ## Do not assume
 
@@ -331,3 +371,4 @@ Build the portal inside this existing repository first unless a strong technical
 - Do not expose full tokens/shared secrets unnecessarily.
 - Do not regenerate competition records merely to obtain links; existing records/tokens should be reused.
 - Do not resurrect the obsolete standalone “Roster Builder” workflow as the main system.
+- Do not claim the System Operator Portal is live until the separate Apps Script deployment is created, access-restricted and tested.
