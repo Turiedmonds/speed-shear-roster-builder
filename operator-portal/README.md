@@ -6,73 +6,70 @@ Private operator portal for Waimarino Shears.
 
 This portal gives the authorised Waimarino Shears operator one place to see and control all existing Speed Shear Entry Manager competitions.
 
-It does **not** create a second competition database. It reads and updates the existing JSON competition records in the Google Drive folder:
+It does **not** create a second competition database. It reads and updates the existing JSON competition records in Google Drive folder:
 
 `Waimarino Speed Shear Entry Manager`
+
+## Current live state — 28 August 2026
+
+- **System Operator Portal: Version 2 live**.
+- Executes as the Waimarino Shears Google account.
+- Access remains **Only myself**.
+- **Speed Shear Entry Manager backend: Version 5 live** with cancellation/deletion guard.
+- Version 2/Version 5 still require functional Cancel / blocked-link / Restore / Delete testing on a test competition before the lifecycle controls are treated as fully verified.
 
 ## Booking / deposit workflow
 
 The Booking Pack can create the central competition record before the organiser has paid the required deposit.
 
-The operator portal therefore tracks:
+The portal tracks:
 
-- **Awaiting Deposit** — default for records without a saved deposit status;
+- **Awaiting Deposit** — default when no deposit status has been saved;
 - **Deposit Paid** — set manually by the Waimarino Shears operator.
 
-Marking a deposit as paid does **not** automatically email or release the Entry Manager link to the organiser. Waimarino Shears still decides when to send that private link.
+Marking a deposit paid does **not** automatically email or release the Entry Manager link to the organiser. Waimarino Shears still decides when to send that private link.
 
 ## Competition lifecycle controls
 
 ### Cancel Competition
 
-Use this when a booking does not proceed, including when the required deposit is not paid.
+Use when a booking does not proceed, including when the required deposit is not paid.
 
-Cancellation:
-
-- keeps the central competition record for audit/history;
-- removes the private/public open buttons from the operator card;
-- shows the competition under the **Cancelled** filter;
-- is designed to block both the organiser Entry Manager link and public competitor link once the matching Entry Manager backend guard is deployed.
+Cancellation keeps the central record for history, removes active manager/public buttons from the portal card, places the competition under the **Cancelled** filter, and Version 5 blocks the organiser Entry Manager and public competitor links server-side.
 
 ### Restore Competition
 
-A cancelled competition can be restored. The same central record and existing tokens are retained.
+Restores the same central record and existing tokens. The same organiser/public links become available again once the record is active.
 
 ### Delete Permanently
 
-Permanent delete is intentionally a two-step safety action:
+Permanent delete intentionally requires two steps:
 
-1. cancel the competition first;
-2. then choose **Delete Permanently**.
+1. cancel the competition;
+2. choose **Delete Permanently**.
 
-This moves the central competition JSON file to Google Drive Trash. The Entry Manager backend guard rejects links whose central record is cancelled or trashed.
+This moves the central competition JSON file to Google Drive Trash. Version 5 rejects trashed records even if old token-to-file Script Property mappings still exist.
 
-Old token-to-file Script Property mappings may remain internally after a file is trashed, but the backend guard prevents those stale links from opening the deleted record. If the same Booking Reference is later legitimately created again, the setup guard clears a stale trashed reference mapping so a new record can be created.
+If the same Booking Reference is later legitimately created again, the setup guard clears a stale trashed reference mapping so a new record can be created.
 
 ## Security model
 
 The portal is a **separate Google Apps Script web app** from the public Entry Manager backend.
 
-Live portal deployment:
+Do not put `ENTRY_MANAGER_SHARED_SECRET`, full manager tokens, full public tokens or another permanent access secret into this repository or browser-side code.
 
-- executes as the Waimarino Shears Google account;
-- access is restricted to **Only myself**;
-- must not be changed to unrestricted `Anyone` access.
+The portal receives only the short manager/public URLs needed by the authenticated operator. Full tokens remain in the central records.
 
-Do not put `ENTRY_MANAGER_SHARED_SECRET`, manager tokens, public tokens or another permanent access secret into this repository or browser-side code.
-
-The portal receives only the short manager/public URLs needed by the authenticated operator. Full tokens remain in the existing central records.
+Do not change the portal to unrestricted `Anyone` access.
 
 ## Files
 
-Portal project files:
+Portal Apps Script project:
 
 - `google-apps-script/Code.gs` — server-side Drive reader/writer and operator controls.
 - `google-apps-script/Index.html` — operator interface.
 
-These belong in the separate **Waimarino Shears System Operator Portal** Apps Script project.
-
-The cancellation/deletion link guard belongs in the existing public **Speed Shear Entry Manager** Apps Script project:
+Existing public Entry Manager Apps Script project:
 
 - `../../google-apps-script/OperatorControlGuard.gs`
 - updated `../../google-apps-script/WebApp.gs`
@@ -82,7 +79,7 @@ The cancellation/deletion link guard belongs in the existing public **Speed Shea
 For each competition:
 
 - competition name;
-- date and lifecycle (Today / Upcoming / Past);
+- date and lifecycle;
 - venue;
 - Booking Reference;
 - organiser name/email/phone;
@@ -95,35 +92,35 @@ For each competition:
 - roster submission status;
 - private **Open Entry Manager** button when active;
 - public **Open Public Entry** button when active;
-- operator controls for deposit, cancellation, restore and deletion.
+- deposit, cancel, restore and delete operator controls.
 
 The portal supports search, active/cancelled/lifecycle filtering and refresh.
 
-## Deployment order for lifecycle controls
+## Deployment
 
-Deploy the protection before using Cancel/Delete in production:
+Portal deployments should retain:
 
-1. In the existing **Speed Shear Entry Manager** Apps Script project, add the complete repository file `google-apps-script/OperatorControlGuard.gs`.
-2. Replace the live `WebApp.gs` with the complete current repository version.
-3. Save and deploy a new Entry Manager web-app version while retaining its existing URL.
-4. In the separate **Waimarino Shears System Operator Portal** Apps Script project, replace `Code.gs` and `Index.html` with the complete current repository versions.
-5. Save and deploy the next portal version with **Only myself** access retained.
-6. Test Cancel on a test competition and confirm its manager/public links are rejected.
-7. Test Restore.
-8. Only then use permanent deletion for unwanted test records.
+- Execute as: Waimarino Shears Google account;
+- Who has access: **Only myself**.
 
-The portal code now writes to Drive, so Google may request updated Drive permission when the new version is authorised.
+When portal source changes, replace the complete `Code.gs` and `Index.html`, Save to Drive, then edit the existing deployment and choose **New version** so the web-app URL stays the same.
+
+The portal writes to Drive, so Google may request Drive authorisation when scopes change.
 
 ## Multiple Google accounts
 
-Because the portal is `Only myself`, a browser signed into several Google accounts can sometimes route the Apps Script URL using the wrong account and show a Google Page Not Found / unable-to-open-file screen.
+Because the portal is `Only myself`, a browser signed into several Google accounts can sometimes route the Apps Script URL using the wrong account and show Google Page Not Found / unable-to-open-file.
 
-Use a browser profile or session signed into the authorised Waimarino Shears Google account. Do not weaken portal access to solve this routing issue.
+Use a browser profile or session signed into the authorised Waimarino Shears account. Do not weaken portal access to solve this routing issue.
 
-## Current deployment state — 28 August 2026
+## Required verification after Version 2
 
-Live portal: **Version 1**, verified working and private.
+Use a test competition only:
 
-Live Entry Manager backend: **Version 4**.
-
-Repository source now contains the next lifecycle-control update, but it is **not live until both Apps Script projects are updated and redeployed**.
+1. mark Deposit Paid and back to Awaiting Deposit;
+2. Cancel Competition;
+3. verify its old manager and public links are blocked;
+4. Restore Competition and verify those same links work again;
+5. Cancel again;
+6. Delete Permanently;
+7. verify the record disappears from the portal and old links remain blocked.
