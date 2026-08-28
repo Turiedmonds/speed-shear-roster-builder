@@ -55,7 +55,7 @@ Current verified production state as at 28 August 2026:
 - `google-apps-script/WebApp.gs` uses the custom domain as `ENTRY_MANAGER_PUBLIC_BASE_URL`.
 - `google-apps-script/EntryManager.gs` uses `https://entries.waimarinoshears.com/` as `publicBaseUrl`.
 - Public competitor privacy version: **28 August 2026**.
-- System Operator Portal repository source is implemented under `operator-portal/` but is **not yet deployed live**.
+- System Operator Portal Apps Script is live as **Version 1 — 28 August 2026** with access set to **Only myself** and execution as the Waimarino Shears Google account.
 
 ## Relationship to Booking Pack
 
@@ -242,7 +242,7 @@ Deployment rule:
 7. keep the existing web-app URL;
 8. update this file + changelog with the new live version.
 
-## System Operator Portal — implemented source, not yet live
+## System Operator Portal — live Version 1
 
 Purpose:
 
@@ -257,7 +257,7 @@ Repository source:
 Architecture:
 
 - The portal remains source-controlled inside this existing repository.
-- It is designed to run in a **new/separate Google Apps Script project/web-app deployment**, not inside the existing public Speed Shear Entry Manager Apps Script project.
+- It runs in a **new/separate Google Apps Script project/web-app deployment**, not inside the existing public Speed Shear Entry Manager Apps Script project.
 - It reads the same existing Google Drive folder named `Waimarino Speed Shear Entry Manager` directly using server-side `DriveApp`.
 - It parses only records with `type === 'speed_shear_entry_manager_competition'`.
 - It does not create, copy or maintain a second competition database.
@@ -286,20 +286,25 @@ Current portal display includes:
 
 Security boundary:
 
-- The private Apps Script deployment access setting is the primary protection.
-- Deploy only for the authorised Waimarino Shears operator/account; prefer **Only myself** if available in the deployment UI.
-- Do **not** deploy the portal as unrestricted `Anyone` access.
+- Live deployment executes as the Waimarino Shears Google account.
+- **Who has access** is set to **Only myself**.
+- Do **not** change the portal to unrestricted `Anyone` access.
 - Do not put `ENTRY_MANAGER_SHARED_SECRET`, manager tokens, public tokens or another permanent access password into GitHub/client-side JavaScript.
-- If an appropriately private deployment option is not available, do not weaken security just to publish it; review the deployment options first.
 
-Current deployment state:
+Verified live test on 28 August 2026:
 
-- GitHub/source implementation: complete as at 28 August 2026.
-- Separate Apps Script project: not yet created by the operator.
-- Live portal web-app URL: none yet.
-- Portal must not be described as live until deployment and access restriction are tested.
+- Apps Script **Version 1** deployed successfully.
+- Opening the URL in an InPrivate browser and signing in only as the Waimarino Shears account loaded the portal successfully.
+- Portal read **3 existing competition records** from the central Drive folder.
+- Real competition data, organiser details, entry counts, lifecycle state and manager/public buttons displayed.
+- `WS-2026-0016 — Speedshear o ngā Taniwha` displayed correctly with current entry/confirmation counts.
+- Opening the same `Only myself` URL in a browser session containing several signed-in Google accounts initially produced Google Drive “unable to open the file” / Page Not Found behaviour. This was a Google multi-account routing issue, not a portal backend failure. Use a browser profile/session signed into the authorised Waimarino account when needed.
 
-The first live setup requires the operator to create the separate Apps Script project under the same Google account that owns/can access the existing Entry Manager Drive folder, paste the complete repository `Code.gs` and `Index.html`, and deploy privately.
+Current small UI issue / source fix:
+
+- Live Version 1 shows grade chips like `Open: 1 / undefined` where no entry limit exists.
+- Repository `operator-portal/google-apps-script/Index.html` has now been corrected so absent limits are simply omitted.
+- That corrected `Index.html` still needs to be pasted into the Apps Script project and deployed as a new version before the live portal loses the `undefined` text.
 
 No functional Booking Pack change is required for this portal version.
 
@@ -327,7 +332,7 @@ Before changing file schemas, coordinate with the Speed Shear Timing System impo
 
 ## Verified end-to-end competition
 
-Latest full verification used:
+Latest full Entry Manager/public-entry verification used:
 
 - Competition: **Speedshear o ngā Taniwha**
 - Booking Reference: **WS-2026-0016**
@@ -360,9 +365,10 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-Deploy and test the private **System Operator Portal** Apps Script project.
-
-The next manual step is intentionally deployment/access setup rather than further feature work, because the source is now implemented but the actual available Google web-app access choices must be confirmed before publishing.
+1. Replace the live portal `Index.html` with the corrected repository version.
+2. Deploy the portal as the next Apps Script version while retaining **Only myself** access.
+3. Re-test that no-limit grade chips no longer show `undefined`.
+4. Test the **Open Entry Manager** and **Open Public Entry** buttons from the portal.
 
 ## Do not assume
 
@@ -371,4 +377,4 @@ The next manual step is intentionally deployment/access setup rather than furthe
 - Do not expose full tokens/shared secrets unnecessarily.
 - Do not regenerate competition records merely to obtain links; existing records/tokens should be reused.
 - Do not resurrect the obsolete standalone “Roster Builder” workflow as the main system.
-- Do not claim the System Operator Portal is live until the separate Apps Script deployment is created, access-restricted and tested.
+- Do not make the System Operator Portal public merely to avoid Google multi-account routing issues.
