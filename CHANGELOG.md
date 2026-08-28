@@ -4,6 +4,15 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### Operator restore verification — passed
+
+- On **Entry Manager Test Competition**, **Restore Competition** was confirmed working after a prior cancellation.
+- The competition returned to the Active portal list.
+- The same private Entry Manager link worked again after restore.
+- The same public competitor-entry link worked again after restore.
+- This confirms Restore reactivates the same central record and existing tokens/links rather than creating replacements.
+- Permanent Delete verification remains pending.
+
 ### Cancelled Entry Manager cached-screen fix — verified
 
 - Lifecycle testing confirmed the public competitor link was correctly blocked after cancellation.
@@ -33,8 +42,9 @@ This changelog records meaningful completed changes. Keep it current whenever fu
   - Deposit Paid → Awaiting Deposit worked;
   - Cancel Competition worked and removed the record from the Active list;
   - the public competitor entry link was confirmed blocked after cancellation;
-  - the manager link was confirmed blocked after the cached-screen bootstrap fix, showing **Competition unavailable**.
-- Restore and Permanent Delete verification remain pending.
+  - the manager link was confirmed blocked after the cached-screen bootstrap fix, showing **Competition unavailable**;
+  - Restore Competition worked and the same manager/public links became available again.
+- Permanent Delete verification remains pending.
 
 ### System Operator Portal — deposit and lifecycle controls
 
