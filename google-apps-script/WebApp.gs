@@ -8,6 +8,7 @@ ENTRY_MANAGER_SHARED_SECRET = a long random secret shared only with the Booking 
 
 const ENTRY_MANAGER_SHORT_CODE_LENGTH = 20;
 const ENTRY_MANAGER_PUBLIC_BASE_URL = 'https://entries.waimarinoshears.com/';
+const ENTRY_MANAGER_MANAGER_RESULT_TTL_SECONDS = 300;
 
 function doGet(e) {
   try {
@@ -25,6 +26,11 @@ function doGet(e) {
     if (action === 'competitor-entry-result') {
       entryManagerAssertPublicTokenAvailable_(e.parameter.entry || '');
       return entryManagerJsonResponse_(entryManagerPublicSubmissionResult_(e.parameter.entry || '', e.parameter.requestId || ''));
+    }
+    if (action === 'manager-write-result') {
+      const accessToken = e.parameter.access || '';
+      entryManagerAssertManagerTokenAvailable_(accessToken);
+      return entryManagerJsonResponse_(entryManagerManagerWriteResult_(accessToken, e.parameter.requestId || ''));
     }
     if (action === 'resolve-public-code') {
       return entryManagerJsonResponse_({ok:true,token:entryManagerResolveTokenPrefix_('entryPublicToken_', e.parameter.code || '')});
@@ -60,25 +66,80 @@ function doPost(e) {
       }
     }
 
-    if (String(payload.type || '').indexOf('speed_shear_manager_') === 0 || payload.type === 'speed_shear_roster_submission') {
+    if (entryManagerIsManagerWritePayload_(payload)) {
       entryManagerAssertManagerTokenAvailable_(payload.accessToken || '');
+      const result = entryManagerDispatchManagerWrite_(payload);
+      entryManagerStoreManagerWriteResult_(payload.accessToken || '', payload.requestId || '', result);
+      return entryManagerJsonResponse_(result);
     }
 
-    if (payload.type === 'speed_shear_manager_entry_settings') return entryManagerJsonResponse_(entryManagerSaveEntrySettings_(payload));
-    if (payload.type === 'speed_shear_manager_grade_settings') return entryManagerJsonResponse_(entryManagerSaveGradeSettings_(payload));
-    if (payload.type === 'speed_shear_manager_grade_add') return entryManagerJsonResponse_(entryManagerAddGrade_(payload));
-    if (payload.type === 'speed_shear_manager_grade_remove') return entryManagerJsonResponse_(entryManagerRemoveGrade_(payload));
-    if (payload.type === 'speed_shear_manager_grade_reorder') return entryManagerJsonResponse_(entryManagerReorderGrades_(payload));
-    if (payload.type === 'speed_shear_manager_competitor_upsert') return entryManagerJsonResponse_(entryManagerUpsertCompetitor_(payload));
-    if (payload.type === 'speed_shear_manager_competitor_checkin') return entryManagerJsonResponse_(entryManagerSetCheckIn_(payload));
-    if (payload.type === 'speed_shear_manager_competitor_update') return entryManagerJsonResponse_(entryManagerUpdateCompetitor_(payload));
-    if (payload.type === 'speed_shear_manager_competitor_remove') return entryManagerJsonResponse_(entryManagerRemoveCompetitor_(payload));
-    if (payload.type === 'speed_shear_roster_submission') return entryManagerJsonResponse_(entryManagerSaveSubmissionV3_(payload));
     throw new Error('Unsupported Entry Manager request.');
   } catch (error) {
     console.error(error);
-    return entryManagerJsonResponse_({ok:false,error:String(error && error.message || error)});
+    const result = {ok:false,error:String(error && error.message || error)};
+    if (entryManagerIsManagerWritePayload_(payload)) {
+      try {
+        entryManagerStoreManagerWriteResult_(payload.accessToken || '', payload.requestId || '', result);
+      } catch (storeError) {
+        console.error('Could not store manager write failure result:', storeError);
+      }
+    }
+    return entryManagerJsonResponse_(result);
   }
+}
+
+function entryManagerIsManagerWritePayload_(payload) {
+  const type = String(payload && payload.type || '');
+  return type.indexOf('speed_shear_manager_') === 0 || type === 'speed_shear_roster_submission';
+}
+
+function entryManagerDispatchManagerWrite_(payload) {
+  if (payload.type === 'speed_shear_manager_entry_settings') return entryManagerSaveEntrySettings_(payload);
+  if (payload.type === 'speed_shear_manager_grade_settings') return entryManagerSaveGradeSettings_(payload);
+  if (payload.type === 'speed_shear_manager_grade_add') return entryManagerAddGrade_(payload);
+  if (payload.type === 'speed_shear_manager_grade_remove') return entryManagerRemoveGrade_(payload);
+  if (payload.type === 'speed_shear_manager_grade_reorder') return entryManagerReorderGrades_(payload);
+  if (payload.type === 'speed_shear_manager_competitor_upsert') return entryManagerUpsertCompetitor_(payload);
+  if (payload.type === 'speed_shear_manager_competitor_checkin') return entryManagerSetCheckIn_(payload);
+  if (payload.type === 'speed_shear_manager_competitor_update') return entryManagerUpdateCompetitor_(payload);
+  if (payload.type === 'speed_shear_manager_competitor_remove') return entryManagerRemoveCompetitor_(payload);
+  if (payload.type === 'speed_shear_roster_submission') return entryManagerSaveSubmissionV3_(payload);
+  throw new Error('Unsupported Entry Manager manager request.');
+}
+
+function entryManagerManagerWriteResult_(accessToken, requestId) {
+  const cleanRequestId = String(requestId || '').trim();
+  if (!cleanRequestId) throw new Error('Manager write request ID is missing.');
+  const cached = CacheService.getScriptCache().get(entryManagerManagerWriteCacheKey_(accessToken, cleanRequestId));
+  if (!cached) return {ok:false,pending:true};
+  try {
+    return JSON.parse(cached);
+  } catch (_) {
+    return {ok:false,error:'The saved manager result could not be read.'};
+  }
+}
+
+function entryManagerStoreManagerWriteResult_(accessToken, requestId, result) {
+  const cleanAccessToken = String(accessToken || '').trim();
+  const cleanRequestId = String(requestId || '').trim();
+  if (!cleanAccessToken || !cleanRequestId) return;
+  CacheService.getScriptCache().put(
+    entryManagerManagerWriteCacheKey_(cleanAccessToken, cleanRequestId),
+    JSON.stringify(result || {ok:false,error:'No manager result was returned.'}),
+    ENTRY_MANAGER_MANAGER_RESULT_TTL_SECONDS
+  );
+}
+
+function entryManagerManagerWriteCacheKey_(accessToken, requestId) {
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(accessToken || '') + '|' + String(requestId || ''),
+    Utilities.Charset.UTF_8
+  );
+  return 'managerWrite_' + digest.map(function (value) {
+    const byte = value < 0 ? value + 256 : value;
+    return ('0' + byte.toString(16)).slice(-2);
+  }).join('');
 }
 
 function entryManagerParseRequest_(e) {
