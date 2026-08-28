@@ -4,6 +4,28 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Entry Manager Version 7 — confirmed manager-write results
+
+- Deployed **Speed Shear Entry Manager Version 7** using the existing web-app deployment URL.
+- Kept the Apps Script-compatible manager POST transport using `fetch(..., mode:'no-cors')`.
+- Added a unique `requestId` to manager writes.
+- Added `GET action=manager-write-result` to return the real backend success/error result for that request.
+- Manager write results are stored briefly in Apps Script Cache and expire after 300 seconds.
+- Cache keys use a SHA-256 digest of manager token + request ID rather than exposing the raw token in cache-key text.
+- The frontend now sends the write, then polls for the actual backend result before treating the operation as confirmed.
+- This replaces the old “request sent = assume saved” behaviour without changing the central competition data model.
+- The pattern matches the already-proven send-then-confirm approach used by the public competitor form.
+- A safe production manager-write smoke test remains to be completed.
+
+### Shared Booking Receiver ↔ Entry Manager secret rotated
+
+- Rotated `ENTRY_MANAGER_SHARED_SECRET` in the **Speed Shear Entry Manager** Apps Script project.
+- Rotated the same `ENTRY_MANAGER_SHARED_SECRET` in the **Waimarino Speed Shear Booking Receiver** Apps Script project.
+- The replacement value is intentionally not recorded in GitHub, documentation or chat.
+- No competition manager/public tokens or existing competition links were changed.
+- No Apps Script deployment is required for a Script Property value change.
+- The old exposed development secret is no longer the configured shared secret.
+
 ### System Operator Portal Version 6 — restore missing sort helper
 
 - Portal Version 5 was deployed at **5:33 AM** with the new tidy `/manage/` and `/enter/` link generation.
@@ -18,17 +40,16 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 ### Tidy competition-specific links — Apps Script deployments complete
 
 - Deployed **Speed Shear Entry Manager Version 6** at **5:29 AM** using the existing Entry Manager web-app deployment URL.
-- Version 6 retains all Version 5 lifecycle/cancellation/deletion guards and changes generated user-facing competition links to:
+- Version 6 retained all Version 5 lifecycle/cancellation/deletion guards and changed generated user-facing competition links to:
   - `https://entries.waimarinoshears.com/manage/?c=<20-char-code>`
   - `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`
 - Deployed **System Operator Portal Version 5** at **5:33 AM** using the existing Portal web-app deployment URL.
 - Portal Version 5 remained **Only myself** and retained the already-tested Version 4 lifecycle controls and custom dialogs.
 - Portal Version 5 changed generated URLs to `/manage/` and `/enter/`, but the missing sort-helper regression described above required the follow-up Version 6 repair.
-- **System Operator Portal Version 6 is now the current live Portal deployment.**
+- **System Operator Portal Version 6 is the current live Portal deployment.**
 - No competition tokens were changed.
 - Manager/public short codes remain competition-specific and type-specific, and must resolve to exactly one token before the existing availability guard allows access.
 - Legacy `m.html?c=...`, `e.html?c=...` and long-token links remain supported.
-- Remaining tidy-link verification: open the live Portal manager/public buttons and make one safe public test entry through `/enter/?c=...` to confirm it lands in the correct competition.
 
 ## 28 August 2026
 
@@ -112,7 +133,3 @@ Using **WS-2026-0016 — Speedshear o ngā Taniwha**:
 - Online entries saved and appeared in manager.
 - Competitor receipt, organiser notification and Waimarino Shears backup email worked.
 - Custom domain and legacy redirects passed.
-
-### Known open technical item
-
-- Private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The live lifecycle guard still blocks cancelled competition writes server-side.
