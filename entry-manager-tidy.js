@@ -21,7 +21,7 @@
 
         const heading = document.createElement('div');
         heading.className = 'manual-entry-heading';
-        heading.innerHTML = '<h4>Manual Entry</h4><p>Add competitors received in person, by phone or by email.</p>';
+        heading.innerHTML = '<h4>Manual Entry</h4><p>Add competitor entries manually if they were not received through the online entry form.</p>';
 
         quickRow.parentNode.insertBefore(panel, quickRow);
         panel.appendChild(heading);
