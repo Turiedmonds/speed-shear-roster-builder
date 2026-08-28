@@ -5,7 +5,7 @@
   const appScripts = [
     'entry-manager-workflow.js?v=1.1.0',
     'entry-manager-write-confirmation.js?v=1.0.0',
-    'entry-manager.js?v=20260828-entry1',
+    'entry-manager.js?v=20260829-responsive1',
     'entry-manager-live-refresh.js?v=1.0.0',
     'entry-manager-drag-autoscroll.js?v=1.0.0',
     'entry-manager-tidy.js?v=1.2.0'
