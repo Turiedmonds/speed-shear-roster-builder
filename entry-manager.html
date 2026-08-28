@@ -8,8 +8,11 @@
   <link rel="stylesheet" href="entry-manager-polish.css?v=1.0.0">
   <link rel="stylesheet" href="entry-manager-workflow.css?v=1.0.0">
   <link rel="stylesheet" href="entry-manager-tidy.css?v=1.0.0">
+  <style>
+    body.entry-manager-access-checking { visibility: hidden; }
+  </style>
 </head>
-<body>
+<body class="entry-manager-access-checking">
   <main class="wrap">
     <header class="brand-card">
       <img class="brand-logo" src="https://turiedmonds.github.io/waimarino-shears-speed-shear-booking-pack/assets/Waimarino%20Shears%20Logo.png" alt="Waimarino Shears logo">
@@ -158,9 +161,6 @@
   </dialog>
 
   <div id="savedToast" class="saved-toast">Saved ✓</div>
-  <script src="entry-manager-workflow.js?v=1.0.0"></script>
-  <script src="entry-manager.js"></script>
-  <script src="entry-manager-drag-autoscroll.js?v=1.0.0"></script>
-  <script src="entry-manager-tidy.js?v=1.0.0"></script>
+  <script src="entry-manager-bootstrap.js?v=20260828-guard1"></script>
 </body>
 </html>
