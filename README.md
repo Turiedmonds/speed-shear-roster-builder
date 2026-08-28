@@ -60,7 +60,7 @@ Audit result in this repository:
 - Entry Manager already uses custom `<dialog>` confirmation/workflow screens rather than browser `confirm()` popups;
 - Public Competitor Entry already uses a custom privacy dialog and no browser-native confirmation path was found;
 - the System Operator Portal was the remaining area using browser-native confirmations for Cancel / Restore / Delete;
-- the repository portal `Index.html` has now been updated to custom Waimarino dialogs, but that change is not live until a new Apps Script portal version is deployed.
+- **System Operator Portal Version 4 is now deployed** with those three actions using uniform custom Waimarino dialogs.
 
 Google/browser permission, sign-in and authorisation prompts cannot be restyled by the application.
 
@@ -94,11 +94,11 @@ Portal source:
 
 The portal uses the same central Drive records; it does not create a second competition database.
 
-### Current live Version 3
+### Current live Version 4
 
-The live portal remains **Version 3** and is restricted to **Only myself**.
+The live portal is **Version 4** and remains restricted to **Only myself**.
 
-Version 3 includes:
+Version 4 includes:
 
 - **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled competition status;
@@ -108,13 +108,10 @@ Version 3 includes:
 - **Cancel Competition**;
 - **Restore Competition**;
 - **Delete Permanently** only after cancellation;
-- fixed no-limit grade display.
+- fixed no-limit grade display;
+- uniform custom Waimarino confirmation dialogs for Cancel / Restore / Delete instead of browser-native `confirm()` boxes.
 
-The deposit/cancel/restore/delete lifecycle, including stale-link blocking after permanent deletion, has been fully verified using a disposable test competition.
-
-### Pending portal dialog deployment
-
-Repository `Index.html` now replaces the browser-native Cancel / Restore / Delete confirmations with uniform custom Waimarino dialogs. To make that source live, replace the complete `Index.html` in the private portal Apps Script project and deploy a **new version** of the existing web-app deployment. Keep **Only myself** and the existing URL.
+The deposit/cancel/restore/delete lifecycle, including stale-link blocking after permanent deletion, has been fully verified using a disposable test competition. Version 4 keeps the same lifecycle calls; only the confirmation presentation changed.
 
 Marking a deposit paid does **not** automatically email or release the organiser Entry Manager link.
 
