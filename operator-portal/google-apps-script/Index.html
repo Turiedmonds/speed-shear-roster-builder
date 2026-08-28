@@ -4,11 +4,7 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root {
-      font-family: Arial, sans-serif;
-      color: #17202a;
-      background: #f4f6f7;
-    }
+    :root { font-family: Arial, sans-serif; color: #17202a; background: #f4f6f7; }
     body { margin: 0; background: #f4f6f7; }
     .shell { max-width: 1100px; margin: 0 auto; padding: 20px; }
     .header { margin-bottom: 18px; }
@@ -16,34 +12,25 @@
     h1 { margin: 5px 0 6px; font-size: 28px; }
     .muted { color: #667085; font-size: 14px; }
     .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0; }
-    input, select, button, a.button {
-      min-height: 42px;
-      border-radius: 8px;
-      border: 1px solid #cfd4dc;
-      font: inherit;
-    }
+    input, select, button, a.button { min-height: 42px; border-radius: 8px; border: 1px solid #cfd4dc; font: inherit; }
     input { flex: 1 1 260px; padding: 0 12px; background: #fff; }
     select { padding: 0 10px; background: #fff; }
-    button, a.button {
-      padding: 0 14px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: #fff;
-      color: #17202a;
-      font-weight: 700;
-    }
+    button, a.button { padding: 0 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: #fff; color: #17202a; font-weight: 700; }
+    button:disabled { opacity: .55; cursor: wait; }
     a.primary { background: #17202a; color: #fff; border-color: #17202a; }
+    button.danger { color: #a11212; border-color: #d6a3a3; }
+    button.delete { background: #a11212; color: #fff; border-color: #a11212; }
     .summary { margin: 12px 0 18px; font-weight: 700; }
     .grid { display: grid; gap: 14px; }
     .card { background: #fff; border: 1px solid #e1e5ea; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .card.cancelled { border-color: #d6a3a3; background: #fffafa; }
     .card-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
     .card h2 { margin: 0 0 5px; font-size: 21px; }
     .date { font-weight: 700; }
     .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .badge { padding: 5px 8px; border-radius: 999px; background: #eef1f4; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .badge.paid { background: #e8f5ec; }
+    .badge.cancelled { background: #f7dede; color: #851111; }
     .details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 16px; margin: 14px 0; }
     .label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #667085; margin-bottom: 3px; }
     .value { font-size: 14px; word-break: break-word; }
@@ -52,13 +39,16 @@
     .grade-list { display: flex; gap: 7px; flex-wrap: wrap; margin: 12px 0; }
     .grade { background: #f7f8fa; border-radius: 7px; padding: 6px 8px; font-size: 12px; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-    .empty, .error, .loading { background: #fff; padding: 18px; border-radius: 10px; border: 1px solid #e1e5ea; }
+    .operator-actions { border-top: 1px solid #e6e8eb; padding-top: 12px; margin-top: 12px; }
+    .operator-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #667085; margin-bottom: 8px; font-weight: 700; }
+    .empty, .error, .loading, .notice { background: #fff; padding: 18px; border-radius: 10px; border: 1px solid #e1e5ea; }
     .error { color: #9b1c1c; }
+    .notice { margin-bottom: 12px; }
     @media (max-width: 600px) {
       .shell { padding: 14px; }
       .card-head { display: block; }
       .badges { justify-content: flex-start; margin-top: 10px; }
-      .actions a.button { width: 100%; }
+      .actions a.button, .actions button { width: 100%; }
     }
   </style>
 </head>
@@ -67,45 +57,47 @@
     <div class="header">
       <div class="eyebrow">WAIMARINO SHEARS</div>
       <h1>System Operator Portal</h1>
-      <div class="muted">Private operator view of existing Speed Shear competitions.</div>
+      <div class="muted">Private Waimarino Shears control page for Speed Shear competitions.</div>
     </div>
 
     <div class="toolbar">
       <input id="search" type="search" placeholder="Search competition, venue, reference or organiser">
       <select id="status">
-        <option value="all">All competitions</option>
+        <option value="active">Active competitions</option>
         <option value="Today">Today</option>
         <option value="Upcoming">Upcoming</option>
         <option value="Past">Past</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="all">All competitions</option>
       </select>
       <button type="button" onclick="loadCompetitions()">Refresh</button>
     </div>
 
+    <div id="message"></div>
     <div id="summary" class="summary"></div>
     <div id="content" class="loading">Loading competitions…</div>
   </main>
 
   <script>
     let allCompetitions = [];
+    let actionBusy = false;
 
     document.getElementById('search').addEventListener('input', render);
     document.getElementById('status').addEventListener('change', render);
 
-    function loadCompetitions() {
+    function loadCompetitions(message) {
       document.getElementById('content').className = 'loading';
       document.getElementById('content').textContent = 'Loading competitions…';
       document.getElementById('summary').textContent = '';
+      if (message) showMessage(message, false);
 
       google.script.run
         .withSuccessHandler(function (result) {
           allCompetitions = result.competitions || [];
+          actionBusy = false;
           render();
         })
-        .withFailureHandler(function (error) {
-          const content = document.getElementById('content');
-          content.className = 'error';
-          content.textContent = error && error.message ? error.message : 'Unable to load competitions.';
-        })
+        .withFailureHandler(showFailure)
         .getOperatorCompetitions();
     }
 
@@ -113,16 +105,12 @@
       const search = document.getElementById('search').value.trim().toLowerCase();
       const status = document.getElementById('status').value;
       const filtered = allCompetitions.filter(function (item) {
-        if (status !== 'all' && item.lifecycle !== status) return false;
+        if (status === 'active' && item.operatorStatus !== 'active') return false;
+        if (status === 'cancelled' && item.operatorStatus !== 'cancelled') return false;
+        if ((status === 'Today' || status === 'Upcoming' || status === 'Past') && (item.operatorStatus !== 'active' || item.lifecycle !== status)) return false;
         if (!search) return true;
-        return [
-          item.name,
-          item.venue,
-          item.bookingReference,
-          item.organiser && item.organiser.name,
-          item.organiser && item.organiser.email,
-          item.organiser && item.organiser.phone
-        ].join(' ').toLowerCase().includes(search);
+        return [item.name, item.venue, item.bookingReference, item.organiser && item.organiser.name, item.organiser && item.organiser.email, item.organiser && item.organiser.phone]
+          .join(' ').toLowerCase().includes(search);
       });
 
       document.getElementById('summary').textContent = filtered.length + ' competition' + (filtered.length === 1 ? '' : 's');
@@ -140,6 +128,7 @@
 
     function cardHtml(item) {
       const organiser = item.organiser || {};
+      const isCancelled = item.operatorStatus === 'cancelled';
       const grades = (item.grades || []).map(function (grade) {
         let text = escapeHtml(grade.name) + ': ' + grade.count;
         if (grade.limit != null && grade.limit !== '') text += ' / ' + grade.limit;
@@ -154,10 +143,20 @@
         ? '<a class="button" target="_blank" rel="noopener" href="' + escapeAttr(item.competitorEntryUrl) + '">Open Public Entry</a>'
         : '';
 
-      return '<section class="card">' +
+      const depositButton = item.depositStatus === 'paid'
+        ? actionButton('Mark Awaiting Deposit', 'setDeposit', item.bookingReference, 'awaiting')
+        : actionButton('Mark Deposit Paid', 'setDeposit', item.bookingReference, 'paid');
+
+      const operatorButtons = isCancelled
+        ? actionButton('Restore Competition', 'restoreCompetition', item.bookingReference) + actionButton('Delete Permanently', 'deleteCompetition', item.bookingReference, '', 'delete')
+        : depositButton + actionButton('Cancel Competition', 'cancelCompetition', item.bookingReference, '', 'danger');
+
+      return '<section class="card' + (isCancelled ? ' cancelled' : '') + '">' +
         '<div class="card-head">' +
           '<div><h2>' + escapeHtml(item.name) + '</h2><div class="date">' + escapeHtml(formatDate(item.date)) + '</div></div>' +
           '<div class="badges">' +
+            '<span class="badge' + (isCancelled ? ' cancelled' : '') + '">' + escapeHtml(item.operatorStatusLabel) + '</span>' +
+            '<span class="badge' + (item.depositStatus === 'paid' ? ' paid' : '') + '">' + escapeHtml(item.depositStatusLabel) + '</span>' +
             '<span class="badge">' + escapeHtml(item.lifecycle) + '</span>' +
             '<span class="badge">Entries ' + escapeHtml(item.publicEntriesLabel) + '</span>' +
             '<span class="badge">Roster ' + escapeHtml(item.rosterStatus) + '</span>' +
@@ -176,8 +175,55 @@
           countBlock(item.notConfirmedEntries, 'Not confirmed') +
         '</div>' +
         (grades ? '<div class="grade-list">' + grades + '</div>' : '') +
-        '<div class="actions">' + managerButton + publicButton + '</div>' +
+        (!isCancelled ? '<div class="actions">' + managerButton + publicButton + '</div>' : '') +
+        '<div class="operator-actions"><div class="operator-title">Operator controls</div><div class="actions">' + operatorButtons + '</div></div>' +
       '</section>';
+    }
+
+    function actionButton(label, action, reference, value, cssClass) {
+      return '<button type="button" class="' + escapeAttr(cssClass || '') + '" ' + (actionBusy ? 'disabled ' : '') +
+        'onclick="operatorAction(\'' + escapeJs(reference) + '\',\'' + escapeJs(action) + '\',\'' + escapeJs(value || '') + '\')">' + escapeHtml(label) + '</button>';
+    }
+
+    function operatorAction(reference, action, value) {
+      if (actionBusy) return;
+
+      if (action === 'cancelCompetition' && !confirm('Cancel this competition?\n\nIts Entry Manager and public entry links will be blocked after the Entry Manager backend update is deployed.')) return;
+      if (action === 'restoreCompetition' && !confirm('Restore this competition and make its links available again?')) return;
+      if (action === 'deleteCompetition' && !confirm('Permanently delete this cancelled competition?\n\nThis moves its central competition record to Google Drive Trash. This cannot be undone from the portal.')) return;
+
+      actionBusy = true;
+      render();
+      showMessage('Updating competition…', false);
+
+      const runner = google.script.run
+        .withSuccessHandler(function () {
+          const messages = {
+            setDeposit: value === 'paid' ? 'Deposit marked as paid.' : 'Deposit marked as awaiting payment.',
+            cancelCompetition: 'Competition cancelled.',
+            restoreCompetition: 'Competition restored.',
+            deleteCompetition: 'Competition deleted.'
+          };
+          loadCompetitions(messages[action] || 'Competition updated.');
+        })
+        .withFailureHandler(showFailure);
+
+      if (action === 'setDeposit') runner.setOperatorDepositStatus(reference, value);
+      else if (action === 'cancelCompetition') runner.cancelOperatorCompetition(reference);
+      else if (action === 'restoreCompetition') runner.restoreOperatorCompetition(reference);
+      else if (action === 'deleteCompetition') runner.deleteOperatorCompetition(reference);
+    }
+
+    function showFailure(error) {
+      actionBusy = false;
+      showMessage(error && error.message ? error.message : 'Unable to update the competition.', true);
+      render();
+    }
+
+    function showMessage(text, isError) {
+      const box = document.getElementById('message');
+      if (!text) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="' + (isError ? 'error' : 'notice') + '">' + escapeHtml(text) + '</div>';
     }
 
     function detail(label, value) {
@@ -205,9 +251,8 @@
         .replace(/'/g, '&#039;');
     }
 
-    function escapeAttr(value) {
-      return escapeHtml(value);
-    }
+    function escapeAttr(value) { return escapeHtml(value); }
+    function escapeJs(value) { return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
 
     loadCompetitions();
   </script>
