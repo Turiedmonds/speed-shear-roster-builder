@@ -7,6 +7,7 @@ ENTRY_MANAGER_SHARED_SECRET = a long random secret shared only with the Booking 
 */
 
 const ENTRY_MANAGER_SHORT_CODE_LENGTH = 20;
+const ENTRY_MANAGER_PUBLIC_BASE_URL = 'https://entries.waimarinoshears.com/';
 
 function doGet(e) {
   try {
@@ -86,11 +87,11 @@ function entryManagerShortCode_(token) {
 }
 
 function entryManagerShortManagerUrl_(token) {
-  return ENTRY_MANAGER_SETTINGS.publicBaseUrl + 'm.html?c=' + encodeURIComponent(entryManagerShortCode_(token));
+  return ENTRY_MANAGER_PUBLIC_BASE_URL + 'm.html?c=' + encodeURIComponent(entryManagerShortCode_(token));
 }
 
 function entryManagerShortCompetitorUrl_(token) {
-  return ENTRY_MANAGER_SETTINGS.publicBaseUrl + 'e.html?c=' + encodeURIComponent(entryManagerShortCode_(token));
+  return ENTRY_MANAGER_PUBLIC_BASE_URL + 'e.html?c=' + encodeURIComponent(entryManagerShortCode_(token));
 }
 
 function entryManagerShortPublicUrlFromLong_(url) {
