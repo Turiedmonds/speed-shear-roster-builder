@@ -4,6 +4,23 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### System Operator Portal — live deployment and verification
+
+- Created a separate Google Apps Script project for the private **System Operator Portal**.
+- Deployed the portal as **Version 1**.
+- Deployment executes as the Waimarino Shears Google account.
+- Deployment access is restricted to **Only myself**.
+- Authorised read access to Google Drive so the portal can read the existing central competition JSON records.
+- Verified the portal opens successfully in an InPrivate browser signed into only the authorised Waimarino Shears account.
+- Verified the portal loaded **3 existing competition records** from the `Waimarino Speed Shear Entry Manager` Drive folder.
+- Verified real competition name/date/venue/Booking Reference, organiser contact details, entry counts, lifecycle state and private/public action buttons display.
+- Verified `WS-2026-0016 — Speedshear o ngā Taniwha` appears with its current entry and Confirmed / Not Confirmed counts.
+- Opening the private web-app URL from a normal browser session containing several signed-in Google accounts initially produced a Google Drive Page Not Found / unable-to-open-file screen. An InPrivate session with only the authorised account confirmed this is Google multi-account routing rather than a portal backend failure.
+- The access setting must remain private; do not change it to unrestricted `Anyone` simply to avoid Google account-routing behaviour.
+- Initial Version 1 visual review found grades without configured limits displayed text such as `Open: 1 / undefined`.
+- Updated repository `operator-portal/google-apps-script/Index.html` so an absent limit is omitted instead of displaying `undefined`.
+- The no-limit display fix is in repository source and still needs to be deployed as the next Apps Script version before the live portal reflects it.
+
 ### System Operator Portal — source implementation
 
 - Added a new private **System Operator Portal** source area under `operator-portal/`.
@@ -20,7 +37,6 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - The portal is intentionally designed as a **separate Google Apps Script web app/project** from the public Entry Manager deployment, while its source remains in this repository.
 - Added `operator-portal/README.md` with deployment and security instructions.
 - Security requirement: deploy the operator web app with Google access restricted to the authorised Waimarino Shears operator/account; do not deploy it as an unrestricted `Anyone` web app.
-- Repository source is implemented but the separate operator Apps Script project is **not yet deployed live**.
 - No Booking Pack, public competitor-entry or existing organiser Entry Manager behaviour was changed by this implementation.
 
 ### System naming and branding
