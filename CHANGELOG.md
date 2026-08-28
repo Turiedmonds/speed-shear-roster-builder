@@ -4,10 +4,25 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Entry Manager — responsive grade controls
+
+- Changed each per-grade control heading from “Public entries for <grade>” to **`<Grade> — Online Entries`**.
+- Changed the per-grade action buttons to simple **On / Off** controls.
+- Manual **Add Competitor** now inserts the new competitor row and updates grade counts immediately instead of waiting for backend confirmation and then rebuilding the whole grade card.
+- The quick-entry name/town fields clear immediately and focus returns to the competitor-name field for fast repeated manual entry.
+- Version 7 backend confirmation is still required; if a manual-add save fails, the inserted row is removed and the typed values are restored.
+- Per-grade Online Entries On / Off changes now update immediately without a whole-card redraw, with rollback if the backend save is rejected.
+- Optional entry-limit changes update the grade summary immediately and roll back on failure.
+- Existing competitor name/town edits no longer redraw the full grade after a successful save.
+- Saving competitor phone/email details no longer redraws the full grade after the details dialog closes.
+- Cache-busting versions were updated in `entry-manager-bootstrap.js` and `entry-manager.html` so the responsive source is loaded after GitHub Pages publishes it.
+- No Apps Script backend change or deployment is required for this frontend-only update.
+- Live smoke testing of the new responsive controls remains to be completed after GitHub Pages publishes the change.
+
 ### Entry Manager — safe 30-second public-entry background refresh
 
 - Added `entry-manager-live-refresh.js` and loaded it through `entry-manager-bootstrap.js` for token-based Entry Manager sessions.
-- The manager now checks the shared competition record every **30 seconds** for genuinely new public-entry competitors.
+- The manager checks the shared competition record every **30 seconds** for genuinely new public-entry competitors.
 - Polling is silent: if nothing has changed, there is no page redraw, status message, flash or visible activity.
 - A visible refresh is only requested when a new `source: public-entry` competitor ID is detected that is not already displayed.
 - The refresh is deferred while the organiser is using an input/textarea/select, a dialog is open, a grade is being dragged, or Manual Entry/Bulk Entry draft text exists.
@@ -16,7 +31,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Scroll position is preserved around the refresh.
 - Background network errors are ignored silently so polling cannot interrupt competition operation.
 - Manual/no-token mode does not poll.
-- Live smoke testing remains to be completed after GitHub Pages publishes this source change.
+- **Live smoke test passed:** unfinished Manual Entry text remained untouched across polling, the new online competitor was held while the draft remained, and then appeared automatically once the manual competitor was added.
 
 ### Tidy public-entry route — end-to-end submission passed
 
