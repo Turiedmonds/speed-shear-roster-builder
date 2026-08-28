@@ -44,12 +44,18 @@ A record may exist before the required deposit is paid. Waimarino Shears decides
 
 Custom domain: `https://entries.waimarinoshears.com`
 
-Short links:
+Preferred tidy links:
 
-- private manager: `m.html?c=<short-code>`
-- public competitor form: `e.html?c=<short-code>`
+- private manager: `https://entries.waimarinoshears.com/manage/?c=<20-char-code>`
+- public competitor form: `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`
 
-Legacy full-token links remain supported.
+Each 20-character code is derived from that competition's own manager or public token. The backend resolver requires the code to resolve to exactly one competition and then applies the existing active/cancelled/deleted availability checks before returning the internal token. A public code therefore opens only the public entry form for its own competition; a manager code opens only its own Entry Manager.
+
+The tidy `/enter/` and `/manage/` pages keep the short address visible while the full bearer token remains internal to the page. The old `e.html?c=...` and `m.html?c=...` links remain supported and forward to the tidy routes. Legacy full-token links also remain supported.
+
+The Entry Manager **Copy Link** control normalises existing old short/full public URLs to the tidy `/enter/?c=...` form before copying, so current competitions do not need new tokens.
+
+Repository `google-apps-script/WebApp.gs` has also been updated so the next Entry Manager backend deployment will generate the tidy `/enter/` and `/manage/` URLs directly for booking handoffs and future returned links. Until that Apps Script version is deployed, the existing live Version 5 may still return the older `e.html` / `m.html` format, which now forwards safely to the tidy route.
 
 ## Uniform dialogs
 
@@ -70,7 +76,7 @@ Current organiser features include booking-loaded competition details, grades/ev
 
 The organiser-facing workflow now uses normal Speed Shear language: the grade action is **Close Entries** rather than “Submit Confirmed Entries”. Closing a grade closes that grade to new public entries and sends the confirmed roster through the existing backend workflow. The overall action is **Close All Entries**. A previously closed grade can use **Update Closed Entries** when an updated confirmed roster needs to be sent.
 
-Manual Entry helper text now explains that it is for competitors not received through the online entry form. Checked / Paid confirmation changes update the button colour and Confirmed count immediately while the backend save continues, avoiding the previous whole-card redraw/flicker.
+Manual Entry helper text now explains that it is for competitors not received through the online entry form. Checked / Paid confirmation changes update the button colour and Confirmed count immediately while the backend save continues, avoiding the previous whole-card redraw/flicker. This organiser-UI update has been user smoke-tested successfully in production.
 
 The internal compatibility field remains `checkedIn` even where the UI says Confirmed. Internal submission data, JSON/PDF generation and backend transport remain unchanged even though the organiser-facing wording now says Close Entries.
 
@@ -117,6 +123,8 @@ Version 4 includes:
 
 The deposit/cancel/restore/delete lifecycle, including stale-link blocking after permanent deletion, has been fully verified using a disposable test competition. Version 4 keeps the same lifecycle calls; only the confirmation presentation changed.
 
+The repository `operator-portal/google-apps-script/Code.gs` now generates `/manage/` and `/enter/` links. That source change requires a later Operator Portal Apps Script deployment to replace Version 4's generated URL strings, although the old Version 4 links already forward to the new tidy pages through GitHub Pages.
+
 Marking a deposit paid does **not** automatically email or release the organiser Entry Manager link.
 
 ### Portal security and normal browser access
@@ -145,6 +153,8 @@ Main source files:
 - `google-apps-script/OperatorControlGuard.gs`
 
 Version 5 blocks manager/public access and writes for cancelled competitions and rejects trashed/deleted competition records. The existing web-app URL was retained.
+
+The repository source for the next backend version changes only the generated short-link presentation from `m.html/e.html` to `/manage/` and `/enter/`; the 20-character resolver, competition-specific token binding and lifecycle checks are unchanged.
 
 Required Script Property: `ENTRY_MANAGER_SHARED_SECRET`. Never commit or document its value.
 
