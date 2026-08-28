@@ -77,11 +77,13 @@ Portal source:
 
 The portal uses the same central Drive records; it does not create a second competition database.
 
-### Live Version 2
+### Live Version 3
 
-The portal is now deployed as **Version 2** and remains restricted to **Only myself**.
+The portal is now deployed as **Version 3** and remains restricted to **Only myself**.
 
-Version 2 includes:
+Version 2 was an intermediate deployment containing the updated `Code.gs` only. Version 3 contains both updated portal files and therefore includes the complete operator UI.
+
+Version 3 includes:
 
 - **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled competition status;
