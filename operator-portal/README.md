@@ -10,16 +10,16 @@ It does **not** create a second competition database. It reads and updates the e
 
 `Waimarino Speed Shear Entry Manager`
 
-## Current live state — 28 August 2026
+## Current live state — 29 August 2026
 
-- **System Operator Portal: Version 4 live**.
-- Version 4 was successfully deployed on **28 August 2026 at 7:23 PM**.
+- **System Operator Portal: Version 5 live**.
+- Version 5 was successfully deployed on **29 August 2026 at 5:33 AM** using the existing web-app deployment URL.
 - Executes as the Waimarino Shears Google account.
 - Access remains **Only myself**.
-- **Speed Shear Entry Manager backend: Version 5 live** with cancellation/deletion guard.
+- **Speed Shear Entry Manager backend: Version 6 live**, deployed at 5:29 AM on 29 August 2026.
 - Deposit / Cancel / blocked-link / Restore / Delete lifecycle is fully verified end-to-end using a disposable test competition.
-- Version 4 adds the uniform custom Waimarino confirmation dialogs for Cancel, Restore and Delete without changing the tested lifecycle server calls.
-- Repository `Code.gs` now generates the preferred tidy `/manage/?c=...` and `/enter/?c=...` links. That URL-generation change is pending the next Portal Apps Script deployment; Version 4's existing `m.html/e.html` links remain valid because GitHub Pages now forwards them to the tidy routes.
+- Version 5 retains the Version 4 custom Waimarino confirmation dialogs for Cancel, Restore and Delete.
+- Version 5 now generates the preferred tidy `/manage/?c=...` and `/enter/?c=...` links directly.
 
 ## Preferred competition links
 
@@ -49,7 +49,7 @@ Marking a deposit paid does **not** automatically email or release the Entry Man
 
 Use when a booking does not proceed, including when the required deposit is not paid.
 
-Cancellation keeps the central record for history, removes active manager/public buttons from the portal card, places the competition under the **Cancelled** filter, and Version 5 blocks the organiser Entry Manager and public competitor links server-side.
+Cancellation keeps the central record for history, removes active manager/public buttons from the portal card, places the competition under the **Cancelled** filter, and the Entry Manager backend blocks organiser/public links server-side.
 
 ### Restore Competition
 
@@ -62,23 +62,20 @@ Permanent delete intentionally requires two steps:
 1. cancel the competition;
 2. choose **Delete Permanently**.
 
-This moves the central competition JSON file to Google Drive Trash. Version 5 rejects trashed records even if old token-to-file Script Property mappings still exist.
+This moves the central competition JSON file to Google Drive Trash. The backend rejects trashed records even if old token-to-file Script Property mappings still exist.
 
 If the same Booking Reference is later legitimately created again, the setup guard clears a stale trashed reference mapping so a new record can be created.
 
 ## Uniform custom dialogs
 
-The portal originally used browser `confirm()` for Cancel, Restore and Delete. In an Apps Script page this produced the cluttered browser heading such as **“An embedded page at … script.googleusercontent.com says”**.
-
-Live Version 4 now replaces those three native browser confirmations with the common Waimarino Shears modal pattern:
+The portal originally used browser `confirm()` for Cancel, Restore and Delete. Version 4 replaced those browser-native prompts with the common Waimarino Shears modal pattern. Version 5 retains that presentation unchanged:
 
 - white rounded card;
 - Waimarino red top accent;
 - dark overlay;
 - Waimarino Shears branding;
 - consistent action layout;
-- red destructive confirmation for Cancel/Delete;
-- no change to the tested lifecycle server calls.
+- red destructive confirmation for Cancel/Delete.
 
 Google sign-in, Drive authorisation and other platform security prompts cannot be restyled.
 
@@ -133,11 +130,11 @@ Portal deployments must retain:
 - Execute as: Waimarino Shears Google account;
 - Who has access: **Only myself**.
 
-Current production deployment is **Version 4** using the existing web-app deployment/URL.
+Current production deployment is **Version 5** using the existing web-app deployment/URL.
 
-Version 4's popup update changed only `Index.html`. Repository `Code.gs` has since changed only in its generated manager/public URL strings so the next deployment can output `/manage/` and `/enter/` directly. Do not call that URL-generation change live until the new Portal version is actually deployed.
+Version 5 changed only the generated manager/public URL strings in `Code.gs` compared with Version 4. Lifecycle logic and custom-dialog presentation remain unchanged.
 
-The portal writes to Drive, so Google may request Drive authorisation when scopes change. The tidy URL-generation change does not add a new Drive scope.
+The portal writes to Drive, so Google may request Drive authorisation when scopes change. The tidy URL-generation change did not add a new Drive scope.
 
 ## Normal browser use / multiple Google accounts
 
@@ -145,13 +142,11 @@ InPrivate was used during setup because a normal browser session with several si
 
 **InPrivate is not required for normal portal use.**
 
-Recommended setup:
+Verified normal setup:
 
-1. create a dedicated Edge or Chrome browser profile for Waimarino Shears;
-2. sign only the authorised Waimarino Shears Google account into that profile;
-3. bookmark the portal URL there.
-
-This keeps the portal private while avoiding the multi-account routing problem. Do not weaken portal access to solve it.
+1. dedicated Edge profile named **Waimarino Shears**;
+2. Google signed in only with the authorised Waimarino Shears account;
+3. private Portal opens normally while access remains **Only myself**.
 
 ## Verified lifecycle baseline
 
@@ -170,6 +165,6 @@ The full lifecycle was tested on **Entry Manager Test Competition** and passed:
 
 That disposable test competition has now been permanently removed. Do not repeat destructive testing on real bookings.
 
-## Version 4 smoke test
+## Version 5 verification still to do
 
-The Version 4 custom-dialog smoke test passed on a real active competition without carrying out the destructive action: the Waimarino custom Cancel dialog appeared and **Keep Competition** was chosen, leaving the competition unchanged.
+The deployment itself is confirmed live. Do one safe UI check by refreshing the Portal and opening the public/manager buttons for an active competition, confirming the resulting browser addresses use `/enter/?c=...` and `/manage/?c=...`.
