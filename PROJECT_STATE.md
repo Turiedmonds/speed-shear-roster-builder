@@ -33,7 +33,7 @@ As at 28 August 2026:
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle has been verified end-to-end on the now-deleted test competition.
 - Version 4 replaces the Portal's browser-native Cancel / Restore / Delete confirmations with uniform custom Waimarino dialogs. The lifecycle server calls are unchanged.
-- A safe Version 4 smoke test is still to be completed by opening the Cancel dialog on a real competition and choosing **Keep Competition** without changing state.
+- A safe Version 4 smoke test on the real **Speedshear o ngā Taniwha** competition confirmed the branded **Cancel this competition?** dialog renders correctly in a narrow/mobile layout with **Keep Competition** and red **Cancel Competition** actions. The competition was not changed.
 
 ## Uniform custom-dialog standard
 
@@ -54,6 +54,7 @@ Current audit/result in this repository:
 - the **System Operator Portal** was the remaining native-popup area, using browser `confirm()` for Cancel, Restore and Delete;
 - `operator-portal/google-apps-script/Index.html` now uses the uniform custom Waimarino dialog for those three actions;
 - that source is now deployed as **System Operator Portal Version 4**;
+- the live Cancel dialog has been visually smoke-tested successfully without changing the real competition;
 - underlying portal lifecycle calls and server-side behavior are unchanged.
 
 Google/browser account, security and authorisation prompts are platform UI and cannot be restyled.
@@ -136,7 +137,7 @@ Version 4 is live and includes:
 
 The lifecycle implementation is fully verified. Do not repeat destructive lifecycle testing on real bookings.
 
-The popup-only Version 4 change does not alter `Code.gs` or any lifecycle server call. A safe visual smoke test remains: click **Cancel Competition** on a real active competition, verify the branded dialog appears, then click **Keep Competition**.
+The popup-only Version 4 change does not alter `Code.gs` or any lifecycle server call. The live Cancel confirmation has been smoke-tested safely and the real competition remained active.
 
 Marking **Deposit Paid** does not automatically send or release the organiser link. Waimarino Shears still controls when that private link is sent.
 
@@ -210,10 +211,9 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-1. Smoke-test the live Version 4 portal custom dialog by clicking **Cancel Competition** and then **Keep Competition** so no real booking changes.
-2. Set up a dedicated normal browser profile for the Waimarino Shears account so InPrivate is no longer needed.
-3. Smoke-test the Booking Pack custom-dialog layer after GitHub Pages publishes it.
-4. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
-5. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
+1. Set up a dedicated normal browser profile for the Waimarino Shears account so InPrivate is no longer needed.
+2. Smoke-test the Booking Pack custom-dialog layer after GitHub Pages publishes it.
+3. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+4. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
 
 Known technical item: private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 lifecycle guard itself is verified and does not depend on resolving that limitation.
