@@ -11,10 +11,12 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Cancelled competitions are now rejected server-side for manager access, public entry access, manager/public writes and short-code resolution.
 - Trashed/deleted central competition files are rejected.
 - Stale Booking Reference mappings to trashed files are cleared before a legitimate recreation.
-- Deployed **System Operator Portal Version 2** while retaining **Only myself** access.
-- Version 2 includes **Awaiting Deposit / Deposit Paid**, **Cancel Competition**, **Restore Competition**, **Delete Permanently** after cancellation, active/cancelled filtering and the no-limit grade-display fix.
+- Deployed **System Operator Portal Version 2** as an intermediate deployment containing the updated `Code.gs` only.
+- Deployed **System Operator Portal Version 3** after saving the updated `Index.html`; Version 3 now contains both updated portal files and is the current live portal.
+- Portal access remains **Only myself**.
+- Version 3 includes **Awaiting Deposit / Deposit Paid**, **Cancel Competition**, **Restore Competition**, **Delete Permanently** after cancellation, active/cancelled filtering and the no-limit grade-display fix.
 - Marking Deposit Paid does not automatically send/release the organiser Entry Manager link.
-- Both deployments succeeded. Functional Cancel / blocked-link / Restore / Delete verification is still pending and must be performed on a test competition before real cancellations/deletions are relied on.
+- Backend Version 5 and Portal Version 3 deployments both succeeded. Functional Cancel / blocked-link / Restore / Delete verification is still pending and must be performed on a test competition before real cancellations/deletions are relied on.
 
 ### System Operator Portal — deposit and lifecycle controls
 
