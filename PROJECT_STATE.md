@@ -35,6 +35,7 @@ As at 29 August 2026:
 - Portal Version 6 post-deploy refresh passed: the active competition list and card loaded normally again with no ReferenceError.
 - **Tidy manager/public URLs are verified live:** Portal/Open links load the correct competition while keeping `/manage/?c=...` and `/enter/?c=...` visible in the browser.
 - **Full tidy public-entry submission is verified end-to-end:** a test competitor submitted through `/enter/?c=...`, received an entry reference and email receipt, and appeared under the correct grade in the matching Entry Manager.
+- Entry Manager source now includes a **30-second silent background public-entry check** that only requests a visible refresh when a genuinely new public-entry competitor is detected and the organiser is not editing.
 - Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
@@ -142,6 +143,21 @@ The Close Entries confirmation explains that the grade will close to new public 
 
 Compatibility note: organiser-facing **Confirmed** is stored in the existing `checkedIn` field.
 
+### Silent public-entry background refresh
+
+`entry-manager-live-refresh.js` is loaded by `entry-manager-bootstrap.js` for token-based Entry Manager sessions.
+
+- checks the same manager GET endpoint every **30 seconds**;
+- background checks are silent and do not redraw the page when nothing changed;
+- it only reacts when the central record contains a new competitor with `source: public-entry` whose ID is not already displayed;
+- if any input/textarea/select is focused, a details/confirmation dialog is open, a grade is being dragged, or a Manual Entry/Bulk Entry draft contains text, the visible refresh is deferred;
+- once the organiser is no longer busy, the existing trusted **Refresh Entries** path is used so the closure-held Entry Manager state and DOM stay in sync;
+- scroll position is preserved around that refresh;
+- network/background-check failures are intentionally silent and never interrupt the organiser;
+- manual/no-token mode does not poll.
+
+This is intentionally conservative: protecting unfinished organiser input takes priority over showing a new public entry immediately. A live smoke test is still required after GitHub Pages publishes the change.
+
 ## Manager cancellation access gate
 
 The backend rejects cancelled/deleted manager and public access server-side. `entry-manager-bootstrap.js` also validates a manager token before loading organiser scripts, preventing stale cached organiser screens after cancellation/deletion.
@@ -213,6 +229,7 @@ Lifecycle-control verification used the separate **Entry Manager Test Competitio
 
 ## Next planned work
 
-There are no outstanding Entry Manager / System Operator Portal hardening or verification items from this round. Future work can proceed as new feature requests arise.
+1. After GitHub Pages publishes the safe background-refresh change, smoke-test it on a test competition by leaving the Entry Manager open, submitting a public entry from another browser/tab and confirming it appears within about 30 seconds without manually refreshing.
+2. During that test, leave unfinished text in a Manual Entry field across at least one polling interval and confirm the text is not cleared or changed.
 
 The Version 7 manager-write verification, tidy manager/public URL verification, full tidy public-entry submission test and shared-secret rotation are complete.
