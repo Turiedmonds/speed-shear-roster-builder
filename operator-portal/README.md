@@ -12,12 +12,13 @@ It does **not** create a second competition database. It reads and updates the e
 
 ## Current live state — 28 August 2026
 
-- **System Operator Portal: Version 3 live**.
+- **System Operator Portal: Version 4 live**.
+- Version 4 was successfully deployed on **28 August 2026 at 7:23 PM**.
 - Executes as the Waimarino Shears Google account.
 - Access remains **Only myself**.
 - **Speed Shear Entry Manager backend: Version 5 live** with cancellation/deletion guard.
 - Deposit / Cancel / blocked-link / Restore / Delete lifecycle is fully verified end-to-end using a disposable test competition.
-- The repository `Index.html` now contains the uniform custom Waimarino confirmation dialogs, but that source is **not live yet**. A new portal Apps Script version must still be deployed.
+- Version 4 adds the uniform custom Waimarino confirmation dialogs for Cancel, Restore and Delete without changing the tested lifecycle server calls.
 
 ## Booking / deposit workflow
 
@@ -57,7 +58,7 @@ If the same Booking Reference is later legitimately created again, the setup gua
 
 The portal originally used browser `confirm()` for Cancel, Restore and Delete. In an Apps Script page this produced the cluttered browser heading such as **“An embedded page at … script.googleusercontent.com says”**.
 
-Repository `google-apps-script/Index.html` now replaces those three native browser confirmations with the common Waimarino Shears modal pattern:
+Live Version 4 now replaces those three native browser confirmations with the common Waimarino Shears modal pattern:
 
 - white rounded card;
 - Waimarino red top accent;
@@ -120,19 +121,11 @@ Portal deployments must retain:
 - Execute as: Waimarino Shears Google account;
 - Who has access: **Only myself**.
 
-For the current pending dialog update:
+Current production deployment is **Version 4** using the existing web-app deployment/URL.
 
-1. replace the complete live Apps Script `Index.html` with the repository version;
-2. save to Drive;
-3. open **Deploy → Manage deployments**;
-4. edit the existing deployment;
-5. choose **New version**;
-6. deploy while retaining the existing URL and **Only myself** access;
-7. update repo docs with the new live version after confirmation.
+`Code.gs` did not change for the Version 4 popup-only update; only `Index.html` changed.
 
-`Code.gs` does not need to change for this popup-only update.
-
-The portal writes to Drive, so Google may request Drive authorisation when scopes change. This dialog-only update does not add a new Drive scope.
+The portal writes to Drive, so Google may request Drive authorisation when scopes change. This dialog-only update did not add a new Drive scope.
 
 ## Normal browser use / multiple Google accounts
 
@@ -164,3 +157,11 @@ The full lifecycle was tested on **Entry Manager Test Competition** and passed:
 10. old manager/public links remained blocked after deletion.
 
 That disposable test competition has now been permanently removed. Do not repeat destructive testing on real bookings.
+
+## Version 4 smoke test
+
+After deployment, verify the new presentation on a real active competition **without carrying out the action**:
+
+1. click **Cancel Competition**;
+2. confirm the Waimarino custom dialog appears instead of the browser-native embedded-page popup;
+3. choose **Keep Competition** so no competition state changes.
