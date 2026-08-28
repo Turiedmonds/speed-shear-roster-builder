@@ -57,6 +57,10 @@ Current organiser features include booking-loaded competition details, grades/ev
 
 The internal compatibility field remains `checkedIn` even where the UI says Confirmed.
 
+The Entry Manager frontend now uses `entry-manager-bootstrap.js` to validate token access against the live backend before loading the organiser application. This prevents a cancelled/deleted competition from displaying a stale cached organiser screen from localStorage after the backend has rejected access.
+
+If token validation fails, the organiser application scripts are not loaded and the page shows the competition as unavailable. No-token/manual mode retains its historical local-only behaviour.
+
 ## Public competitor entry
 
 The public form collects competitor name, hometown, grade/event, phone/email and privacy acknowledgement. At least one contact method is required.
@@ -79,9 +83,7 @@ The portal uses the same central Drive records; it does not create a second comp
 
 ### Live Version 3
 
-The portal is now deployed as **Version 3** and remains restricted to **Only myself**.
-
-Version 2 was an intermediate deployment containing the updated `Code.gs` only. Version 3 contains both updated portal files and therefore includes the complete operator UI.
+The portal is deployed as **Version 3** and remains restricted to **Only myself**.
 
 Version 3 includes:
 
@@ -97,7 +99,7 @@ Version 3 includes:
 
 Marking a deposit paid does **not** automatically email or release the organiser Entry Manager link.
 
-Functional Cancel / blocked-link / Restore / Delete testing is still required on a test competition before these controls are considered fully verified.
+Deposit status changes and initial cancellation have been tested on the test competition. Public competitor access was confirmed blocked after cancellation. Manager cancellation re-testing is required after the new GitHub Pages bootstrap guard is published.
 
 ### Portal security
 
@@ -132,9 +134,11 @@ Cancel keeps the central record for history but blocks organiser/public access s
 
 Old token mappings may remain internally, but Version 5 checks the central file and refuses cancelled/trashed records.
 
+The frontend access bootstrap is an additional protection for already-resolved manager URLs: it verifies the full manager token before any cached organiser UI is loaded.
+
 ## Important current limitation
 
-`entry-manager.js` still sends private manager writes using `fetch(..., mode:'no-cors')`. The browser cannot read/verify the backend response body. Version 5 still blocks cancelled competition writes server-side, but an already-open manager page may not show a clean error until refreshed/reopened.
+`entry-manager.js` still sends private manager writes using `fetch(..., mode:'no-cors')`. The browser cannot read/verify the backend response body. Version 5 still blocks cancelled competition writes server-side.
 
 ## Verified Entry Manager baseline
 
