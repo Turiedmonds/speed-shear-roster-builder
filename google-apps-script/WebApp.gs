@@ -13,12 +13,19 @@ function doGet(e) {
   try {
     const action = String(e && e.parameter && e.parameter.action || '').trim();
     if (action === 'entry-manager') {
+      entryManagerAssertManagerTokenAvailable_(e.parameter.access || '');
       const setup = entryManagerPublicSetup_(e.parameter.access || '');
       setup.competitorEntryUrl = entryManagerShortPublicUrlFromLong_(setup.competitorEntryUrl || '');
       return entryManagerJsonResponse_(setup);
     }
-    if (action === 'competitor-entry') return entryManagerJsonResponse_(entryManagerCompetitorSetupV4_(e.parameter.entry || ''));
-    if (action === 'competitor-entry-result') return entryManagerJsonResponse_(entryManagerPublicSubmissionResult_(e.parameter.entry || '', e.parameter.requestId || ''));
+    if (action === 'competitor-entry') {
+      entryManagerAssertPublicTokenAvailable_(e.parameter.entry || '');
+      return entryManagerJsonResponse_(entryManagerCompetitorSetupV4_(e.parameter.entry || ''));
+    }
+    if (action === 'competitor-entry-result') {
+      entryManagerAssertPublicTokenAvailable_(e.parameter.entry || '');
+      return entryManagerJsonResponse_(entryManagerPublicSubmissionResult_(e.parameter.entry || '', e.parameter.requestId || ''));
+    }
     if (action === 'resolve-public-code') {
       return entryManagerJsonResponse_({ok:true,token:entryManagerResolveTokenPrefix_('entryPublicToken_', e.parameter.code || '')});
     }
@@ -42,6 +49,7 @@ function doPost(e) {
     }
     if (payload.type === 'speed_shear_competitor_entry') {
       try {
+        entryManagerAssertPublicTokenAvailable_(payload.entryToken || '');
         const result = entryManagerSaveCompetitorEntryV4_(payload);
         entryManagerStorePublicSubmissionResult_(payload.entryToken || '', payload.requestId || '', result);
         return entryManagerJsonResponse_(result);
@@ -51,6 +59,11 @@ function doPost(e) {
         return entryManagerJsonResponse_(result);
       }
     }
+
+    if (String(payload.type || '').indexOf('speed_shear_manager_') === 0 || payload.type === 'speed_shear_roster_submission') {
+      entryManagerAssertManagerTokenAvailable_(payload.accessToken || '');
+    }
+
     if (payload.type === 'speed_shear_manager_entry_settings') return entryManagerJsonResponse_(entryManagerSaveEntrySettings_(payload));
     if (payload.type === 'speed_shear_manager_grade_settings') return entryManagerJsonResponse_(entryManagerSaveGradeSettings_(payload));
     if (payload.type === 'speed_shear_manager_grade_add') return entryManagerJsonResponse_(entryManagerAddGrade_(payload));
@@ -113,10 +126,16 @@ function entryManagerResolveTokenPrefix_(propertyPrefix, code) {
   });
 
   if (matches.length !== 1) throw new Error('This entry link could not be found.');
-  return matches[0].slice(propertyPrefix.length);
+
+  const token = matches[0].slice(propertyPrefix.length);
+  if (propertyPrefix === 'entryManagerToken_') entryManagerAssertManagerTokenAvailable_(token);
+  if (propertyPrefix === 'entryPublicToken_') entryManagerAssertPublicTokenAvailable_(token);
+  return token;
 }
 
 function entryManagerCreateCompetitionFromSetup_(setupPayload) {
+  entryManagerPrepareReferenceForSetup_(setupPayload.bookingReference || '');
+
   const pack = {
     identity: {bookingReference: String(setupPayload.bookingReference || '')},
     booking: {
