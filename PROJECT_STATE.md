@@ -30,10 +30,11 @@ As at 28 August 2026:
 - Portal executes as the Waimarino Shears Google account.
 - Portal access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
-- Version 1 portal was verified against 3 existing central competition records.
-- Portal Version 2 was an intermediate deployment containing the new `Code.gs` only.
-- Portal Version 3 contains both the updated `Code.gs` and updated `Index.html`, so the deposit/cancel/restore/delete controls are now live in the portal UI.
-- Functional lifecycle testing is still required before the new controls are treated as fully verified.
+- Portal Version 3 contains both updated portal files and the deposit/cancel/restore/delete controls.
+- Deposit Paid → Awaiting Deposit switching has been verified on the test competition.
+- Cancel Competition has been verified to move the test competition out of the Active portal list.
+- Public competitor access has been verified blocked after cancellation.
+- A manager-side cached-display issue was found during cancellation testing and a GitHub Pages bootstrap guard has now been committed; its production behaviour still requires refresh/re-test after Pages publishes the change.
 
 ## Relationship to Booking Pack
 
@@ -73,7 +74,26 @@ Supports booking-loaded competition details, grades/events, Programme viewer, ma
 
 Compatibility note: organiser-facing **Confirmed** is stored in the existing `checkedIn` field.
 
-Known limitation: private manager writes still use `fetch(..., mode:'no-cors')`, so an already-open manager page cannot reliably read backend error responses. A cancelled competition is nevertheless blocked server-side by Version 5; refreshing/reopening shows the blocked state.
+Private manager writes still use `fetch(..., mode:'no-cors')`, so an already-open manager page cannot reliably read backend error responses. Version 5 still rejects cancelled competition writes server-side.
+
+## Manager cancellation access gate
+
+Cancellation testing exposed an important browser-cache behaviour:
+
+- Version 5 correctly rejected a cancelled manager token server-side;
+- however `entry-manager.js` restored the previously saved localStorage copy before its server refresh completed;
+- when the server refresh failed, the old code only displayed a warning and left that cached organiser screen visible/editable locally;
+- public competitor access was correctly blocked and did not have this problem.
+
+Repository fix now added:
+
+- `entry-manager-bootstrap.js` validates an `access` token against the live Entry Manager backend **before** loading the organiser application scripts;
+- `entry-manager.html` stays hidden while validation is in progress;
+- if the competition is cancelled/deleted/unavailable, the organiser application scripts are not loaded and the token-specific cached localStorage copy is removed;
+- if validation succeeds, the normal Entry Manager scripts load in their existing order;
+- no-token/manual mode retains the historical local-only behaviour.
+
+This fix is a GitHub Pages frontend change, not another Apps Script version. Re-test the cancelled manager tab after GitHub Pages publishes the commit before treating manager-link cancellation as fully verified.
 
 ## Public competitor entry
 
@@ -99,7 +119,7 @@ Version 3 uses the same central Drive records and includes:
 - **Restore Competition**;
 - **Delete Permanently** only after cancellation;
 - active/cancelled/lifecycle filtering;
-- fixed no-limit grade display (no `/ undefined`);
+- fixed no-limit grade display;
 - active competition manager/public buttons.
 
 Marking **Deposit Paid** does not automatically send or release the organiser link. Waimarino Shears still controls when that private link is sent.
@@ -110,14 +130,14 @@ Permanent delete moves the central JSON file to Google Drive Trash and intention
 
 ## Cancellation/deletion backend guard — Version 5 live
 
-Live Entry Manager backend source now includes:
+Live Entry Manager backend source includes:
 
 - `google-apps-script/OperatorControlGuard.gs`
 - updated `google-apps-script/WebApp.gs`
 
 Version 5 is deployed with the existing Entry Manager web-app URL retained.
 
-The backend now rejects:
+The backend rejects:
 
 - manager access for cancelled competitions;
 - public-entry access for cancelled competitions;
@@ -146,16 +166,16 @@ Do not make the portal public to work around Google multi-account routing.
 
 An `Only myself` Apps Script URL can show Google Page Not Found / unable-to-open-file when a browser session has several signed-in Google accounts and Google routes it through the wrong account. InPrivate with only the Waimarino account was verified. Prefer a browser profile/session signed into the authorised account.
 
-## Verified competition
+## Verified competition baseline
 
-Latest full Entry Manager/public-entry verification used:
+Latest full Entry Manager/public-entry verification before lifecycle controls used:
 
 - **Speedshear o ngā Taniwha**
 - Booking Reference **WS-2026-0016**
 - 18 September 2026
 - Turangawaewae marae
 
-Booking creation, manager/public links, public entry save, competitor receipt, organiser notification, Waimarino backup, custom domain and legacy redirects were verified before the lifecycle-control update.
+Booking creation, manager/public links, public entry save, competitor receipt, organiser notification, Waimarino backup, custom domain and legacy redirects were verified.
 
 ## Security note
 
@@ -163,15 +183,14 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-Use a **test competition only** to verify Portal Version 3 / Entry Manager Version 5 together:
+Continue using **Entry Manager Test Competition** only:
 
-1. confirm the Version 3 UI displays deposit and lifecycle controls;
-2. mark Deposit Paid and back to Awaiting Deposit;
-3. Cancel Competition;
-4. confirm old manager and public links are blocked;
-5. Restore Competition and confirm the same links work again;
-6. Cancel again;
-7. Delete Permanently;
-8. confirm the competition disappears from the portal and its old links remain blocked.
+1. wait for/confirm GitHub Pages has published `entry-manager-bootstrap.js` and updated `entry-manager.html`;
+2. refresh the already-resolved cancelled manager tab and confirm it now shows Competition unavailable rather than cached organiser data;
+3. confirm the public link remains blocked;
+4. Restore Competition and confirm the same manager/public links work again;
+5. Cancel again;
+6. Delete Permanently;
+7. confirm the competition disappears from the portal and both old links remain blocked.
 
 Do not delete a real booking while this verification is being completed.
