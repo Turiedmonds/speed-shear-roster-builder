@@ -4,6 +4,17 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### System Operator Portal Version 6 — restore missing sort helper
+
+- Portal Version 5 was deployed at **5:33 AM** with the new tidy `/manage/` and `/enter/` link generation.
+- On the first live refresh after that deployment, the portal showed `ReferenceError: operatorPortalSort_ is not defined` and displayed zero competitions.
+- Root cause: the tidy-link source change accidentally removed the existing `operatorPortalSort_()` helper while leaving `competitions.sort(operatorPortalSort_)` in place.
+- The failure occurred while preparing the competition list and did **not** modify or delete any central competition records.
+- Restored the exact existing sort helper in `operator-portal/google-apps-script/Code.gs` while retaining the tidy link generation.
+- Deployed **System Operator Portal Version 6** at **5:46 AM** using the existing Portal web-app deployment URL.
+- Portal access remains **Only myself** and the existing lifecycle controls/custom dialogs are unchanged.
+- Post-deploy refresh verification of Version 6 is the next check.
+
 ### Tidy competition-specific links — Apps Script deployments complete
 
 - Deployed **Speed Shear Entry Manager Version 6** at **5:29 AM** using the existing Entry Manager web-app deployment URL.
@@ -12,11 +23,11 @@ This changelog records meaningful completed changes. Keep it current whenever fu
   - `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`
 - Deployed **System Operator Portal Version 5** at **5:33 AM** using the existing Portal web-app deployment URL.
 - Portal Version 5 remains **Only myself** and retains the already-tested Version 4 lifecycle controls and custom dialogs.
-- Portal Version 5 now generates `/manage/` and `/enter/` directly for **Open Entry Manager** and **Open Public Entry**.
+- Portal Version 5 changed generated URLs to `/manage/` and `/enter/`, but the missing sort-helper regression described above required the follow-up Version 6 repair.
 - No competition tokens were changed.
 - Manager/public short codes remain competition-specific and type-specific, and must resolve to exactly one token before the existing availability guard allows access.
 - Legacy `m.html?c=...`, `e.html?c=...` and long-token links remain supported.
-- The next verification is a safe public test entry through `/enter/?c=...` and a quick Portal-button check.
+- The next verification is a Portal Version 6 refresh, followed by a safe public test entry through `/enter/?c=...` and a quick Portal-button check.
 
 ## 28 August 2026
 
