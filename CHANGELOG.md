@@ -4,7 +4,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
-### Cancelled Entry Manager cached-screen fix
+### Cancelled Entry Manager cached-screen fix — verified
 
 - Lifecycle testing confirmed the public competitor link was correctly blocked after cancellation.
 - Testing also found an already-resolved `entry-manager.html?access=...` URL could still display its previously cached localStorage organiser screen after cancellation.
@@ -12,9 +12,9 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Added `entry-manager-bootstrap.js`.
 - Updated `entry-manager.html` so the organiser application stays hidden until the manager token is validated against the live backend.
 - For token-based manager links, normal Entry Manager scripts now load only after successful validation.
-- Cancelled/deleted/unavailable manager access now prevents the organiser application from loading and removes the token-specific cached localStorage copy.
+- Cancelled/deleted/unavailable manager access prevents the organiser application from loading and removes the token-specific cached localStorage copy.
 - Manual/no-token mode retains its previous local-only behaviour.
-- This is a GitHub Pages frontend change and requires production refresh/re-test after Pages publishes the commit.
+- Production re-test on **Entry Manager Test Competition** confirmed the cancelled manager link now shows **Competition unavailable** and no organiser controls/data are loaded.
 
 ### Operator lifecycle controls — live deployments and initial test
 
@@ -33,7 +33,8 @@ This changelog records meaningful completed changes. Keep it current whenever fu
   - Deposit Paid → Awaiting Deposit worked;
   - Cancel Competition worked and removed the record from the Active list;
   - the public competitor entry link was confirmed blocked after cancellation;
-  - manager cancellation verification exposed the cached-screen issue described above and must now be re-tested after the frontend guard publishes.
+  - the manager link was confirmed blocked after the cached-screen bootstrap fix, showing **Competition unavailable**.
+- Restore and Permanent Delete verification remain pending.
 
 ### System Operator Portal — deposit and lifecycle controls
 
