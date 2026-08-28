@@ -34,6 +34,7 @@ As at 28 August 2026:
 - The full deposit/cancel/restore/delete lifecycle has been verified end-to-end on the now-deleted test competition.
 - Version 4 replaces the Portal's browser-native Cancel / Restore / Delete confirmations with uniform custom Waimarino dialogs. The lifecycle server calls are unchanged.
 - A safe Version 4 smoke test on the real **Speedshear o ngā Taniwha** competition confirmed the branded **Cancel this competition?** dialog renders correctly in a narrow/mobile layout with **Keep Competition** and red **Cancel Competition** actions. The competition was not changed.
+- A dedicated normal Microsoft Edge profile named **Waimarino Shears**, signed into Google only with the authorised Waimarino Shears account, has been tested successfully. The private Operator Portal opens normally in that profile without InPrivate.
 
 ## Uniform custom-dialog standard
 
@@ -183,14 +184,15 @@ Do not make the portal public to work around Google multi-account routing.
 
 InPrivate was used only to avoid Google choosing the wrong signed-in account during testing. It is **not a security requirement** for the portal.
 
-Recommended normal-use setup:
+The normal-browser solution has now been implemented and verified:
 
-- create a dedicated Edge/Chrome browser profile for the Waimarino Shears Google account;
-- sign only the authorised Waimarino account into that profile;
-- bookmark the private portal there;
-- keep the Apps Script deployment restricted to **Only myself**.
+- a dedicated Microsoft Edge profile named **Waimarino Shears** was created;
+- Edge/Microsoft sync was intentionally left unsigned-in;
+- Google was signed in only with the authorised Waimarino Shears Google account in that profile;
+- the private Operator Portal opened successfully in the normal profile without InPrivate;
+- portal access remains **Only myself**.
 
-A normal browser session containing several Google accounts can route the private Apps Script URL through the wrong account and show Page Not Found / unable-to-open-file. Use a dedicated profile rather than weakening access.
+Use this dedicated profile for normal portal operation and bookmark the portal there. Do not weaken Apps Script access to solve account-routing problems.
 
 ## Verified competition baseline
 
@@ -211,9 +213,7 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-1. Set up a dedicated normal browser profile for the Waimarino Shears account so InPrivate is no longer needed.
-2. Smoke-test the Booking Pack custom-dialog layer after GitHub Pages publishes it.
-3. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
-4. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
+1. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+2. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
 
 Known technical item: private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 lifecycle guard itself is verified and does not depend on resolving that limitation.
