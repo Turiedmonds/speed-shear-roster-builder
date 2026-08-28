@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      font-family: Arial, sans-serif;
+      color: #17202a;
+      background: #f4f6f7;
+    }
+    body { margin: 0; background: #f4f6f7; }
+    .shell { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .header { margin-bottom: 18px; }
+    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; color: #667085; }
+    h1 { margin: 5px 0 6px; font-size: 28px; }
+    .muted { color: #667085; font-size: 14px; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0; }
+    input, select, button, a.button {
+      min-height: 42px;
+      border-radius: 8px;
+      border: 1px solid #cfd4dc;
+      font: inherit;
+    }
+    input { flex: 1 1 260px; padding: 0 12px; background: #fff; }
+    select { padding: 0 10px; background: #fff; }
+    button, a.button {
+      padding: 0 14px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      color: #17202a;
+      font-weight: 700;
+    }
+    a.primary { background: #17202a; color: #fff; border-color: #17202a; }
+    .summary { margin: 12px 0 18px; font-weight: 700; }
+    .grid { display: grid; gap: 14px; }
+    .card { background: #fff; border: 1px solid #e1e5ea; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .card-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .card h2 { margin: 0 0 5px; font-size: 21px; }
+    .date { font-weight: 700; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge { padding: 5px 8px; border-radius: 999px; background: #eef1f4; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 16px; margin: 14px 0; }
+    .label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #667085; margin-bottom: 3px; }
+    .value { font-size: 14px; word-break: break-word; }
+    .counts { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+    .count strong { font-size: 22px; display: block; }
+    .grade-list { display: flex; gap: 7px; flex-wrap: wrap; margin: 12px 0; }
+    .grade { background: #f7f8fa; border-radius: 7px; padding: 6px 8px; font-size: 12px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .empty, .error, .loading { background: #fff; padding: 18px; border-radius: 10px; border: 1px solid #e1e5ea; }
+    .error { color: #9b1c1c; }
+    @media (max-width: 600px) {
+      .shell { padding: 14px; }
+      .card-head { display: block; }
+      .badges { justify-content: flex-start; margin-top: 10px; }
+      .actions a.button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="header">
+      <div class="eyebrow">WAIMARINO SHEARS</div>
+      <h1>System Operator Portal</h1>
+      <div class="muted">Private operator view of existing Speed Shear competitions.</div>
+    </div>
+
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search competition, venue, reference or organiser">
+      <select id="status">
+        <option value="all">All competitions</option>
+        <option value="Today">Today</option>
+        <option value="Upcoming">Upcoming</option>
+        <option value="Past">Past</option>
+      </select>
+      <button type="button" onclick="loadCompetitions()">Refresh</button>
+    </div>
+
+    <div id="summary" class="summary"></div>
+    <div id="content" class="loading">Loading competitions…</div>
+  </main>
+
+  <script>
+    let allCompetitions = [];
+
+    document.getElementById('search').addEventListener('input', render);
+    document.getElementById('status').addEventListener('change', render);
+
+    function loadCompetitions() {
+      document.getElementById('content').className = 'loading';
+      document.getElementById('content').textContent = 'Loading competitions…';
+      document.getElementById('summary').textContent = '';
+
+      google.script.run
+        .withSuccessHandler(function (result) {
+          allCompetitions = result.competitions || [];
+          render();
+        })
+        .withFailureHandler(function (error) {
+          const content = document.getElementById('content');
+          content.className = 'error';
+          content.textContent = error && error.message ? error.message : 'Unable to load competitions.';
+        })
+        .getOperatorCompetitions();
+    }
+
+    function render() {
+      const search = document.getElementById('search').value.trim().toLowerCase();
+      const status = document.getElementById('status').value;
+      const filtered = allCompetitions.filter(function (item) {
+        if (status !== 'all' && item.lifecycle !== status) return false;
+        if (!search) return true;
+        return [
+          item.name,
+          item.venue,
+          item.bookingReference,
+          item.organiser && item.organiser.name,
+          item.organiser && item.organiser.email,
+          item.organiser && item.organiser.phone
+        ].join(' ').toLowerCase().includes(search);
+      });
+
+      document.getElementById('summary').textContent = filtered.length + ' competition' + (filtered.length === 1 ? '' : 's');
+      const content = document.getElementById('content');
+
+      if (!filtered.length) {
+        content.className = 'empty';
+        content.textContent = allCompetitions.length ? 'No competitions match that filter.' : 'No competition records were found.';
+        return;
+      }
+
+      content.className = 'grid';
+      content.innerHTML = filtered.map(cardHtml).join('');
+    }
+
+    function cardHtml(item) {
+      const organiser = item.organiser || {};
+      const grades = (item.grades || []).map(function (grade) {
+        let text = escapeHtml(grade.name) + ': ' + grade.count;
+        if (grade.limit !== null) text += ' / ' + grade.limit;
+        if (grade.submitted) text += ' · submitted';
+        return '<span class="grade">' + text + '</span>';
+      }).join('');
+
+      const managerButton = item.entryManagerUrl
+        ? '<a class="button primary" target="_blank" rel="noopener" href="' + escapeAttr(item.entryManagerUrl) + '">Open Entry Manager</a>'
+        : '';
+      const publicButton = item.competitorEntryUrl
+        ? '<a class="button" target="_blank" rel="noopener" href="' + escapeAttr(item.competitorEntryUrl) + '">Open Public Entry</a>'
+        : '';
+
+      return '<section class="card">' +
+        '<div class="card-head">' +
+          '<div><h2>' + escapeHtml(item.name) + '</h2><div class="date">' + escapeHtml(formatDate(item.date)) + '</div></div>' +
+          '<div class="badges">' +
+            '<span class="badge">' + escapeHtml(item.lifecycle) + '</span>' +
+            '<span class="badge">Entries ' + escapeHtml(item.publicEntriesLabel) + '</span>' +
+            '<span class="badge">Roster ' + escapeHtml(item.rosterStatus) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="details">' +
+          detail('Venue', item.venue || '—') +
+          detail('Booking Reference', item.bookingReference || '—') +
+          detail('Organiser', organiser.name || '—') +
+          detail('Email', organiser.email || '—') +
+          detail('Phone', organiser.phone || '—') +
+        '</div>' +
+        '<div class="counts">' +
+          countBlock(item.totalEntries, 'Total entries') +
+          countBlock(item.confirmedEntries, 'Confirmed') +
+          countBlock(item.notConfirmedEntries, 'Not confirmed') +
+        '</div>' +
+        (grades ? '<div class="grade-list">' + grades + '</div>' : '') +
+        '<div class="actions">' + managerButton + publicButton + '</div>' +
+      '</section>';
+    }
+
+    function detail(label, value) {
+      return '<div><span class="label">' + escapeHtml(label) + '</span><span class="value">' + escapeHtml(value) + '</span></div>';
+    }
+
+    function countBlock(value, label) {
+      return '<div class="count"><strong>' + Number(value || 0) + '</strong><span class="muted">' + escapeHtml(label) + '</span></div>';
+    }
+
+    function formatDate(value) {
+      if (!value) return 'Date not set';
+      const parts = value.split('-');
+      if (parts.length !== 3) return value;
+      const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      return new Intl.DateTimeFormat('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value);
+    }
+
+    loadCompetitions();
+  </script>
+</body>
+</html>
