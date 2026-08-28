@@ -4,6 +4,15 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### Normal browser profile — verified
+
+- Created a dedicated Microsoft Edge profile named **Waimarino Shears** for normal Operator Portal use.
+- Left Microsoft/Edge sync unsigned-in so the profile remains separate from the personal Edge profile.
+- Signed Google into that profile only with the authorised Waimarino Shears Google account.
+- Opened the private System Operator Portal successfully in a normal browser window.
+- InPrivate is therefore no longer required for normal portal use.
+- Portal access remains **Only myself**; the fix is browser account separation, not weaker Apps Script access.
+
 ### System Operator Portal Version 4 — custom dialog verified
 
 - Safely smoke-tested the live Version 4 **Cancel Competition** confirmation on the real **Speedshear o ngā Taniwha** competition.
@@ -142,7 +151,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 ### Entry Manager and booking handoff
 
 - Booking Pack-selected competition contact loads into the central competition record.
-- Competition organiser remains responsible for competitor enquiries, changes, cancellations, payments and check-in.
+- Competition organiser remains responsible for competitor enquiries, changes/cancellations, payments and check-in.
 - Waimarino Shears remains system provider/operator.
 - Entry Manager backend previously progressed through Version 3 and Version 4 before the current Version 5 lifecycle guard deployment.
 
