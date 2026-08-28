@@ -26,12 +26,14 @@ As at 28 August 2026:
 
 - GitHub Pages custom domain is active: `entries.waimarinoshears.com`.
 - **Speed Shear Entry Manager Apps Script: Version 5 live.**
-- **System Operator Portal Apps Script: Version 2 live.**
+- **System Operator Portal Apps Script: Version 3 live.**
 - Portal executes as the Waimarino Shears Google account.
 - Portal access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - Version 1 portal was verified against 3 existing central competition records.
-- Version 2 has been deployed successfully but the new deposit/cancel/restore/delete controls still require functional testing before they are treated as fully verified.
+- Portal Version 2 was an intermediate deployment containing the new `Code.gs` only.
+- Portal Version 3 contains both the updated `Code.gs` and updated `Index.html`, so the deposit/cancel/restore/delete controls are now live in the portal UI.
+- Functional lifecycle testing is still required before the new controls are treated as fully verified.
 
 ## Relationship to Booking Pack
 
@@ -79,7 +81,7 @@ Collects competitor name, hometown, grade/event, phone/email and privacy acknowl
 
 Competition administration remains the organiser’s responsibility.
 
-## System Operator Portal — Version 2 live
+## System Operator Portal — Version 3 live
 
 Separate Apps Script project: **Waimarino Shears System Operator Portal**.
 
@@ -89,7 +91,7 @@ Repository source:
 - `operator-portal/google-apps-script/Index.html`
 - `operator-portal/README.md`
 
-Version 2 uses the same central Drive records and adds:
+Version 3 uses the same central Drive records and includes:
 
 - **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled state;
@@ -161,14 +163,15 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-Use a **test competition only** to verify Version 2/Version 5 together:
+Use a **test competition only** to verify Portal Version 3 / Entry Manager Version 5 together:
 
-1. mark Deposit Paid and back to Awaiting Deposit;
-2. Cancel Competition;
-3. confirm old manager and public links are blocked;
-4. Restore Competition and confirm the same links work again;
-5. Cancel again;
-6. Delete Permanently;
-7. confirm the competition disappears from the portal and its old links remain blocked.
+1. confirm the Version 3 UI displays deposit and lifecycle controls;
+2. mark Deposit Paid and back to Awaiting Deposit;
+3. Cancel Competition;
+4. confirm old manager and public links are blocked;
+5. Restore Competition and confirm the same links work again;
+6. Cancel again;
+7. Delete Permanently;
+8. confirm the competition disappears from the portal and its old links remain blocked.
 
 Do not delete a real booking while this verification is being completed.
