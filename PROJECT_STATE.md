@@ -34,6 +34,7 @@ As at 29 August 2026:
 - The Portal Version 5 regression affected portal rendering only; it did **not** alter or delete any central competition records.
 - Portal Version 6 post-deploy refresh passed: the active competition list and card loaded normally again with no ReferenceError.
 - **Tidy manager/public URLs are verified live:** Portal/Open links load the correct competition while keeping `/manage/?c=...` and `/enter/?c=...` visible in the browser.
+- **Full tidy public-entry submission is verified end-to-end:** a test competitor submitted through `/enter/?c=...`, received an entry reference and email receipt, and appeared under the correct grade in the matching Entry Manager.
 - Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
@@ -151,7 +152,7 @@ Production testing confirmed cancelled and permanently deleted manager links sho
 
 Collects competitor name, hometown, grade/event, phone/email and privacy acknowledgement. At least one contact method is required. Successful entries save centrally, can receive an entry reference, send a competitor receipt, notify the organiser and send Waimarino Shears a backup copy where applicable.
 
-The tidy `/enter/?c=...` route itself is verified to resolve and display the correct competition. A full safe public form submission through that tidy route remains optional if further end-to-end entry testing is wanted.
+The tidy `/enter/?c=...` route is fully verified end-to-end: it resolves the correct competition, accepts a test submission, returns an entry reference, sends the competitor receipt email, and the new competitor appears under the correct grade in that competition's Entry Manager.
 
 ## System Operator Portal — Version 6 live
 
@@ -176,7 +177,7 @@ Version 6 includes:
 - tidy `/manage/` and `/enter/` button links;
 - restored `operatorPortalSort_()` helper required by competition-list loading.
 
-Marking **Deposit Paid** does not automatically send or release the organiser link. Waimarino Shears still controls when that private link is sent.
+Marking **Deposit Paid** does not automatically email or release the organiser Entry Manager link. Waimarino Shears still controls when that private link is sent.
 
 `operatorControl` is stored in the same competition JSON record, with fields such as `status`, `depositStatus`, `cancelledAt` and `updatedAt`.
 
@@ -201,7 +202,7 @@ Normal Portal operation uses the dedicated Microsoft Edge profile named **Waimar
 
 ## Verified competition baseline
 
-Latest full Entry Manager/public-entry verification before the tidy-link change used:
+Latest full Entry Manager/public-entry verification used:
 
 - **Speedshear o ngā Taniwha**
 - Booking Reference **WS-2026-0016**
@@ -212,7 +213,6 @@ Lifecycle-control verification used the separate **Entry Manager Test Competitio
 
 ## Next planned work
 
-1. Optionally smoke-test a full public competitor submission through the tidy `/enter/?c=...` route; route resolution itself is already verified.
-2. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+There are no outstanding Entry Manager / System Operator Portal hardening or verification items from this round. Future work can proceed as new feature requests arise.
 
-The Version 7 manager-write verification, tidy manager/public URL verification and shared-secret rotation items are complete.
+The Version 7 manager-write verification, tidy manager/public URL verification, full tidy public-entry submission test and shared-secret rotation are complete.
