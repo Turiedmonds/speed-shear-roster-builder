@@ -13,7 +13,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Restored the exact existing sort helper in `operator-portal/google-apps-script/Code.gs` while retaining the tidy link generation.
 - Deployed **System Operator Portal Version 6** at **5:46 AM** using the existing Portal web-app deployment URL.
 - Portal access remains **Only myself** and the existing lifecycle controls/custom dialogs are unchanged.
-- Post-deploy refresh verification of Version 6 is the next check.
+- Post-deploy refresh verification passed: the active competition list and competition card loaded normally again with no ReferenceError.
 
 ### Tidy competition-specific links — Apps Script deployments complete
 
@@ -22,12 +22,13 @@ This changelog records meaningful completed changes. Keep it current whenever fu
   - `https://entries.waimarinoshears.com/manage/?c=<20-char-code>`
   - `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`
 - Deployed **System Operator Portal Version 5** at **5:33 AM** using the existing Portal web-app deployment URL.
-- Portal Version 5 remains **Only myself** and retains the already-tested Version 4 lifecycle controls and custom dialogs.
+- Portal Version 5 remained **Only myself** and retained the already-tested Version 4 lifecycle controls and custom dialogs.
 - Portal Version 5 changed generated URLs to `/manage/` and `/enter/`, but the missing sort-helper regression described above required the follow-up Version 6 repair.
+- **System Operator Portal Version 6 is now the current live Portal deployment.**
 - No competition tokens were changed.
 - Manager/public short codes remain competition-specific and type-specific, and must resolve to exactly one token before the existing availability guard allows access.
 - Legacy `m.html?c=...`, `e.html?c=...` and long-token links remain supported.
-- The next verification is a Portal Version 6 refresh, followed by a safe public test entry through `/enter/?c=...` and a quick Portal-button check.
+- Remaining tidy-link verification: open the live Portal manager/public buttons and make one safe public test entry through `/enter/?c=...` to confirm it lands in the correct competition.
 
 ## 28 August 2026
 
