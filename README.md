@@ -66,9 +66,13 @@ Google/browser permission, sign-in and authorisation prompts cannot be restyled 
 
 ## Private Entry Manager
 
-Current organiser features include booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitor entry, competitor contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade opening/entry limits, grade reorder/collapse and JSON/PDF roster submission.
+Current organiser features include booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitor entry, competitor contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade opening/entry limits, grade reorder/collapse and roster submission to Waimarino Shears.
 
-The internal compatibility field remains `checkedIn` even where the UI says Confirmed.
+The organiser-facing workflow now uses normal Speed Shear language: the grade action is **Close Entries** rather than “Submit Confirmed Entries”. Closing a grade closes that grade to new public entries and sends the confirmed roster through the existing backend workflow. The overall action is **Close All Entries**. A previously closed grade can use **Update Closed Entries** when an updated confirmed roster needs to be sent.
+
+Manual Entry helper text now explains that it is for competitors not received through the online entry form. Checked / Paid confirmation changes update the button colour and Confirmed count immediately while the backend save continues, avoiding the previous whole-card redraw/flicker.
+
+The internal compatibility field remains `checkedIn` even where the UI says Confirmed. Internal submission data, JSON/PDF generation and backend transport remain unchanged even though the organiser-facing wording now says Close Entries.
 
 The Entry Manager frontend uses `entry-manager-bootstrap.js` to validate token access against the live backend before loading the organiser application. This prevents a cancelled/deleted competition from displaying a stale cached organiser screen from localStorage after the backend has rejected access.
 
