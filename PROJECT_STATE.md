@@ -26,12 +26,14 @@ As at 28 August 2026:
 
 - GitHub Pages custom domain is active: `entries.waimarinoshears.com`.
 - **Speed Shear Entry Manager Apps Script: Version 5 live.**
-- **System Operator Portal Apps Script: Version 3 live.**
+- **System Operator Portal Apps Script: Version 4 live.**
+- Version 4 deployment was confirmed successful on 28 August 2026 at 7:23 PM.
 - Portal executes as the Waimarino Shears Google account.
 - Portal access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle has been verified end-to-end on the now-deleted test competition.
-- A uniform Waimarino custom-dialog update has now been committed to the Operator Portal source. It is **not live yet**: the live portal remains Version 3 until the updated `Index.html` is copied into Apps Script and deployed as a new version.
+- Version 4 replaces the Portal's browser-native Cancel / Restore / Delete confirmations with uniform custom Waimarino dialogs. The lifecycle server calls are unchanged.
+- A safe Version 4 smoke test is still to be completed by opening the Cancel dialog on a real competition and choosing **Keep Competition** without changing state.
 
 ## Uniform custom-dialog standard
 
@@ -50,7 +52,8 @@ Current audit/result in this repository:
 - organiser **Entry Manager** already used custom `<dialog>` workflows rather than browser-native confirmation boxes;
 - public **Speed Shear Competitor Entry** already used a custom privacy dialog and no native browser confirmations were found;
 - the **System Operator Portal** was the remaining native-popup area, using browser `confirm()` for Cancel, Restore and Delete;
-- `operator-portal/google-apps-script/Index.html` has now been updated to use the uniform custom Waimarino dialog for those three actions;
+- `operator-portal/google-apps-script/Index.html` now uses the uniform custom Waimarino dialog for those three actions;
+- that source is now deployed as **System Operator Portal Version 4**;
 - underlying portal lifecycle calls and server-side behavior are unchanged.
 
 Google/browser account, security and authorisation prompts are platform UI and cannot be restyled.
@@ -117,9 +120,9 @@ Repository source:
 - `operator-portal/google-apps-script/Index.html`
 - `operator-portal/README.md`
 
-### Live Version 3
+### Live Version 4
 
-Version 3 currently remains live and includes:
+Version 4 is live and includes:
 
 - **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled state;
@@ -128,13 +131,12 @@ Version 3 currently remains live and includes:
 - **Delete Permanently** only after cancellation;
 - active/cancelled/lifecycle filtering;
 - entry/grade/roster summaries;
-- active competition manager/public buttons.
+- active competition manager/public buttons;
+- uniform custom Waimarino confirmation dialogs for Cancel / Restore / Delete instead of browser-native Apps Script popups.
 
 The lifecycle implementation is fully verified. Do not repeat destructive lifecycle testing on real bookings.
 
-### Pending next portal version
-
-The repository `Index.html` now replaces the three native browser confirmations with uniform custom Waimarino dialogs. This source change still needs to be copied into the separate Apps Script project and deployed by editing the existing deployment and choosing **New version**. Keep the same web-app deployment URL and **Only myself** access.
+The popup-only Version 4 change does not alter `Code.gs` or any lifecycle server call. A safe visual smoke test remains: click **Cancel Competition** on a real active competition, verify the branded dialog appears, then click **Keep Competition**.
 
 Marking **Deposit Paid** does not automatically send or release the organiser link. Waimarino Shears still controls when that private link is sent.
 
@@ -208,11 +210,10 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 ## Next planned work
 
-1. Copy the updated Operator Portal `Index.html` into the live Apps Script portal project.
-2. Deploy a **new version** of the existing portal deployment, retaining **Only myself** and the same URL.
-3. Open a Cancel/Restore/Delete dialog and cancel it to verify the new custom popup without changing a real booking.
-4. Set up a dedicated normal browser profile for the Waimarino Shears account so InPrivate is no longer needed.
-5. Smoke-test the Booking Pack custom-dialog layer after GitHub Pages publishes it.
-6. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
+1. Smoke-test the live Version 4 portal custom dialog by clicking **Cancel Competition** and then **Keep Competition** so no real booking changes.
+2. Set up a dedicated normal browser profile for the Waimarino Shears account so InPrivate is no longer needed.
+3. Smoke-test the Booking Pack custom-dialog layer after GitHub Pages publishes it.
+4. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+5. Rotate the shared Booking Receiver ↔ Entry Manager secret as final production-security cleanup.
 
 Known technical item: private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 lifecycle guard itself is verified and does not depend on resolving that limitation.
