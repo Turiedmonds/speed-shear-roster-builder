@@ -4,6 +4,14 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### Operator permanent delete verification — portal side passed
+
+- Re-cancelled **Entry Manager Test Competition** after the successful Restore test.
+- **Delete Permanently** succeeded after the required confirmation.
+- The Cancelled filter changed to 0 competitions immediately after deletion.
+- The normal portal list dropped from 3 competitions to 2, confirming the deleted test competition no longer appears in the central portal listing.
+- Final security verification still required: refresh the old private manager and public-entry links and confirm both remain blocked after the central record has been moved to Google Drive Trash.
+
 ### Operator restore verification — passed
 
 - On **Entry Manager Test Competition**, **Restore Competition** was confirmed working after a prior cancellation.
@@ -11,7 +19,6 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - The same private Entry Manager link worked again after restore.
 - The same public competitor-entry link worked again after restore.
 - This confirms Restore reactivates the same central record and existing tokens/links rather than creating replacements.
-- Permanent Delete verification remains pending.
 
 ### Cancelled Entry Manager cached-screen fix — verified
 
@@ -43,8 +50,9 @@ This changelog records meaningful completed changes. Keep it current whenever fu
   - Cancel Competition worked and removed the record from the Active list;
   - the public competitor entry link was confirmed blocked after cancellation;
   - the manager link was confirmed blocked after the cached-screen bootstrap fix, showing **Competition unavailable**;
-  - Restore Competition worked and the same manager/public links became available again.
-- Permanent Delete verification remains pending.
+  - Restore Competition worked and the same manager/public links became available again;
+  - re-cancel + Delete Permanently succeeded and removed the test competition from portal listings.
+- Only the post-delete old-link blocking check remains.
 
 ### System Operator Portal — deposit and lifecycle controls
 
