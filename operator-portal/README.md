@@ -12,14 +12,17 @@ It does **not** create a second competition database. It reads and updates the e
 
 ## Current live state — 29 August 2026
 
-- **System Operator Portal: Version 5 live**.
-- Version 5 was successfully deployed on **29 August 2026 at 5:33 AM** using the existing web-app deployment URL.
+- **System Operator Portal: Version 6 live**.
+- Version 5 was deployed on **29 August 2026 at 5:33 AM** with tidy `/manage/` and `/enter/` link generation, but its `Code.gs` accidentally omitted the existing `operatorPortalSort_()` helper and therefore failed to load the competition list.
+- **Version 6 was successfully deployed on 29 August 2026 at 5:46 AM** using the existing web-app deployment URL and restores the missing sort helper while retaining the tidy links.
+- The Version 5 error affected portal rendering only and did **not** alter or delete any central competition records.
 - Executes as the Waimarino Shears Google account.
 - Access remains **Only myself**.
 - **Speed Shear Entry Manager backend: Version 6 live**, deployed at 5:29 AM on 29 August 2026.
 - Deposit / Cancel / blocked-link / Restore / Delete lifecycle is fully verified end-to-end using a disposable test competition.
-- Version 5 retains the Version 4 custom Waimarino confirmation dialogs for Cancel, Restore and Delete.
-- Version 5 now generates the preferred tidy `/manage/?c=...` and `/enter/?c=...` links directly.
+- Version 6 retains the Version 4 custom Waimarino confirmation dialogs for Cancel, Restore and Delete.
+- Version 6 generates the preferred tidy `/manage/?c=...` and `/enter/?c=...` links directly.
+- Post-deploy refresh verification of Version 6 is still pending.
 
 ## Preferred competition links
 
@@ -68,7 +71,7 @@ If the same Booking Reference is later legitimately created again, the setup gua
 
 ## Uniform custom dialogs
 
-The portal originally used browser `confirm()` for Cancel, Restore and Delete. Version 4 replaced those browser-native prompts with the common Waimarino Shears modal pattern. Version 5 retains that presentation unchanged:
+The portal originally used browser `confirm()` for Cancel, Restore and Delete. Version 4 replaced those browser-native prompts with the common Waimarino Shears modal pattern. Version 6 retains that presentation unchanged:
 
 - white rounded card;
 - Waimarino red top accent;
@@ -78,6 +81,26 @@ The portal originally used browser `confirm()` for Cancel, Restore and Delete. V
 - red destructive confirmation for Cancel/Delete.
 
 Google sign-in, Drive authorisation and other platform security prompts cannot be restyled.
+
+## Version 5 regression and Version 6 repair
+
+`getOperatorCompetitions()` sorts its returned competition summaries using `competitions.sort(operatorPortalSort_)`.
+
+The tidy-link commit changed only the manager/public route strings but accidentally removed the existing `operatorPortalSort_()` function from the end of `Code.gs`. As a result, Version 5 produced:
+
+`ReferenceError: operatorPortalSort_ is not defined`
+
+and the UI showed zero competitions because the list request failed before returning.
+
+Version 6 restores the previous sort helper exactly while keeping:
+
+- `/manage/?c=...` manager links;
+- `/enter/?c=...` public links;
+- all lifecycle controls;
+- all existing custom dialogs;
+- the same central Drive source of truth.
+
+No competition record is written during that failed sort step, so the Version 5 error did not change central data.
 
 ## Security model
 
@@ -93,7 +116,7 @@ Do not change the portal to unrestricted `Anyone` access.
 
 Portal Apps Script project:
 
-- `google-apps-script/Code.gs` — server-side Drive reader/writer, operator controls and tidy short-link generation.
+- `google-apps-script/Code.gs` — server-side Drive reader/writer, operator controls, list sorting and tidy short-link generation.
 - `google-apps-script/Index.html` — operator interface and custom confirmation dialogs.
 
 Existing public Entry Manager Apps Script project:
@@ -130,11 +153,11 @@ Portal deployments must retain:
 - Execute as: Waimarino Shears Google account;
 - Who has access: **Only myself**.
 
-Current production deployment is **Version 5** using the existing web-app deployment/URL.
+Current production deployment is **Version 6** using the existing web-app deployment/URL.
 
-Version 5 changed only the generated manager/public URL strings in `Code.gs` compared with Version 4. Lifecycle logic and custom-dialog presentation remain unchanged.
+Version 6 retains the tidy URL-generation introduced in Version 5 and restores the missing `operatorPortalSort_()` helper. Lifecycle logic and custom-dialog presentation remain unchanged.
 
-The portal writes to Drive, so Google may request Drive authorisation when scopes change. The tidy URL-generation change did not add a new Drive scope.
+The portal writes to Drive, so Google may request Drive authorisation when scopes change. The tidy URL-generation/sort-helper repair did not add a new Drive scope.
 
 ## Normal browser use / multiple Google accounts
 
@@ -165,6 +188,6 @@ The full lifecycle was tested on **Entry Manager Test Competition** and passed:
 
 That disposable test competition has now been permanently removed. Do not repeat destructive testing on real bookings.
 
-## Version 5 verification still to do
+## Version 6 verification still to do
 
-The deployment itself is confirmed live. Do one safe UI check by refreshing the Portal and opening the public/manager buttons for an active competition, confirming the resulting browser addresses use `/enter/?c=...` and `/manage/?c=...`.
+The deployment itself is confirmed live. Refresh the Portal and verify that the competition cards load without the Version 5 `operatorPortalSort_` error. Then safely open the public/manager buttons for an active competition and confirm the resulting browser addresses use `/enter/?c=...` and `/manage/?c=...`.
