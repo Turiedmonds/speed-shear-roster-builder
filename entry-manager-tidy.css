@@ -1,0 +1,23 @@
+.routine-setup-note{display:none!important}
+
+.manual-entry-panel{margin-top:14px;padding:14px;border:1px solid #cfcfcf;border-radius:11px;background:#f7f7f7}
+.manual-entry-heading{margin-bottom:10px}
+.manual-entry-heading h4{margin:0 0 3px;font-size:16px;color:#111}
+.manual-entry-heading p{margin:0;color:#666;font-size:12px;line-height:1.4}
+.manual-entry-panel .quick-row{margin-top:0}
+.manual-entry-panel .bulk{margin-top:12px}
+
+.badges .badge{white-space:nowrap}
+
+button.secondary,.details-btn,.confirm-btn:not(.confirmed){background:#ededed!important;border-color:#888!important;color:#222!important}
+button.secondary:hover,.details-btn:hover,.confirm-btn:not(.confirmed):hover{background:#e2e2e2!important}
+
+@media (min-width:481px) and (max-width:760px){
+  .badges{flex-wrap:nowrap!important;gap:6px;overflow-x:auto;padding-bottom:2px;justify-content:flex-start!important}
+  .badges .badge{flex:0 0 auto;padding:5px 8px;font-size:11px}
+}
+
+@media (max-width:480px){
+  .badges{gap:6px}
+  .badges .badge{font-size:11px}
+}
