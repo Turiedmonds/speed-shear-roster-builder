@@ -55,7 +55,7 @@ The tidy `/enter/` and `/manage/` pages keep the short address visible while the
 
 The Entry Manager **Copy Link** control normalises existing old short/full public URLs to the tidy `/enter/?c=...` form before copying, so current competitions do not need new tokens.
 
-Repository `google-apps-script/WebApp.gs` has also been updated so the next Entry Manager backend deployment will generate the tidy `/enter/` and `/manage/` URLs directly for booking handoffs and future returned links. Until that Apps Script version is deployed, the existing live Version 5 may still return the older `e.html` / `m.html` format, which now forwards safely to the tidy route.
+**Speed Shear Entry Manager Version 6 is live** and now generates `/manage/` and `/enter/` directly for booking handoffs and returned links. **System Operator Portal Version 5 is live** and its Open Entry Manager / Open Public Entry buttons now generate the same tidy routes directly.
 
 ## Uniform dialogs
 
@@ -66,7 +66,7 @@ Audit result in this repository:
 - Entry Manager already uses custom `<dialog>` confirmation/workflow screens rather than browser `confirm()` popups;
 - Public Competitor Entry already uses a custom privacy dialog and no browser-native confirmation path was found;
 - the System Operator Portal was the remaining area using browser-native confirmations for Cancel / Restore / Delete;
-- **System Operator Portal Version 4 is now deployed** with those three actions using uniform custom Waimarino dialogs.
+- **System Operator Portal Version 5 is now live** and retains the Version 4 uniform custom Waimarino dialogs while adding tidy `/manage/` and `/enter/` link generation.
 
 Google/browser permission, sign-in and authorisation prompts cannot be restyled by the application.
 
@@ -74,9 +74,9 @@ Google/browser permission, sign-in and authorisation prompts cannot be restyled 
 
 Current organiser features include booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitor entry, competitor contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade opening/entry limits, grade reorder/collapse and roster submission to Waimarino Shears.
 
-The organiser-facing workflow now uses normal Speed Shear language: the grade action is **Close Entries** rather than “Submit Confirmed Entries”. Closing a grade closes that grade to new public entries and sends the confirmed roster through the existing backend workflow. The overall action is **Close All Entries**. A previously closed grade can use **Update Closed Entries** when an updated confirmed roster needs to be sent.
+The organiser-facing workflow uses normal Speed Shear language: the grade action is **Close Entries** rather than “Submit Confirmed Entries”. Closing a grade closes that grade to new public entries and sends the confirmed roster through the existing backend workflow. The overall action is **Close All Entries**. A previously closed grade can use **Update Closed Entries** when an updated confirmed roster needs to be sent.
 
-Manual Entry helper text now explains that it is for competitors not received through the online entry form. Checked / Paid confirmation changes update the button colour and Confirmed count immediately while the backend save continues, avoiding the previous whole-card redraw/flicker. This organiser-UI update has been user smoke-tested successfully in production.
+Manual Entry helper text explains that it is for competitors not received through the online entry form. Checked / Paid confirmation changes update the button colour and Confirmed count immediately while the backend save continues, avoiding the previous whole-card redraw/flicker. This organiser-UI update has been user smoke-tested successfully in production.
 
 The internal compatibility field remains `checkedIn` even where the UI says Confirmed. Internal submission data, JSON/PDF generation and backend transport remain unchanged even though the organiser-facing wording now says Close Entries.
 
@@ -104,11 +104,11 @@ Portal source:
 
 The portal uses the same central Drive records; it does not create a second competition database.
 
-### Current live Version 4
+### Current live Version 5
 
-The live portal is **Version 4** and remains restricted to **Only myself**.
+The live portal is **Version 5** and remains restricted to **Only myself**.
 
-Version 4 includes:
+Version 5 includes all previously verified Version 4 behaviour plus direct tidy link generation:
 
 - **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled competition status;
@@ -119,11 +119,10 @@ Version 4 includes:
 - **Restore Competition**;
 - **Delete Permanently** only after cancellation;
 - fixed no-limit grade display;
-- uniform custom Waimarino confirmation dialogs for Cancel / Restore / Delete instead of browser-native `confirm()` boxes.
+- uniform custom Waimarino confirmation dialogs for Cancel / Restore / Delete;
+- direct `/manage/?c=...` and `/enter/?c=...` URLs from portal buttons.
 
-The deposit/cancel/restore/delete lifecycle, including stale-link blocking after permanent deletion, has been fully verified using a disposable test competition. Version 4 keeps the same lifecycle calls; only the confirmation presentation changed.
-
-The repository `operator-portal/google-apps-script/Code.gs` now generates `/manage/` and `/enter/` links. That source change requires a later Operator Portal Apps Script deployment to replace Version 4's generated URL strings, although the old Version 4 links already forward to the new tidy pages through GitHub Pages.
+The deposit/cancel/restore/delete lifecycle, including stale-link blocking after permanent deletion, has been fully verified using a disposable test competition. Version 5 changes only generated link presentation compared with Version 4; lifecycle logic remains the same.
 
 Marking a deposit paid does **not** automatically email or release the organiser Entry Manager link.
 
@@ -136,13 +135,13 @@ Marking a deposit paid does **not** automatically email or release the organiser
 
 InPrivate was used for testing only because a browser session with several Google accounts could route the private Apps Script URL through the wrong account. InPrivate is not required for normal operation.
 
-Recommended normal setup: create a dedicated Edge/Chrome profile signed only into the authorised Waimarino Shears Google account and bookmark the portal there.
+Recommended normal setup: use the dedicated Edge/Chrome profile signed only into the authorised Waimarino Shears Google account and bookmark the portal there.
 
 ## Entry Manager backend
 
 Google Apps Script project: **Speed Shear Entry Manager**
 
-Current live backend: **Version 5 — 28 August 2026**.
+Current live backend: **Version 6 — 29 August 2026**.
 
 Main source files:
 
@@ -152,9 +151,7 @@ Main source files:
 - `google-apps-script/CompetitorEntryV4.gs`
 - `google-apps-script/OperatorControlGuard.gs`
 
-Version 5 blocks manager/public access and writes for cancelled competitions and rejects trashed/deleted competition records. The existing web-app URL was retained.
-
-The repository source for the next backend version changes only the generated short-link presentation from `m.html/e.html` to `/manage/` and `/enter/`; the 20-character resolver, competition-specific token binding and lifecycle checks are unchanged.
+Version 6 retains the Version 5 cancellation/deletion guard and existing web-app URL, while changing generated short links to `/manage/` and `/enter/` directly.
 
 Required Script Property: `ENTRY_MANAGER_SHARED_SECRET`. Never commit or document its value.
 
@@ -162,13 +159,13 @@ Required Script Property: `ENTRY_MANAGER_SHARED_SECRET`. Never commit or documen
 
 Cancel keeps the central record for history but blocks organiser/public access server-side. Restore reactivates the same record and tokens. Permanent delete requires cancellation first and moves the central competition JSON file to Google Drive Trash.
 
-Old token mappings may remain internally, but Version 5 checks the central file and refuses cancelled/trashed records.
+Old token mappings may remain internally, but Version 6 checks the central file and refuses cancelled/trashed records.
 
 The frontend access bootstrap is an additional protection for already-resolved manager URLs: it verifies the full manager token before any cached organiser UI is loaded.
 
 ## Important current limitation
 
-`entry-manager.js` still sends private manager writes using `fetch(..., mode:'no-cors')`. The browser cannot read/verify the backend response body. Version 5 still blocks cancelled competition writes server-side.
+`entry-manager.js` still sends private manager writes using `fetch(..., mode:'no-cors')`. The browser cannot read/verify the backend response body. Version 6 still blocks cancelled competition writes server-side.
 
 ## Verified Entry Manager baseline
 
@@ -179,4 +176,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and legacy redirects were verified before the lifecycle-control update.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and lifecycle protections have been verified. The new tidy `/enter/` route is the next item to smoke-test with a safe public test entry.
