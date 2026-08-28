@@ -4,6 +4,14 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### System Operator Portal Version 4 — custom dialog verified
+
+- Safely smoke-tested the live Version 4 **Cancel Competition** confirmation on the real **Speedshear o ngā Taniwha** competition.
+- Confirmed the browser-native Apps Script popup is gone and the uniform Waimarino Shears custom dialog is displayed instead.
+- Verified the narrow/mobile layout: white rounded card, Waimarino red top accent, dark overlay, branded heading, explanatory detail, **Keep Competition** and red **Cancel Competition** actions.
+- The destructive action was not confirmed, so the real competition remained unchanged.
+- Version 4 custom-dialog presentation is therefore live and visually verified.
+
 ### System Operator Portal Version 4 — deployed
 
 - Deployed **System Operator Portal Version 4** successfully on **28 August 2026 at 7:23 PM** using the existing web-app deployment.
@@ -11,7 +19,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Version 4 is the popup-only frontend update: `Code.gs` is unchanged.
 - Cancel Competition, Restore Competition and Delete Permanently now use the custom Waimarino Shears confirmation dialog rather than Apps Script/browser-native `confirm()` popups.
 - The underlying tested lifecycle calls and server-side behavior are unchanged.
-- Safe smoke test still pending: open the Cancel Competition dialog on a real active competition and choose **Keep Competition** without changing competition state.
+- Safe live smoke test subsequently passed as recorded above.
 
 ### Uniform Waimarino dialogs — portal source updated
 
@@ -22,7 +30,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Updated `operator-portal/google-apps-script/Index.html` so those three actions now use a uniform Waimarino Shears custom dialog.
 - New dialog presentation uses a white rounded card, Waimarino red top accent, dark overlay, consistent action layout and red destructive confirmation.
 - The existing tested portal server calls and lifecycle logic are unchanged.
-- The updated source was subsequently deployed as **System Operator Portal Version 4**.
+- The updated source was subsequently deployed as **System Operator Portal Version 4** and the Cancel dialog was visually verified live.
 - InPrivate is not required by the portal security model. Recommended normal use is a dedicated browser profile signed only into the authorised Waimarino Shears Google account while retaining **Only myself** portal access.
 
 ### Operator lifecycle verification — complete
@@ -151,4 +159,4 @@ Using **WS-2026-0016 — Speedshear o ngā Taniwha**:
 
 ### Known open technical item
 
-- Private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 backend still blocks cancelled competitions server-side.
+- Private manager writes still use `fetch(..., mode:'no-cors')`, so the organiser frontend cannot read/validate backend response bodies. The Version 5 backend still blocks cancelled competition writes server-side.
