@@ -4,6 +4,13 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Tidy manager/public links — live verification passed
+
+- Verified the private Entry Manager tidy route keeps `https://entries.waimarinoshears.com/manage/?c=<20-char-code>` visible and opens the correct competition.
+- Verified the public competitor-entry tidy route keeps `https://entries.waimarinoshears.com/enter/?c=<20-char-code>` visible and opens the correct competition.
+- Verification used a test competition, so no production competition data needed to be altered.
+- No tokens or URLs were regenerated; this confirms the existing short-code resolver and published tidy routes are functioning as intended.
+
 ### Entry Manager Version 7 — confirmed manager-write results
 
 - Deployed **Speed Shear Entry Manager Version 7** using the existing web-app deployment URL.
