@@ -19,6 +19,18 @@ It does **not** create a second competition database. It reads and updates the e
 - **Speed Shear Entry Manager backend: Version 5 live** with cancellation/deletion guard.
 - Deposit / Cancel / blocked-link / Restore / Delete lifecycle is fully verified end-to-end using a disposable test competition.
 - Version 4 adds the uniform custom Waimarino confirmation dialogs for Cancel, Restore and Delete without changing the tested lifecycle server calls.
+- Repository `Code.gs` now generates the preferred tidy `/manage/?c=...` and `/enter/?c=...` links. That URL-generation change is pending the next Portal Apps Script deployment; Version 4's existing `m.html/e.html` links remain valid because GitHub Pages now forwards them to the tidy routes.
+
+## Preferred competition links
+
+User-facing competition links are standardised as:
+
+- private organiser Entry Manager: `https://entries.waimarinoshears.com/manage/?c=<20-char-code>`
+- public competitor entry: `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`
+
+The public and manager codes are different because they come from different competition tokens. Each 20-character code resolves only against the appropriate token type and must resolve to exactly one active competition. Cancelled/deleted competitions remain blocked by the Entry Manager backend guard.
+
+Legacy `m.html?c=...` and `e.html?c=...` links remain supported and forward to the tidy routes. Existing competition tokens do not change.
 
 ## Booking / deposit workflow
 
@@ -84,7 +96,7 @@ Do not change the portal to unrestricted `Anyone` access.
 
 Portal Apps Script project:
 
-- `google-apps-script/Code.gs` — server-side Drive reader/writer and operator controls.
+- `google-apps-script/Code.gs` — server-side Drive reader/writer, operator controls and tidy short-link generation.
 - `google-apps-script/Index.html` — operator interface and custom confirmation dialogs.
 
 Existing public Entry Manager Apps Script project:
@@ -123,9 +135,9 @@ Portal deployments must retain:
 
 Current production deployment is **Version 4** using the existing web-app deployment/URL.
 
-`Code.gs` did not change for the Version 4 popup-only update; only `Index.html` changed.
+Version 4's popup update changed only `Index.html`. Repository `Code.gs` has since changed only in its generated manager/public URL strings so the next deployment can output `/manage/` and `/enter/` directly. Do not call that URL-generation change live until the new Portal version is actually deployed.
 
-The portal writes to Drive, so Google may request Drive authorisation when scopes change. This dialog-only update did not add a new Drive scope.
+The portal writes to Drive, so Google may request Drive authorisation when scopes change. The tidy URL-generation change does not add a new Drive scope.
 
 ## Normal browser use / multiple Google accounts
 
@@ -160,8 +172,4 @@ That disposable test competition has now been permanently removed. Do not repeat
 
 ## Version 4 smoke test
 
-After deployment, verify the new presentation on a real active competition **without carrying out the action**:
-
-1. click **Cancel Competition**;
-2. confirm the Waimarino custom dialog appears instead of the browser-native embedded-page popup;
-3. choose **Keep Competition** so no competition state changes.
+The Version 4 custom-dialog smoke test passed on a real active competition without carrying out the destructive action: the Waimarino custom Cancel dialog appeared and **Keep Competition** was chosen, leaving the competition unchanged.
