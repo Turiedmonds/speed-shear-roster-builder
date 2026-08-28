@@ -27,6 +27,7 @@ As at 29 August 2026:
 - GitHub Pages custom domain is active: `entries.waimarinoshears.com`.
 - **Speed Shear Entry Manager Apps Script: Version 7 live.**
 - Version 7 retains the existing web-app deployment URL and adds confirmed manager-write result checking.
+- **Version 7 production manager-write smoke test passed:** a competitor was changed from Not Confirmed to Confirmed and remained Confirmed after a full page refresh.
 - **System Operator Portal Apps Script: Version 6 live.**
 - Portal Version 5 was deployed for tidy `/manage/` and `/enter/` link generation, but its `Code.gs` was missing the existing `operatorPortalSort_()` helper and therefore failed while loading the competition list.
 - Portal Version 6 restored the missing sort helper while retaining the tidy links.
@@ -87,7 +88,7 @@ Version 7 adds reliable manager-write acknowledgement without changing the store
 
 This uses the same send-then-confirm pattern already proven by the public competitor-entry flow, while preserving the existing Apps Script transport compatibility.
 
-A production manager-write smoke test is still pending.
+Production verification passed on the live Entry Manager: a competitor confirmation change remained correctly saved after refresh, confirming the Version 7 acknowledgement path is functioning in production.
 
 ### Version 6 Portal link generation and repair
 
@@ -208,9 +209,8 @@ Lifecycle-control verification used the separate **Entry Manager Test Competitio
 
 ## Next planned work
 
-1. Smoke-test one safe Entry Manager write on Version 7 and confirm the new acknowledgement path works.
-2. Confirm the live Portal **Open Entry Manager** and **Open Public Entry** buttons keep `/manage/?c=...` and `/enter/?c=...` visible in the browser.
-3. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
-4. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
+1. Confirm the live Portal **Open Entry Manager** and **Open Public Entry** buttons keep `/manage/?c=...` and `/enter/?c=...` visible in the browser.
+2. Smoke-test the live tidy `/enter/` route with a safe public test entry and confirm it arrives under the correct competition.
+3. When back at the Raspberry Pi, run `git status --short` before pulling the Timing System dialog changes.
 
-The previous shared-secret rotation item is complete.
+The previous Version 7 manager-write verification and shared-secret rotation items are complete.
