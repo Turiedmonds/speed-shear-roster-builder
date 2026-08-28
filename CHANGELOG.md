@@ -4,13 +4,30 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
+### Operator lifecycle verification — complete
+
+- Completed the full lifecycle test on **Entry Manager Test Competition**.
+- Awaiting Deposit → Deposit Paid worked.
+- Deposit Paid → Awaiting Deposit worked.
+- **Cancel Competition** worked and removed the competition from the Active list.
+- The cancelled public competitor-entry link was blocked.
+- The cancelled private Entry Manager link was blocked after the cached-screen bootstrap fix, showing **Competition unavailable** rather than loading cached organiser controls.
+- **Restore Competition** worked and returned the same competition to Active.
+- The same private manager and public competitor-entry links both worked again after restore.
+- The competition was cancelled again and **Delete Permanently** succeeded.
+- The Cancelled filter dropped to 0 and the normal portal list dropped from 3 competitions to 2.
+- After permanent deletion, the old private manager link remained blocked with **Competition unavailable**.
+- After permanent deletion, the old public competitor-entry link also remained blocked.
+- The deposit/cancel/restore/delete lifecycle and stale-link protection are therefore verified end-to-end.
+- The test competition has now been permanently removed as intended; do not repeat destructive testing on real bookings.
+
 ### Operator permanent delete verification — portal side passed
 
 - Re-cancelled **Entry Manager Test Competition** after the successful Restore test.
 - **Delete Permanently** succeeded after the required confirmation.
 - The Cancelled filter changed to 0 competitions immediately after deletion.
 - The normal portal list dropped from 3 competitions to 2, confirming the deleted test competition no longer appears in the central portal listing.
-- Final security verification still required: refresh the old private manager and public-entry links and confirm both remain blocked after the central record has been moved to Google Drive Trash.
+- Final stale-link blocking was subsequently verified in the completed lifecycle test above.
 
 ### Operator restore verification — passed
 
@@ -31,6 +48,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Cancelled/deleted/unavailable manager access prevents the organiser application from loading and removes the token-specific cached localStorage copy.
 - Manual/no-token mode retains its previous local-only behaviour.
 - Production re-test on **Entry Manager Test Competition** confirmed the cancelled manager link now shows **Competition unavailable** and no organiser controls/data are loaded.
+- Post-delete re-test also confirmed the old manager link remains unavailable after the central record is moved to Google Drive Trash.
 
 ### Operator lifecycle controls — live deployments and initial test
 
@@ -44,15 +62,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Portal access remains **Only myself**.
 - Version 3 includes **Awaiting Deposit / Deposit Paid**, **Cancel Competition**, **Restore Competition**, **Delete Permanently** after cancellation, active/cancelled filtering and the no-limit grade-display fix.
 - Marking Deposit Paid does not automatically send/release the organiser Entry Manager link.
-- On **Entry Manager Test Competition**:
-  - Awaiting Deposit → Deposit Paid worked;
-  - Deposit Paid → Awaiting Deposit worked;
-  - Cancel Competition worked and removed the record from the Active list;
-  - the public competitor entry link was confirmed blocked after cancellation;
-  - the manager link was confirmed blocked after the cached-screen bootstrap fix, showing **Competition unavailable**;
-  - Restore Competition worked and the same manager/public links became available again;
-  - re-cancel + Delete Permanently succeeded and removed the test competition from portal listings.
-- Only the post-delete old-link blocking check remains.
+- Full lifecycle verification is now complete as recorded above.
 
 ### System Operator Portal — deposit and lifecycle controls
 
