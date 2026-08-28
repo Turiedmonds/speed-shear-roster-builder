@@ -4,95 +4,123 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 28 August 2026
 
-### System Operator Portal — live deployment and verification
+### System Operator Portal — deposit and lifecycle controls (repository source)
+
+- Extended the private System Operator Portal beyond read-only viewing.
+- Added operator deposit status:
+  - **Awaiting Deposit**;
+  - **Deposit Paid**.
+- Existing records without operator metadata default to Awaiting Deposit.
+- Marking a deposit paid does **not** automatically send/release the organiser Entry Manager link.
+- Added Active / Cancelled competition state using `operatorControl` in the existing central competition JSON record.
+- Added **Cancel Competition**.
+- Added **Restore Competition**.
+- Added **Delete Permanently**, intentionally available only after a competition is cancelled.
+- Permanent delete moves the central competition JSON file to Google Drive Trash.
+- Added default **Active competitions** portal filter and separate **Cancelled** filter.
+- Cancelled cards hide the manager/public open buttons.
+- Added operator action confirmations.
+- Fixed the grade limit source to use the actual `entryLimit` field, resolving the Version 1 `/ undefined` display issue at source.
+- Portal source remains in the same repository and continues to use the existing central Drive records; no second database was created.
+
+### Cancellation/deletion backend guard (repository source)
+
+- Added `google-apps-script/OperatorControlGuard.gs` for the existing public Entry Manager Apps Script project.
+- Updated `google-apps-script/WebApp.gs` to honour central operator lifecycle state.
+- Manager setup requests are rejected when the competition is cancelled or its central file is trashed.
+- Public competitor setup/submission/result requests are rejected when cancelled/trashed.
+- Manager mutation/roster-submission requests are rejected when cancelled/trashed.
+- Short-code resolution now validates the central competition before returning the full token.
+- Added stale-reference preparation so a Booking Reference pointing to a trashed record can be legitimately recreated later.
+- Old token Script Property mappings may remain after deletion, but the guard rejects access because the central file is trashed.
+- These backend changes are in repository source only until the Entry Manager Apps Script project is redeployed.
+
+### Deployment order recorded
+
+- Lifecycle protection must be deployed before Cancel/Delete is used for real bookings.
+- Required order:
+  1. add `OperatorControlGuard.gs` to the existing **Speed Shear Entry Manager** Apps Script project;
+  2. replace `WebApp.gs` with current repository source;
+  3. deploy the next Entry Manager backend version while retaining its URL;
+  4. replace portal `Code.gs` and `Index.html` with current repository source;
+  5. deploy the next private portal version with **Only myself** retained;
+  6. verify Cancel / blocked links / Restore / Delete using a test competition.
+- The portal update writes to Drive and may require updated Google Drive authorisation.
+
+### System Operator Portal — Version 1 live verification
 
 - Created a separate Google Apps Script project for the private **System Operator Portal**.
 - Deployed the portal as **Version 1**.
 - Deployment executes as the Waimarino Shears Google account.
 - Deployment access is restricted to **Only myself**.
-- Authorised read access to Google Drive so the portal can read the existing central competition JSON records.
-- Verified the portal opens successfully in an InPrivate browser signed into only the authorised Waimarino Shears account.
-- Verified the portal loaded **3 existing competition records** from the `Waimarino Speed Shear Entry Manager` Drive folder.
+- Authorised Google Drive access so the portal can read existing central competition JSON records.
+- Verified the portal opens in an InPrivate browser signed into only the authorised Waimarino Shears account.
+- Verified **3 existing competition records** loaded from the central Drive folder.
 - Verified real competition name/date/venue/Booking Reference, organiser contact details, entry counts, lifecycle state and private/public action buttons display.
-- Verified `WS-2026-0016 — Speedshear o ngā Taniwha` appears with its current entry and Confirmed / Not Confirmed counts.
-- Opening the private web-app URL from a normal browser session containing several signed-in Google accounts initially produced a Google Drive Page Not Found / unable-to-open-file screen. An InPrivate session with only the authorised account confirmed this is Google multi-account routing rather than a portal backend failure.
-- The access setting must remain private; do not change it to unrestricted `Anyone` simply to avoid Google account-routing behaviour.
-- Initial Version 1 visual review found grades without configured limits displayed text such as `Open: 1 / undefined`.
-- Updated repository `operator-portal/google-apps-script/Index.html` so an absent limit is omitted instead of displaying `undefined`.
-- The no-limit display fix is in repository source and still needs to be deployed as the next Apps Script version before the live portal reflects it.
+- Verified `WS-2026-0016 — Speedshear o ngā Taniwha` displayed correctly.
+- Normal browser testing with several signed-in Google accounts produced Google Page Not Found / unable-to-open-file behaviour because Google routed the private Apps Script URL through the wrong account.
+- Confirmed this is account-routing behaviour, not a portal backend failure.
+- Portal access must remain private; do not use unrestricted `Anyone` access to work around account routing.
 
-### System Operator Portal — source implementation
+### Initial System Operator Portal source
 
-- Added a new private **System Operator Portal** source area under `operator-portal/`.
-- Added `operator-portal/google-apps-script/Code.gs` as a read-only server-side reader of the existing `Waimarino Speed Shear Entry Manager` Google Drive competition records.
-- Added `operator-portal/google-apps-script/Index.html` as the operator interface.
-- Added search, lifecycle filtering and refresh.
+- Added `operator-portal/google-apps-script/Code.gs`.
+- Added `operator-portal/google-apps-script/Index.html`.
+- Added `operator-portal/README.md`.
+- Added competition search, lifecycle filtering and refresh.
 - Added competition name/date/venue/Booking Reference/organiser contact display.
 - Added total entry, Confirmed and Not Confirmed counts.
-- Added per-grade counts, limits and submitted status.
-- Added public-entry Open / Closed status and roster submission status.
+- Added per-grade counts, limits and submitted state.
+- Added public-entry Open / Closed and roster status.
 - Added private **Open Entry Manager** and **Open Public Entry** buttons using the existing 20-character short-link model.
-- The portal does not create or maintain a second competition database.
-- Full manager/public tokens remain in the existing central Drive records; the operator interface receives only the existing short URLs it needs to open.
-- The portal is intentionally designed as a **separate Google Apps Script web app/project** from the public Entry Manager deployment, while its source remains in this repository.
-- Added `operator-portal/README.md` with deployment and security instructions.
-- Security requirement: deploy the operator web app with Google access restricted to the authorised Waimarino Shears operator/account; do not deploy it as an unrestricted `Anyone` web app.
-- No Booking Pack, public competitor-entry or existing organiser Entry Manager behaviour was changed by this implementation.
+- Portal source is separate from the public Entry Manager Apps Script project but uses the same central records.
 
 ### System naming and branding
 
-- Renamed the visible private system branding to **Speed Shear Entries**.
-- Kept **Entry Manager** as the private organiser/admin area label.
-- Kept **Speed Shear Competitor Entry** as the public-entry identity.
-- Intentionally left the GitHub repository name unchanged because it is historical/internal.
+- Renamed visible private system branding to **Speed Shear Entries**.
+- Kept **Entry Manager** as the organiser/admin area label.
+- Kept **Speed Shear Competitor Entry** as the public identity.
+- Left the historical GitHub repository name unchanged.
 
 ### Custom domain
 
 - Added Wix DNS CNAME `entries` → `turiedmonds.github.io`.
 - Added repository `CNAME` for `entries.waimarinoshears.com`.
 - GitHub Pages deployment completed successfully.
-- Updated Apps Script public base URLs to `https://entries.waimarinoshears.com/`.
-- Verified the custom domain opens both private and public pages.
-- Verified old `turiedmonds.github.io/speed-shear-roster-builder/...` links redirect to the custom domain while preserving competition access.
+- Updated Apps Script public base URLs to the custom domain.
+- Verified custom-domain private/public links.
+- Verified old GitHub-hosted links redirect while preserving competition access.
 
 ### Short links
 
 - Added 20-character short-code resolver flow.
-- Added private short-link format `m.html?c=<code>`.
-- Added public short-link format `e.html?c=<code>`.
-- Booking-created competition setup now returns short private/public links using the custom domain.
-- Legacy full-token manager/public URLs remain supported.
+- Added private `m.html?c=<code>` and public `e.html?c=<code>` links.
+- Legacy full-token links remain supported.
 
 ### Public competitor entry V4
 
 - Privacy version set to **28 August 2026**.
-- Public form requires competitor name plus at least one contact method (phone or email).
-- Added per-entry references in the form `<bookingReference>-E###`.
-- Added automatic competitor email receipt when an email address is supplied.
+- Public form requires competitor name plus at least one contact method.
+- Added per-entry references.
+- Added automatic competitor receipt email.
 - Added organiser New Competitor Entry email.
-- Waimarino Shears receives a backup copy via BCC when organiser and backup addresses differ.
-- If no organiser email exists, the Waimarino backup address becomes the notification destination.
-- Duplicate submissions do not resend confirmation/organiser emails.
-- Email wording explicitly keeps competition administration with the organiser and Waimarino Shears as system provider/operator.
+- Added Waimarino Shears backup copy where applicable.
+- Duplicate submissions do not resend notifications.
+- Email wording keeps competition administration with the organiser.
 
-### Entry Manager UI tidy-up
+### Entry Manager UI and contact handoff
 
-- Clarified **Manual Entry** area so manual competitor entry is visibly its own section.
-- Improved grade-card status/badge wording and layout.
-- Reduced top-page helper clutter.
-- Updated visible button styling/organisation for clearer distinction from input fields.
-- Retained manual entry and bulk-name entry in the same workflow as the grade competitor table.
-
-### Competition-contact handoff
-
-- Booking Pack-selected competition contact is loaded into each Entry Manager competition record.
-- Public form/receipts use the competition organiser contact rather than directing competitors to Waimarino Shears by default.
+- Clarified Manual Entry area.
+- Improved grade-card status/badge wording/layout.
+- Reduced helper clutter and improved button styling.
+- Booking Pack-selected competition contact is loaded into each competition record.
+- Public receipts/notifications use the competition organiser contact.
 
 ### Apps Script deployment
 
-- Entry Manager backend deployed as **Version 3** after V4 public-entry notification/short-link changes.
+- Entry Manager backend deployed as **Version 3** after public-entry notification/short-link work.
 - Entry Manager backend deployed as **Version 4** after custom-domain base URL changes.
-- Existing production Apps Script web-app URL retained.
+- Existing production web-app URL retained.
 
 ### End-to-end verification
 
@@ -101,21 +129,11 @@ Using **WS-2026-0016 — Speedshear o ngā Taniwha**:
 - Booking Pack handoff created the competition record.
 - Private Entry Manager opened correctly.
 - Public competitor entry opened correctly.
-- Online competitors saved and appeared in the manager.
-- Competitor receipt email arrived successfully.
-- Competition organiser received New Competitor Entry email.
-- Waimarino Shears received backup copy.
-- Public form displayed successful Entry received confirmation.
-- Custom domain passed both public/private link tests.
-- Legacy GitHub-hosted links redirected correctly to the custom domain.
-
-### Documentation
-
-- Added root `README.md` with current production architecture/deployment information.
-- Added `PROJECT_STATE.md` as the authoritative future-session handoff.
-- Added this changelog.
-- Replaced stale pre-deployment `IMPLEMENTATION-NOTES.md` status with a pointer to current documentation.
-- Added standing rule that meaningful future changes must update project state and changelog before completion.
+- Online entries saved and appeared in manager.
+- Competitor receipt email arrived.
+- Organiser notification arrived.
+- Waimarino Shears backup arrived.
+- Custom domain and legacy redirects passed.
 
 ### Known open technical item
 
