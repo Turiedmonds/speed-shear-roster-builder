@@ -55,7 +55,9 @@ The tidy `/enter/` and `/manage/` pages keep the short address visible while the
 
 The Entry Manager **Copy Link** control normalises existing old short/full public URLs to the tidy `/enter/?c=...` form before copying, so current competitions do not need new tokens.
 
-**Speed Shear Entry Manager Version 6 is live** and now generates `/manage/` and `/enter/` directly for booking handoffs and returned links. **System Operator Portal Version 5 is live** and its Open Entry Manager / Open Public Entry buttons now generate the same tidy routes directly.
+**Speed Shear Entry Manager Version 6 is live** and generates `/manage/` and `/enter/` directly for booking handoffs and returned links. **System Operator Portal Version 6 is live** and its Open Entry Manager / Open Public Entry buttons generate the same tidy routes directly.
+
+Portal Version 5 briefly failed to load competition cards because the tidy-link source edit accidentally removed the existing `operatorPortalSort_()` helper. Version 6 restored that helper without changing competition records, lifecycle behaviour or tokens.
 
 ## Uniform dialogs
 
@@ -66,7 +68,7 @@ Audit result in this repository:
 - Entry Manager already uses custom `<dialog>` confirmation/workflow screens rather than browser `confirm()` popups;
 - Public Competitor Entry already uses a custom privacy dialog and no browser-native confirmation path was found;
 - the System Operator Portal was the remaining area using browser-native confirmations for Cancel / Restore / Delete;
-- **System Operator Portal Version 5 is now live** and retains the Version 4 uniform custom Waimarino dialogs while adding tidy `/manage/` and `/enter/` link generation.
+- **System Operator Portal Version 6 is live** and retains the Version 4 uniform custom Waimarino dialogs while adding tidy `/manage/` and `/enter/` link generation and restoring the required competition-list sort helper.
 
 Google/browser permission, sign-in and authorisation prompts cannot be restyled by the application.
 
@@ -104,11 +106,11 @@ Portal source:
 
 The portal uses the same central Drive records; it does not create a second competition database.
 
-### Current live Version 5
+### Current live Version 6
 
-The live portal is **Version 5** and remains restricted to **Only myself**.
+The live portal is **Version 6** and remains restricted to **Only myself**.
 
-Version 5 includes all previously verified Version 4 behaviour plus direct tidy link generation:
+Version 6 includes all previously verified Version 4 behaviour, tidy competition links, and the restored list-sorting helper:
 
 - **Awaiting Deposit** / **Deposit Paid**;
 - Active / Cancelled competition status;
@@ -120,9 +122,12 @@ Version 5 includes all previously verified Version 4 behaviour plus direct tidy 
 - **Delete Permanently** only after cancellation;
 - fixed no-limit grade display;
 - uniform custom Waimarino confirmation dialogs for Cancel / Restore / Delete;
-- direct `/manage/?c=...` and `/enter/?c=...` URLs from portal buttons.
+- direct `/manage/?c=...` and `/enter/?c=...` URLs from portal buttons;
+- restored `operatorPortalSort_()` required by `getOperatorCompetitions()`.
 
-The deposit/cancel/restore/delete lifecycle, including stale-link blocking after permanent deletion, has been fully verified using a disposable test competition. Version 5 changes only generated link presentation compared with Version 4; lifecycle logic remains the same.
+Version 5 was the first tidy-link deployment but failed on portal refresh because `operatorPortalSort_()` had been removed from `Code.gs`. Version 6 restores that function. The failure was read/list processing only and did not modify central competition records.
+
+The deposit/cancel/restore/delete lifecycle, including stale-link blocking after permanent deletion, has been fully verified using a disposable test competition.
 
 Marking a deposit paid does **not** automatically email or release the organiser Entry Manager link.
 
@@ -176,4 +181,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and lifecycle protections have been verified. The new tidy `/enter/` route is the next item to smoke-test with a safe public test entry.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and lifecycle protections have been verified. The new tidy `/enter/` route remains to be smoke-tested with a safe public test entry, and Portal Version 6 should first be refreshed to confirm the repaired competition list loads normally.
