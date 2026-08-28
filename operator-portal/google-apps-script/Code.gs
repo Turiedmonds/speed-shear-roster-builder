@@ -258,3 +258,14 @@ function operatorPortalNumberOrNull_(value) {
   const number = Number(value);
   return isFinite(number) && number > 0 ? number : null;
 }
+
+function operatorPortalSort_(a, b) {
+  if (a.operatorStatus !== b.operatorStatus) return a.operatorStatus === 'cancelled' ? 1 : -1;
+
+  const rank = { Today: 0, Upcoming: 1, Past: 2, 'Unknown date': 3 };
+  const rankDiff = (rank[a.lifecycle] || 0) - (rank[b.lifecycle] || 0);
+  if (rankDiff) return rankDiff;
+
+  if (a.lifecycle === 'Past') return String(b.date).localeCompare(String(a.date));
+  return String(a.date).localeCompare(String(b.date));
+}
