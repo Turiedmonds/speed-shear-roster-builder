@@ -34,7 +34,7 @@ As at 28 August 2026:
 - Deposit Paid → Awaiting Deposit switching has been verified on the test competition.
 - Cancel Competition has been verified to move the test competition out of the Active portal list.
 - Public competitor access has been verified blocked after cancellation.
-- A manager-side cached-display issue was found during cancellation testing and a GitHub Pages bootstrap guard has now been committed; its production behaviour still requires refresh/re-test after Pages publishes the change.
+- Manager access has also now been verified blocked after cancellation: the GitHub Pages bootstrap guard prevents the cached organiser UI from loading and shows **Competition unavailable** instead.
 
 ## Relationship to Booking Pack
 
@@ -85,7 +85,7 @@ Cancellation testing exposed an important browser-cache behaviour:
 - when the server refresh failed, the old code only displayed a warning and left that cached organiser screen visible/editable locally;
 - public competitor access was correctly blocked and did not have this problem.
 
-Repository fix now added:
+Repository fix now live and verified:
 
 - `entry-manager-bootstrap.js` validates an `access` token against the live Entry Manager backend **before** loading the organiser application scripts;
 - `entry-manager.html` stays hidden while validation is in progress;
@@ -93,7 +93,7 @@ Repository fix now added:
 - if validation succeeds, the normal Entry Manager scripts load in their existing order;
 - no-token/manual mode retains the historical local-only behaviour.
 
-This fix is a GitHub Pages frontend change, not another Apps Script version. Re-test the cancelled manager tab after GitHub Pages publishes the commit before treating manager-link cancellation as fully verified.
+Production re-test on the cancelled **Entry Manager Test Competition** confirmed the page now shows **Competition unavailable** and the cancelled organiser screen no longer loads.
 
 ## Public competitor entry
 
@@ -185,12 +185,9 @@ The shared Booking Receiver ↔ Entry Manager secret was exposed during developm
 
 Continue using **Entry Manager Test Competition** only:
 
-1. wait for/confirm GitHub Pages has published `entry-manager-bootstrap.js` and updated `entry-manager.html`;
-2. refresh the already-resolved cancelled manager tab and confirm it now shows Competition unavailable rather than cached organiser data;
-3. confirm the public link remains blocked;
-4. Restore Competition and confirm the same manager/public links work again;
-5. Cancel again;
-6. Delete Permanently;
-7. confirm the competition disappears from the portal and both old links remain blocked.
+1. Restore Competition and confirm the same manager/public links work again;
+2. Cancel again;
+3. Delete Permanently;
+4. confirm the competition disappears from the portal and both old links remain blocked.
 
 Do not delete a real booking while this verification is being completed.
