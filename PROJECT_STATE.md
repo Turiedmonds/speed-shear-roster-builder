@@ -31,13 +31,17 @@ As at 28 August 2026:
 - Portal access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - Portal Version 3 contains both updated portal files and the deposit/cancel/restore/delete controls.
-- Deposit Paid → Awaiting Deposit switching has been verified on the test competition.
-- Cancel Competition has been verified to move the test competition out of the Active portal list.
-- Public competitor access has been verified blocked after cancellation.
-- Manager access has also now been verified blocked after cancellation: the GitHub Pages bootstrap guard prevents the cached organiser UI from loading and shows **Competition unavailable** instead.
-- **Restore Competition has been verified:** the same test competition returned to the Active list and the same manager/public links both worked again after restore.
-- **Delete Permanently has now been verified at the portal/data-list level:** after re-cancelling the test competition, deletion succeeded, the Cancelled view showed 0 competitions, and the normal portal list dropped from 3 competitions to 2.
-- Final lifecycle check still required: refresh the old deleted test manager/public links and confirm both remain blocked after deletion.
+- The full operator lifecycle has now been verified on **Entry Manager Test Competition**:
+  - Awaiting Deposit → Deposit Paid worked;
+  - Deposit Paid → Awaiting Deposit worked;
+  - Cancel Competition removed the competition from the Active list;
+  - cancelled public entry access was blocked;
+  - cancelled manager access was blocked after the cached-screen bootstrap fix;
+  - Restore Competition returned the same competition to Active and the same manager/public links worked again;
+  - re-cancel + Delete Permanently removed the test competition from portal listings;
+  - after deletion, the old private manager link remained blocked with **Competition unavailable**;
+  - after deletion, the old public competitor-entry link remained blocked.
+- The lifecycle controls are therefore verified end-to-end for deposit state, cancellation, restoration, permanent deletion and stale-link blocking.
 
 ## Relationship to Booking Pack
 
@@ -96,7 +100,7 @@ Repository fix now live and verified:
 - if validation succeeds, the normal Entry Manager scripts load in their existing order;
 - no-token/manual mode retains the historical local-only behaviour.
 
-Production re-test on the cancelled **Entry Manager Test Competition** confirmed the page now shows **Competition unavailable** and the cancelled organiser screen no longer loads.
+Production testing confirmed both cancelled and permanently deleted manager links show **Competition unavailable** rather than loading cached organiser controls.
 
 ## Public competitor entry
 
@@ -180,16 +184,14 @@ Latest full Entry Manager/public-entry verification before lifecycle controls us
 
 Booking creation, manager/public links, public entry save, competitor receipt, organiser notification, Waimarino backup, custom domain and legacy redirects were verified.
 
+Lifecycle-control verification used the separate **Entry Manager Test Competition**, which has now been permanently deleted as intended.
+
 ## Security note
 
 The shared Booking Receiver ↔ Entry Manager secret was exposed during development/testing conversation history. Rotate it in both Apps Script projects before final production-hardening. Never record the replacement value here.
 
 ## Next planned work
 
-Final lifecycle check on the now-deleted **Entry Manager Test Competition**:
+The System Operator Portal lifecycle implementation is now verified. Do not repeat destructive testing on real bookings.
 
-1. refresh the old private Entry Manager tab and confirm it remains unavailable;
-2. refresh the old public competitor-entry tab and confirm it remains unavailable;
-3. once both pass, record the full deposit/cancel/restore/delete lifecycle as verified.
-
-Do not delete a real booking while this verification is being completed.
+Potential next work should be treated as a separate task. The remaining known technical item is the existing private-manager `fetch(..., mode:'no-cors')` write-response limitation; the server-side lifecycle guard itself is verified and does not depend on resolving that limitation.
