@@ -4,6 +4,16 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Faster offline reconnect detection
+
+- Live acceptance testing had already proved the offline queue was safe and persisted centrally, but reconnect could take roughly **30–40 seconds** before syncing visibly began.
+- Added `entry-manager-reconnect-fast.js` as a narrow recovery helper without changing queue ordering, write confirmation, central-refresh blocking or the single-source-of-truth rules.
+- While an offline queue exists or the real connectivity layer still reports offline, the helper retries recovery every **3 seconds** instead of waiting only for the existing 12-second heartbeat.
+- `online`, `focus`, `pageshow`, return from background and queue-change events now also trigger a short reconnect burst at 0 ms, 800 ms, 1.8 s and 3.5 s. The existing reconnect promise coalesces overlapping attempts, so duplicate queue replay cannot start.
+- Service-worker cache advanced to **`waimarino-entry-manager-offline-v7`** and now caches the fast reconnect helper. Both manager registrations now request v7 with `updateViaCache:'none'`.
+- This is frontend-only; Apps Script remains Version 7 and no backend deployment is required.
+- Live iPad reconnect timing still needs one regression test after GitHub Pages publishes v7.
+
 ### Timing-system JSON handover + multi-grade contract
 
 - Traced the live Timing System roster importer before changing the Entry Manager export format.
@@ -17,7 +27,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Matching Timing System repository change adds multi-grade `roster_pack` import while retaining single-grade array import. Multi-grade import only replaces grades that already exist in the Timing System setup.
 - Entry Manager service-worker cache advanced to **`waimarino-entry-manager-offline-v6`** and now caches the timing exporter so the sanitized downloads remain available offline.
 - Apps Script backend version remains Version 7; no Apps Script deployment is required for this export change.
-- Live Entry Manager → Raspberry Pi import regression test is still required after GitHub Pages publishes v6 and the Pi pulls the matching Timing System commit.
+- Live Entry Manager exports were verified on iPad: the single-grade file contained only confirmed `{name,town}` rows and the Full Roster file contained only the expected `roster_pack` grade structure with no manager token or unrelated metadata. Raspberry Pi import still awaits the later `git pull` and live import test.
 
 ### Offline acceptance test completed
 
@@ -26,7 +36,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Reconnect showed **Online — syncing 6 saved changes**, counted the queue down to zero and finished at green **Online**.
 - A fresh online browser refresh then proved the final roster had persisted centrally rather than existing only in local storage.
 - Reconnect took roughly **30–40 seconds** before syncing began. This did not cause data loss, but the delay is recorded for later tuning.
-- The verified reconnect fix is service-worker v5's real no-store probe against `/entry-manager.html`; v6 retains that behaviour and only adds the sanitized timing-roster exporter to the cached shell.
+- The verified reconnect fix is service-worker v5's real no-store probe against `/entry-manager.html`; later cache versions retain that behaviour.
 
 ### Offline reconnect queue + offline reload repair
 
@@ -39,9 +49,8 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Indicator now explicitly reports **Online — syncing…** during replay and returns to **Online** only after real network/backend recovery and successful queue drain.
 - Found a cache-version issue: service-worker v3 was cache-first but the cache name had not been advanced after later offline-source edits, allowing an older cached `entry-manager-offline.js` to keep running. Cache rebuilt as **`waimarino-entry-manager-offline-v4`**, deleting older Entry Manager caches.
 - `manage/index.html` no longer keeps a usable cached manager hidden until the iframe's final `load` event. It now reveals the same-origin Entry Manager as soon as its DOM is rendered, preventing a slow/unavailable external resource from leaving the page stuck on the opening card.
-- Manager/service-worker registrations use `updateViaCache:'none'` and the v4 service-worker URL so the browser checks the current worker source.
+- Manager/service-worker registrations use `updateViaCache:'none'` and the versioned service-worker URL so the browser checks the current worker source.
 - Frontend-only repair; no Apps Script deployment required.
-- Live retest still required after GitHub Pages publishes.
 
 ### Resilient offline Entry Manager architecture
 
@@ -63,7 +72,6 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Explicit lifecycle rejection such as cancelled/not-found remains authoritative and does not fall back to cached access; the tidy route removes its cached mapping if the resolver explicitly rejects the link.
 - Central Google Drive JSON remains the **only permanent source of truth**. The local competition snapshot and ordered queue are temporary offline working/recovery data only.
 - Frontend-only architecture change; no Apps Script deployment was required.
-- GitHub Pages deployment for the implementation completed successfully. Live airplane-mode acceptance testing remains required.
 
 ### Offline PDF/export preservation and PDF cleanup
 
