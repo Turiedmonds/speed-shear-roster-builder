@@ -18,7 +18,7 @@
   ];
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('entry-manager-sw.js?v=4', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
+    navigator.serviceWorker.register('entry-manager-sw.js?v=5', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
   }
 
   function showPage() {
