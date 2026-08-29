@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbwOkoKs3Is6bSumWYe71zH2mOEZ4h0YhY-PO2JPiea2WClMs6kIMjzYtEZmqg3MlgQC-w/exec';
   const params = new URLSearchParams(location.search);
   const token = params.get('access') || '';
   if (!token) return;
@@ -77,7 +78,7 @@
       const item = queue[0];
       const payload = { ...(item.payload || {}), accessToken: token };
       try {
-        await delegatedFetch(location.href, {
+        await delegatedFetch(ENDPOINT, {
           method: 'POST',
           mode: 'no-cors',
           cache: 'no-store',
