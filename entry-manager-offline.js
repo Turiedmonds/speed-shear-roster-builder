@@ -21,6 +21,8 @@
   let networkReachable = window.__waimarinoOfflineBootstrap === true
     ? false
     : (navigator.onLine === false ? false : null);
+  let backendReachable = window.__waimarinoOfflineBootstrap === true ? false : true;
+  let lastReportedOnline = null;
 
   function readQueue() {
     try {
@@ -49,7 +51,6 @@
     const signature = JSON.stringify(copy);
     const last = queue[queue.length - 1];
 
-    // Prevent an accidental double tap from adding the exact same queued write twice.
     if (!last || JSON.stringify(last.payload || {}) !== signature) {
       queue.push({ queuedAt: new Date().toISOString(), payload: copy });
       writeQueue(queue);
@@ -73,7 +74,14 @@
   }
 
   function offlineNow() {
-    return navigator.onLine === false || networkReachable === false;
+    return navigator.onLine === false || networkReachable === false || backendReachable === false;
+  }
+
+  function reportConnectionChange() {
+    const online = !offlineNow();
+    if (lastReportedOnline === online) return;
+    lastReportedOnline = online;
+    window.dispatchEvent(new CustomEvent('waimarino-connection-change', { detail: { online } }));
   }
 
   function statusText(message, kind) {
@@ -85,23 +93,28 @@
     }, 0);
   }
 
-  function setReachability(reachable) {
+  function setNetworkReachability(reachable) {
     const changed = networkReachable !== reachable;
     networkReachable = reachable;
+    if (!reachable) backendReachable = false;
     if (reachable) window.__waimarinoOfflineBootstrap = false;
-    if (changed) {
-      updateIndicator();
-      window.dispatchEvent(new CustomEvent('waimarino-connection-change', { detail: { online: reachable } }));
-    }
+    if (changed) updateIndicator();
+    reportConnectionChange();
+  }
+
+  function setBackendReachability(reachable) {
+    const changed = backendReachable !== reachable;
+    backendReachable = reachable;
+    if (changed) updateIndicator();
+    reportConnectionChange();
   }
 
   async function probeNetwork(force = false) {
     if (navigator.onLine === false) {
-      setReachability(false);
+      setNetworkReachability(false);
       return false;
     }
 
-    if (probePromise && !force) return probePromise;
     if (probePromise) return probePromise;
 
     probePromise = (async () => {
@@ -113,10 +126,10 @@
           { cache: 'no-store', signal: controller.signal }
         );
         const reachable = Boolean(response && response.ok);
-        setReachability(reachable);
+        setNetworkReachability(reachable);
         return reachable;
       } catch (_) {
-        setReachability(false);
+        setNetworkReachability(false);
         return false;
       } finally {
         clearTimeout(timer);
@@ -140,9 +153,10 @@
       /competitor was not found/i.test(String(error && error.message || error || ''));
   }
 
-  function queueAsOffline(payload) {
+  function queueAsOffline(payload, reason) {
     const count = queuePayload(payload);
-    setReachability(false);
+    if (reason === 'network') setNetworkReachability(false);
+    if (reason === 'backend') setBackendReachability(false);
     updateIndicator();
     setTimeout(markQueuedRows, 0);
     statusText(`Offline — competitor change saved on this device. ${count} change${count === 1 ? '' : 's'} waiting to sync.`, 'warn');
@@ -179,21 +193,29 @@
           headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify(payload)
         });
+        setBackendReachability(true);
         queue.shift();
         writeQueue(queue);
       } catch (error) {
         if (removeAlreadyApplied(payload, error)) {
+          setBackendReachability(true);
           queue.shift();
           writeQueue(queue);
           continue;
         }
 
-        const reachable = await probeNetwork(true);
-        if (!reachable || connectivityLikeError(error)) {
-          setReachability(false);
+        const networkOk = await probeNetwork(true);
+        if (!networkOk) {
+          setNetworkReachability(false);
           break;
         }
 
+        if (connectivityLikeError(error)) {
+          setBackendReachability(false);
+          break;
+        }
+
+        setBackendReachability(true);
         hardFailure = error;
         break;
       }
@@ -280,17 +302,19 @@
       return delegatedFetch(input, options);
     }
 
-    // Never trust the browser flag alone. A quick real-network probe decides whether
-    // competitor work should use the normal confirmed backend path or the local queue.
-    if (!await probeNetwork(true)) return queueAsOffline(payload);
+    // Supported competitor-list writes always perform a tiny real-network check first.
+    // The UI has already made its targeted optimistic change, so this check does not cause a redraw.
+    if (!await probeNetwork(true)) return queueAsOffline(payload, 'network');
 
     try {
       const response = await delegatedFetch(input, options);
-      setReachability(true);
+      setBackendReachability(true);
       return response;
     } catch (error) {
-      const reachable = await probeNetwork(true);
-      if (!reachable || connectivityLikeError(error)) return queueAsOffline(payload);
+      const networkOk = await probeNetwork(true);
+      if (!networkOk) return queueAsOffline(payload, 'network');
+      if (connectivityLikeError(error)) return queueAsOffline(payload, 'backend');
+      setBackendReachability(true);
       throw error;
     }
   };
@@ -304,7 +328,7 @@
   });
 
   window.addEventListener('offline', () => {
-    setReachability(false);
+    setNetworkReachability(false);
     updateIndicator();
   });
 
@@ -320,6 +344,7 @@
   window.__waimarinoProbeConnection = probeNetwork;
 
   updateIndicator();
+  reportConnectionChange();
   markQueuedRows();
 
   probeNetwork(true).then(reachable => {
@@ -327,8 +352,7 @@
   });
 
   setInterval(async () => {
-    const wasOffline = offlineNow();
     const reachable = await probeNetwork(true);
-    if (reachable && (wasOffline || readQueue().length)) syncQueue();
+    if (reachable && (backendReachable === false || readQueue().length)) syncQueue();
   }, HEARTBEAT_MS);
 })();
