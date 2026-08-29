@@ -111,13 +111,13 @@ The original fallback relied too heavily on `navigator.onLine`. iPad/Chrome test
 
 Service-worker v5 fixed the remaining reconnect-detection problem by turning the historical probe into a real no-store same-origin request to `/entry-manager.html`. Live iPad/Safari testing then showed the indicator change from Offline to **Online — syncing…**, count the queued changes down and finish at green **Online**.
 
-Reconnect recovery does not rely on one browser event. The queue is retried from `online`, window focus, `pageshow`, return from background and a lightweight heartbeat. A separate backend reachability probe is used when there is no queued write available to prove backend recovery.
+Reconnect recovery does not rely on one browser event. The existing offline layer retries from `online`, window focus, `pageshow`, return from background and a background heartbeat. `entry-manager-reconnect-fast.js` now supplements that path only while recovery is actually needed: it retries every 3 seconds and runs a short reconnect burst after relevant browser events. Overlapping attempts are coalesced by the existing reconnect promise, so queue replay still runs only once and in order.
 
 Normal online behaviour is unchanged: when the real connection is available, competitor writes still use Version 7 backend confirmation.
 
 #### Offline page refresh/startup
 
-`entry-manager-sw.js` is a versioned service worker that caches only the known Entry Manager application shell/assets required to reopen the manager after an outage. Current cache version is **`waimarino-entry-manager-offline-v6`**. v6 retains the verified v5 reconnect probe and adds the sanitized timing-roster exporter to the cached shell.
+`entry-manager-sw.js` is a versioned service worker that caches only the known Entry Manager application shell/assets required to reopen the manager after an outage. Current cache version is **`waimarino-entry-manager-offline-v7`**. v7 retains the verified v5 reconnect probe, the v6 sanitized timing-roster exporter, and adds the fast reconnect helper.
 
 The tidy `/manage/?c=...` route also stores the already-resolved full manager token locally on the same device after a successful online resolution. If the resolver later cannot be reached because of a network/timeout failure, that previously opened competition can reopen with its cached token and saved local competition state.
 
@@ -145,7 +145,7 @@ When connectivity returns:
 
 This keeps the central Drive record as the single permanent source of truth without allowing a remote refresh to overwrite unsynced local work.
 
-The complete live iPad/Safari acceptance path has now passed: offline Add, Confirmed/Not Confirmed, Remove, JSON/PDF download, a full offline browser refresh, reconnect/queue drain, green Online state, and a fresh online reload preserving the final roster centrally. The reconnect did take roughly 30–40 seconds before syncing began, which is recorded for later tuning.
+The complete live iPad/Safari acceptance path has passed: offline Add, Confirmed/Not Confirmed, Remove, JSON/PDF download, a full offline browser refresh, reconnect/queue drain, green Online state, and a fresh online reload preserving the final roster centrally. That acceptance run took roughly 30–40 seconds before syncing visibly began; v7 targets only that delay and still needs one live reconnect-timing regression.
 
 ### Local roster PDF
 
@@ -173,7 +173,9 @@ The Timing System keeps its existing single-grade import behaviour and now also 
 
 Roster downloads deliberately exclude manager access tokens, booking references, competition metadata, phone/email, source, IDs, status fields and timestamps. The backend Close Entries submission payload is a separate transport contract and still carries the authentication needed by the backend; simplifying a user-downloaded roster must not remove authentication from the actual server write.
 
-`entry-manager-timing-export.js` performs these user-facing exports locally, so they remain available offline, and service-worker v6 includes that file in the cached manager shell.
+`entry-manager-timing-export.js` performs these user-facing exports locally, so they remain available offline, and service-worker v7 includes that file in the cached manager shell.
+
+The single-grade and Full Roster exports have both been live-verified on iPad. The remaining integration step is to pull the matching Timing System change onto the Raspberry Pi and test both import paths there.
 
 ### Custom online-entry closing countdown
 
@@ -297,4 +299,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, Programme button repair, custom closing countdown and the complete offline → reconnect → sync → central reload handover have been verified. The sanitized timing JSON and new Timing System multi-grade import are committed and are the next live integration checks.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, Programme button repair, custom closing countdown and the complete offline → reconnect → sync → central reload handover have been verified. Sanitized single-grade and Full Roster JSON exports are also live-verified. Fast reconnect v7 and the Raspberry Pi import paths remain the next live regression checks.
