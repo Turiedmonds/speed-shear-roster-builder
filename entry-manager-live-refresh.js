@@ -16,8 +16,16 @@
     return typeof window.__waimarinoOfflineQueuePending === 'function' && window.__waimarinoOfflineQueuePending();
   }
 
+  function exportGuardActive() {
+    try {
+      return Number(sessionStorage.getItem('waimarinoEntryManagerExportGuardUntil') || 0) > Date.now();
+    } catch (_) {
+      return false;
+    }
+  }
+
   function operatorIsBusy() {
-    if (document.hidden || !navigator.onLine || offlineQueuePending()) return true;
+    if (document.hidden || !navigator.onLine || offlineQueuePending() || exportGuardActive()) return true;
 
     const active = document.activeElement;
     if (active && active !== document.body) {
@@ -68,7 +76,7 @@
   }
 
   async function pollForNewEntries() {
-    if (pollInFlight || !navigator.onLine || offlineQueuePending()) return;
+    if (pollInFlight || !navigator.onLine || offlineQueuePending() || exportGuardActive()) return;
     pollInFlight = true;
 
     try {
