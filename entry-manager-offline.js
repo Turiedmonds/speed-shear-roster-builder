@@ -7,15 +7,20 @@
   if (!token) return;
 
   const QUEUE_KEY = `waimarinoSpeedShearEntryManagerOfflineQueue_${token}`;
-  const STATE_KEY = `waimarinoSpeedShearEntryManagerV3_${token}`;
   const delegatedFetch = window.fetch.bind(window);
   const ALLOWED_TYPES = new Set([
     'speed_shear_manager_competitor_upsert',
     'speed_shear_manager_competitor_checkin',
     'speed_shear_manager_competitor_remove'
   ]);
+  const PROBE_TIMEOUT_MS = 1500;
+  const HEARTBEAT_MS = 12000;
 
   let syncing = false;
+  let probePromise = null;
+  let networkReachable = window.__waimarinoOfflineBootstrap === true
+    ? false
+    : (navigator.onLine === false ? false : null);
 
   function readQueue() {
     try {
@@ -31,13 +36,25 @@
     window.dispatchEvent(new CustomEvent('waimarino-offline-queue-change'));
   }
 
-  function queuePayload(payload) {
-    const queue = readQueue();
+  function cleanPayload(payload) {
     const copy = JSON.parse(JSON.stringify(payload || {}));
     delete copy.requestId;
     delete copy.accessToken;
-    queue.push({ queuedAt: new Date().toISOString(), payload: copy });
-    writeQueue(queue);
+    return copy;
+  }
+
+  function queuePayload(payload) {
+    const queue = readQueue();
+    const copy = cleanPayload(payload);
+    const signature = JSON.stringify(copy);
+    const last = queue[queue.length - 1];
+
+    // Prevent an accidental double tap from adding the exact same queued write twice.
+    if (!last || JSON.stringify(last.payload || {}) !== signature) {
+      queue.push({ queuedAt: new Date().toISOString(), payload: copy });
+      writeQueue(queue);
+    }
+
     return queue.length;
   }
 
@@ -55,6 +72,10 @@
     return readQueue().length > 0 || syncing;
   }
 
+  function offlineNow() {
+    return navigator.onLine === false || networkReachable === false;
+  }
+
   function statusText(message, kind) {
     setTimeout(() => {
       const status = document.getElementById('globalStatus');
@@ -64,58 +85,79 @@
     }, 0);
   }
 
-  function snapshotVisibleRoster() {
-    let state;
-    try { state = JSON.parse(localStorage.getItem(STATE_KEY) || 'null'); } catch (_) { state = null; }
-    if (!state || !Array.isArray(state.grades)) return;
+  function setReachability(reachable) {
+    const changed = networkReachable !== reachable;
+    networkReachable = reachable;
+    if (reachable) window.__waimarinoOfflineBootstrap = false;
+    if (changed) {
+      updateIndicator();
+      window.dispatchEvent(new CustomEvent('waimarino-connection-change', { detail: { online: reachable } }));
+    }
+  }
 
-    const queuedIds = queuedCompetitorIds();
-    const byGradeId = new Map(state.grades.map(g => [String(g.id || ''), g]));
+  async function probeNetwork(force = false) {
+    if (navigator.onLine === false) {
+      setReachability(false);
+      return false;
+    }
 
-    document.querySelectorAll('.grade-card[data-grade-id]').forEach(card => {
-      const grade = byGradeId.get(String(card.dataset.gradeId || ''));
-      if (!grade) return;
+    if (probePromise && !force) return probePromise;
+    if (probePromise) return probePromise;
 
-      const existing = new Map((Array.isArray(grade.competitors) ? grade.competitors : []).map(c => [String(c.id || ''), c]));
-      const visible = [...card.querySelectorAll('.competitor-table tbody tr[data-cid]')].map(row => {
-        const id = String(row.dataset.cid || '');
-        const previous = existing.get(id) || {};
-        return {
-          ...previous,
-          id,
-          name: row.querySelector('input[data-edit="name"]')?.value?.trim() || previous.name || '',
-          town: row.querySelector('input[data-edit="town"]')?.value?.trim() || previous.town || '',
-          source: previous.source || 'manual',
-          checkedIn: Boolean(row.querySelector('[data-action="toggle-confirm"]')?.classList.contains('confirmed')),
-          createdAt: previous.createdAt || new Date().toISOString()
-        };
-      });
+    probePromise = (async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+      try {
+        const response = await delegatedFetch(
+          `${location.origin}/CNAME?network-probe=${Date.now()}`,
+          { cache: 'no-store', signal: controller.signal }
+        );
+        const reachable = Boolean(response && response.ok);
+        setReachability(reachable);
+        return reachable;
+      } catch (_) {
+        setReachability(false);
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
 
-      // If an offline Remove is queued, the missing row is intentional and must stay removed locally.
-      const queuedRemovals = new Set(
-        readQueue()
-          .map(item => item?.payload)
-          .filter(p => p?.type === 'speed_shear_manager_competitor_remove')
-          .map(p => String(p.competitorId || ''))
-      );
+    try {
+      return await probePromise;
+    } finally {
+      probePromise = null;
+    }
+  }
 
-      grade.competitors = visible.filter(c => !queuedRemovals.has(String(c.id || '')));
+  function connectivityLikeError(error) {
+    const text = String(error && error.message || error || '');
+    return /failed to fetch|network|load failed|abort|confirmation was not received|could not be confirmed|check your connection/i.test(text);
+  }
 
-      // Preserve queued competitors even if a browser redraw has not yet recreated their row.
-      existing.forEach((c, id) => {
-        if (queuedIds.has(id) && !queuedRemovals.has(id) && !grade.competitors.some(x => String(x.id || '') === id)) {
-          grade.competitors.push(c);
-        }
-      });
-    });
+  function removeAlreadyApplied(payload, error) {
+    return payload?.type === 'speed_shear_manager_competitor_remove' &&
+      /competitor was not found/i.test(String(error && error.message || error || ''));
+  }
 
-    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (_) {}
+  function queueAsOffline(payload) {
+    const count = queuePayload(payload);
+    setReachability(false);
+    updateIndicator();
+    setTimeout(markQueuedRows, 0);
+    statusText(`Offline — competitor change saved on this device. ${count} change${count === 1 ? '' : 's'} waiting to sync.`, 'warn');
+    return { ok: true, offlineQueued: true };
   }
 
   async function syncQueue() {
-    if (syncing || !navigator.onLine) return;
+    if (syncing) return;
     let queue = readQueue();
     if (!queue.length) {
+      updateIndicator();
+      return;
+    }
+
+    if (!await probeNetwork(true)) {
       updateIndicator();
       return;
     }
@@ -123,9 +165,12 @@
     syncing = true;
     updateIndicator();
 
-    while (queue.length && navigator.onLine) {
+    let hardFailure = null;
+
+    while (queue.length) {
       const item = queue[0];
       const payload = { ...(item.payload || {}), accessToken: token };
+
       try {
         await delegatedFetch(ENDPOINT, {
           method: 'POST',
@@ -136,7 +181,20 @@
         });
         queue.shift();
         writeQueue(queue);
-      } catch (_) {
+      } catch (error) {
+        if (removeAlreadyApplied(payload, error)) {
+          queue.shift();
+          writeQueue(queue);
+          continue;
+        }
+
+        const reachable = await probeNetwork(true);
+        if (!reachable || connectivityLikeError(error)) {
+          setReachability(false);
+          break;
+        }
+
+        hardFailure = error;
         break;
       }
     }
@@ -145,8 +203,14 @@
     updateIndicator();
     markQueuedRows();
 
+    if (hardFailure) {
+      statusText(`Could not sync one saved offline change: ${String(hardFailure.message || hardFailure)}`, 'warn');
+      return;
+    }
+
     if (!queue.length) {
       statusText('Offline competitor changes have synced successfully.', 'ok');
+      window.dispatchEvent(new CustomEvent('waimarino-offline-sync-complete'));
     }
   }
 
@@ -168,12 +232,14 @@
     const indicator = ensureIndicator();
     if (!indicator) return;
     const count = readQueue().length;
-    indicator.classList.toggle('offline', !navigator.onLine);
-    indicator.classList.toggle('syncing', syncing || (navigator.onLine && count > 0));
-    if (!navigator.onLine) {
+    const offline = offlineNow();
+    indicator.classList.toggle('offline', offline);
+    indicator.classList.toggle('syncing', !offline && (syncing || count > 0));
+
+    if (offline) {
       indicator.textContent = count
         ? `Offline — ${count} change${count === 1 ? '' : 's'} saved on this device`
-        : 'Offline — manual competitor entries available';
+        : 'Offline — competitor list available on this device';
     } else if (syncing || count) {
       indicator.textContent = `Online — syncing ${count} offline change${count === 1 ? '' : 's'}`;
     } else {
@@ -214,47 +280,35 @@
       return delegatedFetch(input, options);
     }
 
-    if (!navigator.onLine) {
-      const count = queuePayload(payload);
-      snapshotVisibleRoster();
-      updateIndicator();
-      setTimeout(markQueuedRows, 0);
-      statusText(`Offline — competitor change saved on this device. ${count} change${count === 1 ? '' : 's'} waiting to sync.`, 'warn');
-      return { ok: true, offlineQueued: true };
-    }
+    // Never trust the browser flag alone. A quick real-network probe decides whether
+    // competitor work should use the normal confirmed backend path or the local queue.
+    if (!await probeNetwork(true)) return queueAsOffline(payload);
 
-    return delegatedFetch(input, options);
+    try {
+      const response = await delegatedFetch(input, options);
+      setReachability(true);
+      return response;
+    } catch (error) {
+      const reachable = await probeNetwork(true);
+      if (!reachable || connectivityLikeError(error)) return queueAsOffline(payload);
+      throw error;
+    }
   };
 
   const observer = new MutationObserver(() => requestAnimationFrame(markQueuedRows));
   const grades = document.getElementById('gradesContainer');
   if (grades) observer.observe(grades, { childList: true, subtree: true });
 
-  document.addEventListener('click', event => {
-    if (navigator.onLine) return;
-    if (!event.target.closest('button[data-action="remove-competitor"]')) return;
-    // Main Entry Manager removal remains the source of truth; this immediate snapshot preserves it locally.
-    setTimeout(snapshotVisibleRoster, 0);
-    setTimeout(snapshotVisibleRoster, 100);
-  }, true);
-
-  window.addEventListener('waimarino-before-local-export', snapshotVisibleRoster);
-  window.addEventListener('pagehide', snapshotVisibleRoster);
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) snapshotVisibleRoster();
+  window.addEventListener('online', async () => {
+    if (await probeNetwork(true)) await syncQueue();
   });
 
-  window.addEventListener('online', () => {
-    snapshotVisibleRoster();
-    updateIndicator();
-    setTimeout(syncQueue, 250);
-  });
   window.addEventListener('offline', () => {
-    snapshotVisibleRoster();
+    setReachability(false);
     updateIndicator();
   });
+
   window.addEventListener('waimarino-offline-queue-change', () => {
-    snapshotVisibleRoster();
     updateIndicator();
     markQueuedRows();
   });
@@ -262,9 +316,19 @@
   window.__waimarinoOfflineQueuePending = pending;
   window.__waimarinoOfflineQueuedCompetitorIds = queuedCompetitorIds;
   window.__waimarinoSyncOfflineQueue = syncQueue;
-  window.__waimarinoSnapshotVisibleRoster = snapshotVisibleRoster;
+  window.__waimarinoConnectionOffline = offlineNow;
+  window.__waimarinoProbeConnection = probeNetwork;
 
   updateIndicator();
   markQueuedRows();
-  if (navigator.onLine && readQueue().length) setTimeout(syncQueue, 500);
+
+  probeNetwork(true).then(reachable => {
+    if (reachable && readQueue().length) syncQueue();
+  });
+
+  setInterval(async () => {
+    const wasOffline = offlineNow();
+    const reachable = await probeNetwork(true);
+    if (reachable && (wasOffline || readQueue().length)) syncQueue();
+  }, HEARTBEAT_MS);
 })();
