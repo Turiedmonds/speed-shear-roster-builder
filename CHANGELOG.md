@@ -4,6 +4,16 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Offline manual entry — consecutive-add flicker fix
+
+- Airplane-mode testing found a repeatable pattern where one manual competitor add worked, the next add attempt flickered/disappeared, retrying that same name worked, and the following new add failed again.
+- Root cause was in `entry-manager-entry-groups.js`: its `MutationObserver` rearranged Confirmed/Awaiting rows while continuing to observe the DOM mutations caused by those same row moves.
+- The observer could therefore retrigger its own grouping work and repeatedly rearrange the competitor table, creating the visible flicker and a race with a new offline add.
+- The grouping observer now disconnects before moving divider/competitor rows, performs one grouping pass, and reattaches only after the rearrangement is complete.
+- Cache version bumped to `entry-manager-entry-groups.js?v=1.0.1` and the Entry Manager bootstrap cache was also bumped.
+- No Apps Script deployment is required.
+- Live verification still required: add at least four different competitors consecutively in airplane mode and confirm every first tap succeeds without table flicker.
+
 ### Entry Manager — offline manual-entry fallback and local PDF
 
 - Added `entry-manager-offline.js` and `entry-manager-offline.css` as a narrow offline fallback for competitor-list work.
