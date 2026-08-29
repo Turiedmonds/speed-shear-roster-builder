@@ -31,7 +31,7 @@ As at 29 August 2026:
 - Entry Manager includes a safe 30-second silent background public-entry check; typing-protection smoke test passed.
 - Responsive grade controls, competitor grouping, public grade polish and Programme button repair have been implemented; Programme repair and grouping/polish were user-verified.
 - A custom online-entry closing countdown is implemented on both Entry Manager and public competitor entry using the same saved closing timestamp.
-- Offline manual-competitor fallback and local PDF export source are committed and undergoing live smoke testing.
+- Offline manual-competitor fallback and local PDF export are implemented and undergoing live smoke testing.
 - The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. Never store or reveal its value.
 
 ## Preferred competition-specific links
@@ -88,32 +88,49 @@ The following intentionally still require internet and are **not** faked as succ
 
 `entry-manager-bootstrap.js` can load cached competition data when the browser explicitly reports offline and the competition was previously saved on that device. This does not guarantee a completely cold offline reload if the browser has discarded the application files from its own cache; the primary resilience target is an Entry Manager already loaded before connectivity is lost.
 
-### Offline add redraw bug — fix pending live verification
+### Offline add redraw bug — fixed, then user retested consecutive additions
 
 Initial airplane-mode testing found a repeatable pattern where one offline manual add would work, the next add attempt would flicker and disappear, retrying that same name would work, and the following new add would fail again.
 
-Root cause found in `entry-manager-entry-groups.js`: the Confirmed/Awaiting grouping `MutationObserver` rearranged table rows while still observing those same DOM changes. Its own row moves therefore retriggered the observer and caused repeated table rearrangement/redraw activity that could race with a new offline add.
+Root cause was in `entry-manager-entry-groups.js`: the Confirmed/Awaiting grouping `MutationObserver` rearranged table rows while still observing those same DOM changes. Its own row moves therefore retriggered the observer and caused repeated table rearrangement/redraw activity that could race with a new offline add.
 
 Fix:
 
 - the grouping observer now disconnects before rearranging divider/competitor rows;
 - grouping is performed once;
 - the observer is reattached only after the rearrangement is complete;
-- cache version is now `entry-manager-entry-groups.js?v=1.0.1`;
-- `entry-manager.html` bootstrap cache was also bumped.
+- cache version is `entry-manager-entry-groups.js?v=1.0.1`.
 
-This fix must be confirmed with repeated consecutive offline manual additions after GitHub Pages publishes.
+Follow-up user test then successfully added four offline manual competitors consecutively, confirming the original every-second-add failure was resolved.
+
+### Offline PDF/export roster preservation
+
+A follow-up airplane-mode test found a separate bug: four locally queued offline competitors remained visible and could all be marked Confirmed, and the generated PDF correctly included all ten confirmed competitors, but returning from the PDF/file-viewer flow caused the four offline rows to disappear from the Entry Manager UI.
+
+The PDF/export path was hardened so export is read-only from the operator's point of view and cannot become a roster-reset trigger:
+
+- `entry-manager-local-pdf.js` now builds the PDF directly from the **currently visible grade table**, rather than depending on an older localStorage snapshot;
+- immediately before PDF handoff, `entry-manager-offline.js` snapshots the currently visible competitor rows back into the cached competition state;
+- the same snapshot protection runs on page hide/visibility changes so Safari/iOS handing the PDF to its viewer does not lose locally queued names;
+- a short export guard prevents the 30-second background refresh from running around the PDF handoff/return window;
+- queued offline removals are respected when the visible roster is snapshotted;
+- offline Remove continues through the normal Entry Manager action but uses the immediate offline queue path and the visible state is snapshotted immediately after removal.
+
+This change is frontend-only and still requires a live airplane-mode retest after GitHub Pages publishes.
 
 ### Local roster PDF
 
-The per-grade **Download PDF** button has a real device-side PDF generator rather than the previous placeholder message.
+The per-grade **Download PDF** button is a device-side PDF generator and requires no Apps Script/backend call.
 
-- PDF creation uses the locally held roster and requires no Apps Script/backend call;
-- it includes every competitor in the selected grade, not only confirmed competitors;
-- each row shows name, town, Confirmed/Not Confirmed state, source (Online/Manual), and an OFFLINE marker where that competitor still has queued local changes;
-- the header includes competition, grade, date, venue, Booking Reference, generated time and summary counts;
-- it is intended as a human-readable emergency roster if the competition has to continue without internet;
-- JSON download remains the machine-readable handover, while PDF is the human-readable fallback.
+Current PDF rules:
+
+- **confirmed competitors only**;
+- header contains only **competition name, grade/event and competition date**;
+- roster table contains only **No., Name and Town**;
+- venue, Booking Reference, generated timestamp, Online/Manual source, confirmation-status column, offline marker and summary counts are intentionally omitted;
+- columns use fixed PDF positions so the Name and Town values align under the correct headings;
+- the PDF is generated directly from the visible Entry Manager table, including confirmed offline additions that have not yet synced;
+- JSON download remains the machine-readable handover, while PDF is the human-readable emergency roster.
 
 ### Competitor table grouping and programme
 
@@ -149,7 +166,7 @@ Behaviour:
 
 ### Silent Entry Manager public-entry background refresh
 
-`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. It also defers completely while offline or while the offline competitor queue is pending/syncing. Live typing-protection test passed for the original polling behaviour.
+`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. It also defers completely while offline, while the offline competitor queue is pending/syncing, and during the short local-PDF export guard window. Live typing-protection test passed for the original polling behaviour.
 
 ## Manager cancellation access gate
 
@@ -177,7 +194,7 @@ Latest full verification used **Speedshear o ngā Taniwha**, Booking Reference *
 
 ## Next planned work
 
-1. After GitHub Pages publishes the grouping-observer fix, remain in airplane mode and add at least four different manual competitors consecutively without retries; each should add on the first tap with no table flicker/lost add.
-2. While still offline, change a competitor to Confirmed and download both JSON and PDF; confirm PDF opens and lists all competitors clearly.
-3. Reconnect and confirm the header changes to syncing/online and the queued competitor changes persist after a normal refresh.
-4. Confirm group divider spacing reads correctly (e.g. `Confirmed 5`).
+1. After GitHub Pages publishes, repeat the same airplane-mode test: add several manual competitors, mark them Confirmed, generate the PDF, return to Entry Manager and confirm none disappear.
+2. Confirm the new PDF contains only competition name, grade, date and the aligned No./Name/Town table, with only confirmed competitors included.
+3. While still offline, remove one competitor and confirm the row disappears immediately and stays removed locally.
+4. Reconnect and confirm all remaining offline additions/confirmation changes/removals sync and survive a normal refresh.
