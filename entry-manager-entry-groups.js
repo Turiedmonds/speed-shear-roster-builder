@@ -3,6 +3,7 @@
   if (!container) return;
 
   let arranging = false;
+  let observer = null;
 
   function dividerRow(label, count, className) {
     const row = document.createElement('tr');
@@ -45,18 +46,34 @@
     }
   }
 
+  function startObserving() {
+    if (!observer) return;
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+
   function arrangeAll() {
     if (arranging) return;
     arranging = true;
-    container.querySelectorAll('.competitor-table').forEach(arrangeTable);
-    arranging = false;
+    if (observer) observer.disconnect();
+    try {
+      container.querySelectorAll('.competitor-table').forEach(arrangeTable);
+    } finally {
+      arranging = false;
+      startObserving();
+    }
   }
 
-  const observer = new MutationObserver(() => {
+  observer = new MutationObserver(() => {
     if (arranging) return;
     requestAnimationFrame(arrangeAll);
   });
-  observer.observe(container, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+  startObserving();
 
   container.addEventListener('click', event => {
     if (!event.target.closest('[data-action="toggle-confirm"]')) return;
