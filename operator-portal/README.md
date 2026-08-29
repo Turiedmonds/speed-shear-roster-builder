@@ -18,6 +18,12 @@ The same central record is used by the System Operator Portal, Entry Manager and
 - The current production portal has the responsive Waimarino Shears restyle and the new **Postpone Competition** workflow.
 - Version 17 contains the final Postpone-dialog cleanup: correctly sized radio controls, no horizontal overflow, and no empty orange closing-time preview.
 
+## Source mirror status
+
+- `google-apps-script/Code.gs` has been synced to GitHub with the current Postpone backend.
+- The live Apps Script **Version 17 `Index.html` is the authoritative UI source at this point**. The older GitHub `google-apps-script/Index.html` still needs an exact final-source mirror and must **not** be treated as the current deployed Version 17 UI until that sync is completed.
+- Do not reconstruct or shorten the deployed `Index.html` from memory. Fetch/copy the exact current Apps Script file before making future Portal UI changes.
+
 ## Current interface
 
 The portal uses a Waimarino Shears red / black / white design with the Waimarino Shears logo.
@@ -72,7 +78,7 @@ Cancelled competitions provide:
 - **Restore Competition**;
 - **Delete Permanently**.
 
-Delete remains a two-stage lifecycle action: the competition must be cancelled first, then Delete Permanently moves the central JSON file to Google Drive Trash.
+Delete remains a two-stage lifecycle action: the competition must be cancelled first, then Delete Permanently moves the central competition JSON file to Google Drive Trash.
 
 ## Postpone Competition
 
@@ -154,8 +160,8 @@ The portal receives only the short manager/public URLs needed by the authenticat
 
 Portal Apps Script mirror:
 
-- `google-apps-script/Code.gs` — Drive reader/writer, deposit/lifecycle/postpone controls, summaries, sorting and tidy URL generation.
-- `google-apps-script/Index.html` — responsive interface and custom Waimarino dialogs.
+- `google-apps-script/Code.gs` — current Drive reader/writer, deposit/lifecycle/postpone controls, summaries, sorting and tidy URL generation.
+- `google-apps-script/Index.html` — older UI mirror; see **Source mirror status** above before using it.
 
 Related Entry Manager lifecycle enforcement:
 
