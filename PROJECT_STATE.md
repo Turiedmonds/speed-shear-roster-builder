@@ -31,7 +31,7 @@ As at 29 August 2026:
 - Entry Manager includes a safe 30-second silent background public-entry check; typing-protection smoke test passed.
 - Responsive grade controls, competitor grouping, public grade polish and Programme button repair have been implemented; Programme repair and grouping/polish were user-verified.
 - A custom online-entry closing countdown is implemented on both Entry Manager and public competitor entry using the same saved closing timestamp.
-- Offline manual-competitor fallback and local PDF export source are now committed and require live smoke testing after GitHub Pages publishes.
+- Offline manual-competitor fallback and local PDF export source are committed and undergoing live smoke testing.
 - The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. Never store or reveal its value.
 
 ## Preferred competition-specific links
@@ -65,7 +65,7 @@ Common controls respond immediately while retaining Version 7 backend confirmati
 
 ### Offline manual competitor fallback
 
-New frontend files:
+Frontend files:
 
 - `entry-manager-offline.js`
 - `entry-manager-offline.css`
@@ -86,11 +86,27 @@ When the Entry Manager page is already loaded and internet is lost:
 
 The following intentionally still require internet and are **not** faked as successful offline: closing/submitting a grade, Close All Entries, changing public-entry status/cutoff, grade settings/order and other central competition-control changes.
 
-`entry-manager-bootstrap.js` can also load cached competition data when the browser explicitly reports offline and the competition was previously saved on that device. This does not guarantee a completely cold offline reload if the browser has discarded the application files from its own cache; the primary resilience target is an Entry Manager already loaded before connectivity is lost.
+`entry-manager-bootstrap.js` can load cached competition data when the browser explicitly reports offline and the competition was previously saved on that device. This does not guarantee a completely cold offline reload if the browser has discarded the application files from its own cache; the primary resilience target is an Entry Manager already loaded before connectivity is lost.
+
+### Offline add redraw bug — fix pending live verification
+
+Initial airplane-mode testing found a repeatable pattern where one offline manual add would work, the next add attempt would flicker and disappear, retrying that same name would work, and the following new add would fail again.
+
+Root cause found in `entry-manager-entry-groups.js`: the Confirmed/Awaiting grouping `MutationObserver` rearranged table rows while still observing those same DOM changes. Its own row moves therefore retriggered the observer and caused repeated table rearrangement/redraw activity that could race with a new offline add.
+
+Fix:
+
+- the grouping observer now disconnects before rearranging divider/competitor rows;
+- grouping is performed once;
+- the observer is reattached only after the rearrangement is complete;
+- cache version is now `entry-manager-entry-groups.js?v=1.0.1`;
+- `entry-manager.html` bootstrap cache was also bumped.
+
+This fix must be confirmed with repeated consecutive offline manual additions after GitHub Pages publishes.
 
 ### Local roster PDF
 
-The per-grade **Download PDF** button now has a real device-side PDF generator rather than the previous placeholder message.
+The per-grade **Download PDF** button has a real device-side PDF generator rather than the previous placeholder message.
 
 - PDF creation uses the locally held roster and requires no Apps Script/backend call;
 - it includes every competitor in the selected grade, not only confirmed competitors;
@@ -133,7 +149,7 @@ Behaviour:
 
 ### Silent Entry Manager public-entry background refresh
 
-`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. It now also defers completely while offline or while the offline competitor queue is pending/syncing. Live typing-protection test passed for the original polling behaviour.
+`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. It also defers completely while offline or while the offline competitor queue is pending/syncing. Live typing-protection test passed for the original polling behaviour.
 
 ## Manager cancellation access gate
 
@@ -161,7 +177,7 @@ Latest full verification used **Speedshear o ngā Taniwha**, Booking Reference *
 
 ## Next planned work
 
-1. After GitHub Pages publishes the offline fallback, test with airplane mode: manually add a competitor and confirm the row remains with an Offline marker rather than rolling back.
-2. While still offline, change that competitor to Confirmed and download both JSON and PDF; confirm PDF opens and lists all competitors clearly.
+1. After GitHub Pages publishes the grouping-observer fix, remain in airplane mode and add at least four different manual competitors consecutively without retries; each should add on the first tap with no table flicker/lost add.
+2. While still offline, change a competitor to Confirmed and download both JSON and PDF; confirm PDF opens and lists all competitors clearly.
 3. Reconnect and confirm the header changes to syncing/online and the queued competitor changes persist after a normal refresh.
-4. Confirm group divider spacing now reads correctly (e.g. `Confirmed 5`).
+4. Confirm group divider spacing reads correctly (e.g. `Confirmed 5`).
