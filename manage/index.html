@@ -30,7 +30,7 @@
       const CACHE_KEY = code ? `waimarinoSpeedShearManagerResolved_${code}` : '';
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('../entry-manager-sw.js?v=5', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
+        navigator.serviceWorker.register('../entry-manager-sw.js?v=6', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
       }
 
       if (!/^[a-f0-9]{20}$/.test(code)) {
