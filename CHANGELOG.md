@@ -4,6 +4,21 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Offline reconnect queue + offline reload repair
+
+- Live iPad airplane-mode testing passed for consecutive offline Add, Confirmed/Not Confirmed, offline Remove, JSON download and the tidy confirmed-only PDF.
+- The same test exposed two remaining handover failures: a full offline refresh stayed on **Opening the saved Entry Manager in offline mode…**, and reconnect left **11 saved changes** queued while the visible roster reverted to the older central/server copy.
+- The 11-change indicator proved the offline queue itself had **not** been lost.
+- Found a central-refresh race: the normal Entry Manager startup GET could still apply the central competition while offline changes were pending. `entry-manager-offline.js` now blocks central `action=entry-manager` setup GETs while the queue exists or is syncing.
+- Queue replay remains ordered and uses the existing Version 7 confirmed-write wrapper. Only after the queue reaches zero may the existing controlled central refresh run.
+- Added stronger reconnect triggers: browser `online`, window focus, `pageshow`, return from background and the heartbeat all attempt recovery. Backend reachability is checked separately from same-origin network reachability when necessary.
+- Indicator now explicitly reports **Online — syncing…** during replay and returns to **Online** only after real network/backend recovery and successful queue drain.
+- Found a cache-version issue: service-worker v3 was cache-first but the cache name had not been advanced after later offline-source edits, allowing an older cached `entry-manager-offline.js` to keep running. Cache rebuilt as **`waimarino-entry-manager-offline-v4`**, deleting older Entry Manager caches.
+- `manage/index.html` no longer keeps a usable cached manager hidden until the iframe's final `load` event. It now reveals the same-origin Entry Manager as soon as its DOM is rendered, preventing a slow/unavailable external resource from leaving the page stuck on the opening card.
+- Manager/service-worker registrations use `updateViaCache:'none'` and the v4 service-worker URL so the browser checks the current worker source.
+- Frontend-only repair; no Apps Script deployment required.
+- Live retest still required after GitHub Pages publishes.
+
 ### Resilient offline Entry Manager architecture
 
 - Airplane-mode testing proved the remaining data-loss behaviour was primarily an **offline-mode problem**, not a PDF-generator problem.
