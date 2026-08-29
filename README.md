@@ -107,13 +107,15 @@ The 30-second background public-entry refresh pauses while the real connectivity
 
 The original fallback relied too heavily on `navigator.onLine`. iPad/Chrome testing showed that the browser can still report an available connection after usable internet has disappeared. In that condition, an apparently offline competitor action could enter the normal Version 7 save-confirmation path, wait, then roll back.
 
-`entry-manager-offline.js` v2 therefore performs a very small real-network probe before competitor-list writes. The service worker is explicitly prevented from satisfying that probe from cache. If the probe fails, the action is saved locally instead of being sent into the normal online confirmation path. A lightweight heartbeat updates the Online/Offline indicator.
+`entry-manager-offline.js` therefore performs a very small real-network probe before competitor-list writes. The service worker is explicitly prevented from satisfying that probe from cache. If the probe fails, the action is saved locally instead of being sent into the normal online confirmation path.
+
+Reconnect recovery does not rely on one browser event. The queue is retried from `online`, window focus, `pageshow`, return from background and a lightweight heartbeat. A separate backend reachability probe is used when there is no queued write available to prove backend recovery.
 
 Normal online behaviour is unchanged: when the real connection is available, competitor writes still use Version 7 backend confirmation.
 
 #### Offline page refresh/startup
 
-`entry-manager-sw.js` is a versioned service worker that caches only the known Entry Manager application shell/assets required to reopen the manager after an outage.
+`entry-manager-sw.js` is a versioned service worker that caches only the known Entry Manager application shell/assets required to reopen the manager after an outage. Current cache version is **`waimarino-entry-manager-offline-v4`**; older Entry Manager cache versions are removed when v4 activates.
 
 The tidy `/manage/?c=...` route also stores the already-resolved full manager token locally on the same device after a successful online resolution. If the resolver later cannot be reached because of a network/timeout failure, that previously opened competition can reopen with its cached token and saved local competition state.
 
@@ -121,19 +123,25 @@ The tidy `/manage/?c=...` route also stores the already-resolved full manager to
 
 An explicit lifecycle rejection such as cancelled/not-found is still authoritative and does **not** use offline fallback. The cached tidy-route mapping is removed if the resolver explicitly rejects the link.
 
+The tidy manager shell reveals its same-origin Entry Manager frame as soon as the cached manager DOM is rendered rather than waiting for the iframe's final `load` event. This prevents a slow/unavailable external resource from leaving a usable offline manager hidden behind the “Opening Entry Manager…” card.
+
 A competition must therefore be opened successfully online on a device at least once before that device can reopen it offline.
 
 #### Reconnect/sync rules
 
 When connectivity returns:
 
-1. queued competitor writes replay one at a time in their original order through Version 7;
-2. an item stays queued until its backend write is confirmed;
-3. the 30-second public-entry refresh remains blocked while the queue exists or is syncing;
-4. after the queue is completely empty, the Entry Manager requests one controlled central refresh;
-5. that refresh still waits while the operator is typing, editing, using a dialog or dragging, and it preserves scroll.
+1. central `action=entry-manager` setup refreshes are blocked while any offline queue item exists or is syncing, so the older server roster cannot overwrite unsynced local work;
+2. queued competitor writes replay one at a time in their original order through Version 7;
+3. an item stays queued until its backend write is confirmed;
+4. the 30-second public-entry refresh remains blocked while the queue exists or is syncing;
+5. after the queue is completely empty, the Entry Manager requests one controlled central refresh;
+6. that refresh still waits while the operator is typing, editing, using a dialog or dragging, and it preserves scroll;
+7. the connection indicator returns to **Online** only after real network/backend recovery and a successful queue drain.
 
 This keeps the central Drive record as the single permanent source of truth without allowing a remote refresh to overwrite unsynced local work.
+
+Latest live iPad testing has already passed for offline Add, Confirm, Remove, JSON download and confirmed-only PDF generation. The remaining acceptance test is the repaired offline full reload plus reconnect/queue-drain handover.
 
 ### Local roster PDF
 
@@ -270,4 +278,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, Programme button repair and the custom closing countdown have been verified. The resilient offline reload/ordered-sync architecture and final PDF/remove/reconnect acceptance test are the remaining offline verification work.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, Programme button repair and the custom closing countdown have been verified. Offline Add/Confirm/Remove and JSON/PDF now also have live iPad passes; repaired offline full refresh and reconnect queue-drain still require the next live acceptance test.
