@@ -31,8 +31,9 @@ As at 29 August 2026:
 - Entry Manager includes a safe 30-second silent background public-entry check; typing-protection smoke test passed.
 - Responsive grade controls, competitor grouping, public grade polish and Programme button repair have been implemented; Programme repair and grouping/polish were user-verified.
 - A custom online-entry closing countdown is implemented on both Entry Manager and public competitor entry using the same saved closing timestamp.
-- Offline Add/Confirm/Remove, JSON export and the confirmed-only local PDF have all passed live airplane-mode testing in an already-loaded session.
-- A follow-up live test exposed two remaining handover defects: offline full refresh stayed on “Opening the saved Entry Manager…”, and reconnect left queued changes unsynced while the central/server roster replaced the visible local roster. Repairs for both are now implemented and require the next live retest after GitHub Pages publishes.
+- The complete offline acceptance path has now passed live iPad/Safari testing: offline detection, consecutive Add, Confirmed/Not Confirmed, Remove, JSON/PDF download, full browser refresh while offline, reconnect/ordered queue drain, final green Online state, and a fresh online reload preserving the central roster.
+- Reconnect took roughly 30–40 seconds before queue syncing began in the acceptance test. It did successfully drain and persist, but the delay is recorded for later tuning.
+- The original downloaded roster JSON exposed the private manager access token and did not match the Timing System importer. A sanitized timing-roster export layer is now committed and must be live-regression-tested after GitHub Pages publishes/service-worker v6 activates.
 - The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. Never store or reveal its value.
 
 ## Preferred competition-specific links
@@ -80,6 +81,7 @@ Frontend files:
 - `manage/index.html`
 - `entry-manager-live-refresh.js`
 - `entry-manager-local-pdf.js`
+- `entry-manager-timing-export.js`
 
 The offline scope is deliberately limited to **competitor-list operations** so an internet outage does not force entry staff back to pen and paper while avoiding unsafe offline changes to global competition settings.
 
@@ -99,7 +101,7 @@ The following intentionally still require internet and are **not** faked as succ
 
 The original offline wrapper relied too heavily on the browser's `navigator.onLine` flag. iPad/Chrome testing proved that this flag can still indicate an available connection after usable internet has disappeared. In that condition, a competitor change could be sent into the Version 7 confirmation path, wait for confirmation, then roll back. That explained test competitors disappearing and a previously entered name being restored to the Manual Entry input; the PDF button merely exposed the timing and was not the underlying data-loss cause.
 
-`entry-manager-offline.js` now performs a very small real-network probe before competitor-list writes. The service worker explicitly bypasses its cache for that probe, so a cached page cannot falsely report connectivity. If the probe fails, the competitor change is queued locally immediately instead of being sent into the normal online confirmation path.
+`entry-manager-offline.js` now performs a very small real-network probe before competitor-list writes. The service worker explicitly bypasses its cache for that probe, so a cached page cannot falsely report connectivity. Service-worker v5 additionally rewrote the historical `/CNAME?network-probe=...` request to a guaranteed same-origin `/entry-manager.html?network-probe=...` no-store request; this was the change that fixed the iPad/Safari reconnect detection in live testing.
 
 Reconnect handling also performs a separate backend reachability check when needed. The queue retries on the browser `online` event, window focus, `pageshow`, return from background and a lightweight heartbeat, so recovery does not depend on one browser event firing correctly.
 
@@ -117,20 +119,20 @@ That is addressed by:
 - `entry-manager-bootstrap.js` also falls back to the saved competition when live validation cannot be reached, even if the browser incorrectly still claims it is online;
 - explicit lifecycle rejections such as cancelled/not-found remain authoritative and do **not** fall back to cached access.
 
-The 29 August 7:01 PM live test proved the tidy route found its cached token and reached “Opening the saved Entry Manager in offline mode…”, but the iframe remained hidden because `manage/index.html` waited for the iframe's final `load` event. The shell now watches the same-origin iframe document and reveals it as soon as the cached Entry Manager DOM is rendered, so a slow/unavailable external resource cannot leave a usable cached page hidden behind the loading card.
+The earlier 29 August test proved the tidy route found its cached token but initially stayed on “Opening the saved Entry Manager in offline mode…” because `manage/index.html` waited for the iframe's final `load` event. The shell now watches the same-origin iframe document and reveals it as soon as the cached Entry Manager DOM is rendered. The follow-up acceptance test passed a full browser refresh while airplane mode remained enabled and preserved the offline roster exactly.
 
-The service-worker cache is now `waimarino-entry-manager-offline-v4`. This version bump is important: the earlier cache-first v3 shell could continue serving an older `entry-manager-offline.js` after that source file had changed. The v4 install rebuilds the complete manager shell from the current published files and deletes older Entry Manager cache versions.
+The current service-worker cache is `waimarino-entry-manager-offline-v6`. v5 contained the verified reconnect-probe fix. v6 adds the sanitized timing-roster export script to the offline application shell. Because the manager shell uses deterministic cache-first assets, **every future Entry Manager source change must continue to bump the service-worker cache version and registration URL**.
 
 This means an organiser must open the competition successfully online on that device first. The offline cache does not make an unseen competition available offline.
 
 #### Reconnect and single-source-of-truth protection
 
-The 29 August reconnect test showed **11 offline changes were still safely present in the device queue**, but the screen reverted to the older central roster and the indicator stayed Offline. The queue itself was not lost.
+An earlier reconnect test showed **11 offline changes were still safely present in the device queue**, but the screen reverted to the older central roster and the indicator stayed Offline. The queue itself was not lost.
 
 Two concrete handover defects were found and repaired:
 
 1. the normal Entry Manager startup GET could still fetch/apply the central competition while the offline queue existed, replacing the visible local roster before its queued changes had synced;
-2. service-worker v3 could serve an older cached offline script because the cache version had not been bumped after later offline-source changes.
+2. a stale cache could keep an older offline script running if the service-worker version was not advanced after manager-source changes.
 
 Current rule:
 
@@ -141,6 +143,8 @@ Current rule:
 5. once the queue is completely empty, `entry-manager-live-refresh.js` requests **one controlled central refresh**;
 6. that refresh still waits if the operator is typing, editing, using a dialog or dragging a grade, and preserves scroll;
 7. the indicator becomes **Online** only after real network/backend recovery, and after a successful queue drain it explicitly returns to Online.
+
+The final live acceptance run queued six changes, reconnected, counted the queue down to zero, reached green **Online**, and then survived a normal browser refresh with Test A/Test B still Confirmed, Test C absent, and the pre-existing unconfirmed competitor unchanged. The only remaining reconnect concern is the approximately 30–40 second delay before syncing began.
 
 This avoids two competing sources of truth and prevents a remote refresh from overwriting unsynced local work.
 
@@ -175,6 +179,25 @@ Current PDF rules:
 - JSON download remains the machine-readable handover, while PDF is the human-readable emergency roster.
 
 Live airplane-mode testing passed for both JSON and PDF without losing the visible competitors. The PDF correctly included the confirmed remaining competitors after one offline removal.
+
+### Timing-system roster JSON handover
+
+`ROSTER-JSON-CONTRACT.md` is the explicit contract between the Entry Manager and `Turiedmonds/SheariQ-Speed-Shear-Timing-System`.
+
+The old Download JSON action reused the backend `speed_shear_roster_submission` payload. That was wrong for a Timing System handover because it included unrelated submission metadata and the private manager bearer token, while the Timing System's existing single-grade importer expects a plain array of `{name,town}` rows.
+
+`entry-manager-timing-export.js` now intercepts the organiser-facing roster download buttons without changing the existing backend submission transport:
+
+- per-grade **Download JSON** exports a plain JSON array of **confirmed competitors only**;
+- each row contains only `name` and `town`;
+- **Download Full Roster** exports `{ "type": "roster_pack", "rosters": { ... } }`, with each grade containing only confirmed `{name,town}` rows;
+- manager access token, booking reference, competition metadata, phone/email, source, competitor IDs, confirmation flags and timestamps are excluded from the timing-roster downloads;
+- the export is entirely local/device-side and remains usable offline;
+- service-worker v6 caches this new exporter.
+
+The matching Timing System change accepts both the original single-grade array and the new `roster_pack` multi-grade format. Multi-grade import only replaces grades already configured in the Timing System, so roster import cannot silently create a grade with no programme/round rules.
+
+This export/import compatibility is committed but still needs one live handover regression test after GitHub Pages publishes v6 and the Raspberry Pi Timing System pulls its matching change.
 
 ### Competitor table grouping and programme
 
@@ -234,14 +257,16 @@ Portal remains private. Entry Manager backend remains publicly reachable only be
 
 The tidy manager route stores its already-resolved manager token locally on a device so that same previously opened competition can reopen offline. This does not create a new token, does not expose it in the visible tidy URL, and does not change the bearer-access model already used by the Entry Manager.
 
+Timing-system roster downloads must never contain the manager bearer token. The sanitized Download JSON / Download Full Roster contract contains only the roster data described above. The actual manager token must never be printed, documented or repeated from screenshots.
+
 ## Verified competition baseline
 
 Latest full verification used **Speedshear o ngā Taniwha**, Booking Reference **WS-2026-0016**, 18 September 2026, Turangawaewae marae. This is a test competition.
 
 ## Next planned work
 
-1. After GitHub Pages publishes the v4 offline shell, reopen/refresh the tidy Entry Manager online and leave it open briefly so the v4 service worker takes control and rebuilds the cached shell.
-2. Switch to airplane mode and verify Add, Confirm and Remove still work immediately; JSON/PDF need only a quick regression check because they already passed the latest live test.
-3. Still offline, perform a full browser refresh of `/manage/?c=...`; confirm the actual Entry Manager appears rather than remaining on “Opening the saved Entry Manager in offline mode…”.
-4. Reconnect with queued changes still present. Confirm the indicator changes to syncing/Online, the queue count drains to zero, and the local roster does **not** revert to the older central roster before sync finishes.
-5. After the queue reaches zero, confirm the one controlled central refresh preserves the final offline Add/Confirm/Remove results, then do one normal refresh to verify central persistence.
+1. Allow GitHub Pages/service-worker v6 to publish and activate, then regression-test per-grade Download JSON both online and offline. Confirm the file is only a `{name,town}` array and contains no manager token or unrelated metadata.
+2. Pull the matching Timing System changes to the Raspberry Pi and import that per-grade file through Rosters → Import JSON.
+3. Download Full Roster from Entry Manager and verify the Timing System imports all configured grades in one operation while rejecting unknown/unconfigured grade names safely.
+4. Review the approximately 30–40 second reconnect-to-sync delay and reduce it if this can be done without weakening the verified offline/central handover protections.
+5. Keep backend submission payloads and timing-roster download files as separate contracts; do not remove authentication fields from the actual server transport simply to simplify the user-downloaded roster file.
