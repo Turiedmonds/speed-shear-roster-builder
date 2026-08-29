@@ -1,14 +1,6 @@
 (() => {
   'use strict';
 
-  const token = new URLSearchParams(location.search).get('access') || '';
-  const STATE_KEY = token ? `waimarinoSpeedShearEntryManagerV3_${token}` : 'waimarinoSpeedShearEntryManagerV3_manual';
-
-  function readState() {
-    try { return JSON.parse(localStorage.getItem(STATE_KEY) || 'null'); }
-    catch (_) { return null; }
-  }
-
   function ascii(value) {
     return String(value == null ? '' : value)
       .normalize('NFD')
@@ -27,44 +19,57 @@
     return ascii(value || 'Competition').replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'Competition';
   }
 
-  function wrap(text, width) {
-    const words = ascii(text).split(/\s+/).filter(Boolean);
-    if (!words.length) return [''];
-    const lines = [];
-    let line = '';
-    words.forEach(word => {
-      const next = line ? `${line} ${word}` : word;
-      if (next.length > width && line) {
-        lines.push(line);
-        line = word;
-      } else line = next;
-    });
-    if (line) lines.push(line);
-    return lines;
+  function textCommand(font, size, x, y, text) {
+    return `BT /${font} ${size} Tf ${x} ${y} Td (${pdfEscape(text)}) Tj ET`;
   }
 
-  function pageContent(lines) {
-    const commands = ['BT', '/F1 10 Tf', '40 802 Td', '13 TL'];
-    lines.forEach((line, index) => {
-      if (index) commands.push('T*');
-      commands.push(`(${pdfEscape(line)}) Tj`);
+  function pageStream(meta, rows, pageNumber, pageCount) {
+    const commands = [];
+    commands.push(textCommand('F2', 18, 40, 796, meta.competition));
+    commands.push(textCommand('F2', 14, 40, 770, meta.grade));
+    if (meta.date) commands.push(textCommand('F1', 11, 40, 750, meta.date));
+    if (pageCount > 1) commands.push(textCommand('F1', 9, 505, 796, `${pageNumber}/${pageCount}`));
+    commands.push('0.7 w 40 735 m 555 735 l S');
+    commands.push(textCommand('F2', 10, 42, 714, 'No.'));
+    commands.push(textCommand('F2', 10, 82, 714, 'Name'));
+    commands.push(textCommand('F2', 10, 330, 714, 'Town'));
+    commands.push('0.4 w 40 703 m 555 703 l S');
+
+    if (!rows.length) {
+      commands.push(textCommand('F1', 11, 42, 676, 'No confirmed competitors.'));
+      return commands.join('\n');
+    }
+
+    let y = 680;
+    rows.forEach(row => {
+      commands.push(textCommand('F1', 10, 42, y, `${row.number}.`));
+      commands.push(textCommand('F1', 10, 82, y, ascii(row.name).slice(0, 40)));
+      commands.push(textCommand('F1', 10, 330, y, ascii(row.town).slice(0, 34)));
+      commands.push('0.2 w 40 ' + (y - 7) + ' m 555 ' + (y - 7) + ' l S');
+      y -= 18;
     });
-    commands.push('ET');
+
     return commands.join('\n');
   }
 
-  function buildPdf(pages) {
-    const objects = [];
-    const pageRefs = pages.map((_, i) => 4 + i * 2);
-    objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
-    objects[2] = `<< /Type /Pages /Kids [${pageRefs.map(n => `${n} 0 R`).join(' ')}] /Count ${pages.length} >>`;
-    objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+  function buildPdf(meta, rows) {
+    const rowsPerPage = 34;
+    const chunks = [];
+    if (!rows.length) chunks.push([]);
+    else for (let i = 0; i < rows.length; i += rowsPerPage) chunks.push(rows.slice(i, i + rowsPerPage));
 
-    pages.forEach((lines, i) => {
-      const pageNum = 4 + i * 2;
+    const objects = [];
+    const pageRefs = chunks.map((_, i) => 5 + i * 2);
+    objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+    objects[2] = `<< /Type /Pages /Kids [${pageRefs.map(n => `${n} 0 R`).join(' ')}] /Count ${chunks.length} >>`;
+    objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+    objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>';
+
+    chunks.forEach((chunk, i) => {
+      const pageNum = 5 + i * 2;
       const contentNum = pageNum + 1;
-      const stream = pageContent(lines);
-      objects[pageNum] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentNum} 0 R >>`;
+      const stream = pageStream(meta, chunk, i + 1, chunks.length);
+      objects[pageNum] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentNum} 0 R >>`;
       objects[contentNum] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
     });
 
@@ -81,66 +86,44 @@
     return pdf;
   }
 
-  function gradeLines(state, grade) {
-    const competitors = Array.isArray(grade.competitors) ? grade.competitors : [];
-    const confirmed = competitors.filter(c => c.checkedIn === true).length;
-    const awaiting = competitors.length - confirmed;
-    const queuedIds = typeof window.__waimarinoOfflineQueuedCompetitorIds === 'function'
-      ? window.__waimarinoOfflineQueuedCompetitorIds()
-      : new Set();
-    const offlineCount = competitors.filter(c => queuedIds.has(String(c.id || ''))).length;
-    const lines = [
-      'WAIMARINO SHEARS - SPEED SHEAR ENTRIES',
-      '',
-      `Competition: ${state.competition?.name || 'Competition'}`,
-      `Grade / Event: ${grade.name || ''}`,
-      `Date: ${state.competition?.date || ''}`,
-      `Venue: ${state.competition?.venue || ''}`,
-      `Booking Reference: ${state.bookingReference || ''}`,
-      `Generated: ${new Date().toLocaleString('en-NZ')}`,
-      '',
-      `Total: ${competitors.length}    Confirmed: ${confirmed}    Awaiting: ${awaiting}${offlineCount ? `    Offline pending: ${offlineCount}` : ''}`,
-      '',
-      'No.  Name                             Town                     Status / Source',
-      '----  -------------------------------  -----------------------  --------------------------'
-    ];
-
-    competitors.forEach((c, index) => {
-      const status = c.checkedIn === true ? 'Confirmed' : 'Not Confirmed';
-      const source = c.source === 'public-entry' ? 'Online' : 'Manual';
-      const offline = queuedIds.has(String(c.id || '')) ? ' / OFFLINE' : '';
-      const left = `${String(index + 1).padStart(3, ' ')}.  ${ascii(c.name || '').slice(0, 31).padEnd(31, ' ')}  ${ascii(c.town || '').slice(0, 23).padEnd(23, ' ')}`;
-      const right = `${status} / ${source}${offline}`;
-      wrap(`${left}  ${right}`, 92).forEach(line => lines.push(line));
-    });
-
-    if (!competitors.length) lines.push('No competitors currently listed.');
-    lines.push('', 'This PDF is generated directly on this device and does not require internet access.');
-    return lines;
+  function readVisibleGrade(card) {
+    const competition = document.getElementById('competitionName')?.value?.trim() || 'Competition';
+    const rawDate = document.getElementById('competitionDate')?.value || '';
+    let date = rawDate;
+    if (rawDate) {
+      const d = new Date(`${rawDate}T00:00:00`);
+      if (!Number.isNaN(d.getTime())) date = d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+    const grade = card.querySelector('.grade-title-row h3')?.textContent?.trim() || 'Grade';
+    const rows = [...card.querySelectorAll('.competitor-table tbody tr[data-cid]')]
+      .filter(row => row.querySelector('[data-action="toggle-confirm"]')?.classList.contains('confirmed'))
+      .map((row, index) => ({
+        number: index + 1,
+        id: String(row.dataset.cid || ''),
+        name: row.querySelector('input[data-edit="name"]')?.value?.trim() || '',
+        town: row.querySelector('input[data-edit="town"]')?.value?.trim() || ''
+      }));
+    return { meta: { competition, grade, date }, rows };
   }
 
-  function paginate(lines) {
-    const max = 54;
-    const pages = [];
-    for (let i = 0; i < lines.length; i += max) pages.push(lines.slice(i, i + max));
-    return pages.length ? pages : [['No roster data.']];
-  }
+  function downloadGradePdf(card) {
+    if (!card) return false;
 
-  function downloadGradePdf(gradeId) {
-    const state = readState();
-    if (!state || !Array.isArray(state.grades)) return false;
-    const grade = state.grades.find(g => String(g.id || '') === String(gradeId || ''));
-    if (!grade) return false;
-    const pdf = buildPdf(paginate(gradeLines(state, grade)));
+    // Preserve the exact visible roster before Safari/iOS hands the PDF to its file viewer.
+    window.dispatchEvent(new CustomEvent('waimarino-before-local-export'));
+    try { sessionStorage.setItem('waimarinoEntryManagerExportGuardUntil', String(Date.now() + 10000)); } catch (_) {}
+
+    const visible = readVisibleGrade(card);
+    const pdf = buildPdf(visible.meta, visible.rows);
     const blob = new Blob([pdf], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${safeName(state.competition?.name)}_${safeName(state.bookingReference || 'NoRef')}_${safeName(grade.name)}_Roster.pdf`;
+    a.download = `${safeName(visible.meta.competition)}_${safeName(visible.meta.grade)}_Roster.pdf`;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
     return true;
   }
 
@@ -150,12 +133,11 @@
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    const card = button.closest('.grade-card');
-    const ok = downloadGradePdf(card?.dataset.gradeId || '');
+    const ok = downloadGradePdf(button.closest('.grade-card'));
     const status = document.getElementById('globalStatus');
     if (status) {
       status.className = `status ${ok ? 'ok' : 'warn'}`;
-      status.textContent = ok ? 'Roster PDF downloaded.' : 'Could not create the roster PDF.';
+      status.textContent = ok ? 'Confirmed roster PDF downloaded.' : 'Could not create the roster PDF.';
     }
   }, true);
 })();
