@@ -4,6 +4,26 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Offline PDF/export preservation, offline Remove and PDF cleanup
+
+- Follow-up airplane-mode testing confirmed four manual competitors could be added consecutively and all ten competitors could be marked Confirmed while offline.
+- The generated PDF correctly contained all ten names, but returning from the PDF/file-viewer flow caused the four locally queued offline competitors to disappear from the Entry Manager UI.
+- `entry-manager-local-pdf.js` now builds the roster directly from the **currently visible grade table**, rather than relying on an older localStorage copy.
+- Immediately before handing the PDF to the browser/iOS viewer, the exact visible roster is snapshotted back into the cached competition state.
+- The same visible-roster snapshot runs on page hide/visibility changes so Safari/iOS PDF viewing cannot become the point where unsynced offline names are lost.
+- Added a short local-PDF export guard so the 30-second background refresh cannot run around the export/viewer handoff window.
+- Offline queued removals are respected by the snapshot logic; the existing offline queue path remains the source of truth for syncing the removal later.
+- Offline Remove receives immediate local snapshot protection after the normal Entry Manager removal action, while online Remove keeps the existing confirmed backend-save behaviour.
+- Reworked the grade PDF to be intentionally minimal and easier to read:
+  - confirmed competitors only;
+  - competition name, grade/event and competition date only;
+  - aligned columns for No., Name and Town;
+  - removed venue, Booking Reference, generated timestamp, summary counts, confirmation/source columns and offline markers.
+- PDF filenames are now based on competition + grade only.
+- Cache versions bumped for offline support, local PDF and live refresh; Entry Manager bootstrap cache was also bumped.
+- Frontend-only change; no Apps Script deployment is required.
+- Live airplane-mode retest still required after GitHub Pages publishes.
+
 ### Offline manual entry — consecutive-add flicker fix
 
 - Airplane-mode testing found a repeatable pattern where one manual competitor add worked, the next add attempt flickered/disappeared, retrying that same name worked, and the following new add failed again.
@@ -12,7 +32,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - The grouping observer now disconnects before moving divider/competitor rows, performs one grouping pass, and reattaches only after the rearrangement is complete.
 - Cache version bumped to `entry-manager-entry-groups.js?v=1.0.1` and the Entry Manager bootstrap cache was also bumped.
 - No Apps Script deployment is required.
-- Live verification still required: add at least four different competitors consecutively in airplane mode and confirm every first tap succeeds without table flicker.
+- Follow-up airplane-mode testing successfully added four manual competitors consecutively, confirming the every-second-add failure was resolved.
 
 ### Entry Manager — offline manual-entry fallback and local PDF
 
@@ -24,12 +44,10 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - The 30-second public-entry background refresh now pauses while offline or while offline competitor changes are pending/syncing, preventing a remote refresh from overwriting unsynced local work.
 - Global/grade control changes such as Close Entries, Close All Entries, public-entry closing settings and grade settings are intentionally **not** treated as successful offline; those still require the central backend.
 - `entry-manager-bootstrap.js` can load previously cached competition state when the browser explicitly reports offline, provided the application files are available from browser cache.
-- Added `entry-manager-local-pdf.js`: each grade's **Download PDF** now generates a real human-readable roster PDF directly on the device without Apps Script or internet.
-- The local PDF includes all competitors in the grade, Confirmed/Not Confirmed status, Online/Manual source, queued Offline marker, competition details and summary totals.
+- Added `entry-manager-local-pdf.js`: each grade's **Download PDF** generates a human-readable roster PDF directly on the device without Apps Script or internet.
 - Existing JSON export remains the machine-readable handover; the PDF is the human-readable emergency roster.
 - Fixed the competitor grouping divider spacing so the label and count no longer run together (for example `Confirmed 5` rather than `Confirmed5`).
 - This entire change is frontend-only and requires no Apps Script deployment.
-- Live airplane-mode and reconnect/sync smoke testing is still required after GitHub Pages publishes the change.
 
 ### Online-entry closing countdown — silent refresh and simpler display
 
@@ -84,7 +102,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - A visible refresh is only requested when a new `source: public-entry` competitor ID is detected that is not already displayed.
 - The refresh is deferred while the organiser is using an input/textarea/select, a dialog is open, a grade is being dragged, or Manual Entry/Bulk Entry draft text exists.
 - This specifically protects unfinished competitor names and other typed text from the historical problem where polling could rebuild a roster UI and wipe a partially typed entry.
-- When a pending refresh becomes safe, it uses the existing trusted Refresh Entries path so the internal Entry Manager state and displayed rows remain consistent.
+- When a pending refresh becomes safe, it uses the existing trusted **Refresh Entries** path so the internal Entry Manager state and displayed rows remain consistent.
 - Scroll position is preserved around that refresh.
 - Background network errors are ignored silently so polling cannot interrupt competition operation.
 - Manual/no-token mode does not poll.
