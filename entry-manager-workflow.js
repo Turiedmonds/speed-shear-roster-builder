@@ -1,5 +1,5 @@
 (() => {
-  const VERSION='1.1.0';
+  const VERSION='1.1.1';
   const params=new URLSearchParams(location.search);
   const accessToken=params.get('access')||'';
   const stateKey=accessToken?`waimarinoSpeedShearEntryManagerV3_${accessToken}`:'waimarinoSpeedShearEntryManagerV3_manual';
@@ -8,6 +8,7 @@
   let pendingSubmittedGradeId='';
   let initialProgrammeOrderApplied=false;
   let decorateQueued=false;
+  let initialised=false;
 
   function clean(v){return String(v||'').trim();}
   function readState(){try{return JSON.parse(localStorage.getItem(stateKey)||'null')||null;}catch(_){return null;}}
@@ -153,7 +154,7 @@
       return `<div class="programme-row ${status?'done':''} ${current?'current':''}"><span class="programme-number">${index+1}</span><div><div class="programme-grade">${escapeHtml(item.grade)}</div><div class="programme-round">${escapeHtml(item.round||'Event')}</div></div><span class="programme-state">${status||(current?'Next':'')}</span></div>`;
     }).join('')}</div>`;
   }
-  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));}
 
   function showWorkflowPrompt(card,button){
     const dialog=document.getElementById('submissionWorkflowDialog');
@@ -209,14 +210,25 @@
     });
   }
 
-  document.addEventListener('click',handleSubmitCapture,true);
-  document.addEventListener('DOMContentLoaded',()=>{
-    document.getElementById('programmeBtn')?.addEventListener('click',()=>{renderProgramme();document.getElementById('programmeDialog')?.showModal();});
+  function initialise(){
+    if(initialised)return;
+    initialised=true;
+    document.getElementById('programmeBtn')?.addEventListener('click',()=>{
+      renderProgramme();
+      document.getElementById('programmeDialog')?.showModal();
+    });
     document.getElementById('closeProgrammeBtn')?.addEventListener('click',()=>document.getElementById('programmeDialog')?.close());
     const container=document.getElementById('gradesContainer');
     if(container)new MutationObserver(queueDecorate).observe(container,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
     queueDecorate();
-  },{once:true});
+  }
+
+  document.addEventListener('click',handleSubmitCapture,true);
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',initialise,{once:true});
+  }else{
+    initialise();
+  }
 
   window.__waimarinoEntryManagerWorkflowVersion=VERSION;
 })();
