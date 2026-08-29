@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waimarino-entry-manager-offline-v2';
+const CACHE_NAME = 'waimarino-entry-manager-offline-v3';
 
 const APP_SHELL = [
   '/manage/',
@@ -79,9 +79,8 @@ self.addEventListener('fetch', event => {
 
   if (!isManagerNavigation && !isManagerAsset) return;
 
-  // The cache is versioned and rebuilt whenever this service worker changes.
-  // Serving the known Entry Manager shell from cache avoids a half-loaded/frozen page
-  // during an outage. Network is used only if an expected cached file is missing.
+  // The cache is versioned and rebuilt whenever the offline shell changes.
+  // Serving known manager files from cache avoids half-loaded/frozen pages during outages.
   event.respondWith((async () => {
     const cached = await fromCache(request);
     if (cached) return cached;
