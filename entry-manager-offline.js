@@ -7,6 +7,7 @@
   if (!token) return;
 
   const QUEUE_KEY = `waimarinoSpeedShearEntryManagerOfflineQueue_${token}`;
+  const STATE_KEY = `waimarinoSpeedShearEntryManagerV3_${token}`;
   const delegatedFetch = window.fetch.bind(window);
   const ALLOWED_TYPES = new Set([
     'speed_shear_manager_competitor_upsert',
@@ -61,6 +62,54 @@
       status.className = `status ${kind || ''}`;
       status.textContent = message;
     }, 0);
+  }
+
+  function snapshotVisibleRoster() {
+    let state;
+    try { state = JSON.parse(localStorage.getItem(STATE_KEY) || 'null'); } catch (_) { state = null; }
+    if (!state || !Array.isArray(state.grades)) return;
+
+    const queuedIds = queuedCompetitorIds();
+    const byGradeId = new Map(state.grades.map(g => [String(g.id || ''), g]));
+
+    document.querySelectorAll('.grade-card[data-grade-id]').forEach(card => {
+      const grade = byGradeId.get(String(card.dataset.gradeId || ''));
+      if (!grade) return;
+
+      const existing = new Map((Array.isArray(grade.competitors) ? grade.competitors : []).map(c => [String(c.id || ''), c]));
+      const visible = [...card.querySelectorAll('.competitor-table tbody tr[data-cid]')].map(row => {
+        const id = String(row.dataset.cid || '');
+        const previous = existing.get(id) || {};
+        return {
+          ...previous,
+          id,
+          name: row.querySelector('input[data-edit="name"]')?.value?.trim() || previous.name || '',
+          town: row.querySelector('input[data-edit="town"]')?.value?.trim() || previous.town || '',
+          source: previous.source || 'manual',
+          checkedIn: Boolean(row.querySelector('[data-action="toggle-confirm"]')?.classList.contains('confirmed')),
+          createdAt: previous.createdAt || new Date().toISOString()
+        };
+      });
+
+      // If an offline Remove is queued, the missing row is intentional and must stay removed locally.
+      const queuedRemovals = new Set(
+        readQueue()
+          .map(item => item?.payload)
+          .filter(p => p?.type === 'speed_shear_manager_competitor_remove')
+          .map(p => String(p.competitorId || ''))
+      );
+
+      grade.competitors = visible.filter(c => !queuedRemovals.has(String(c.id || '')));
+
+      // Preserve queued competitors even if a browser redraw has not yet recreated their row.
+      existing.forEach((c, id) => {
+        if (queuedIds.has(id) && !queuedRemovals.has(id) && !grade.competitors.some(x => String(x.id || '') === id)) {
+          grade.competitors.push(c);
+        }
+      });
+    });
+
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (_) {}
   }
 
   async function syncQueue() {
@@ -167,6 +216,7 @@
 
     if (!navigator.onLine) {
       const count = queuePayload(payload);
+      snapshotVisibleRoster();
       updateIndicator();
       setTimeout(markQueuedRows, 0);
       statusText(`Offline — competitor change saved on this device. ${count} change${count === 1 ? '' : 's'} waiting to sync.`, 'warn');
@@ -180,12 +230,31 @@
   const grades = document.getElementById('gradesContainer');
   if (grades) observer.observe(grades, { childList: true, subtree: true });
 
+  document.addEventListener('click', event => {
+    if (navigator.onLine) return;
+    if (!event.target.closest('button[data-action="remove-competitor"]')) return;
+    // Main Entry Manager removal remains the source of truth; this immediate snapshot preserves it locally.
+    setTimeout(snapshotVisibleRoster, 0);
+    setTimeout(snapshotVisibleRoster, 100);
+  }, true);
+
+  window.addEventListener('waimarino-before-local-export', snapshotVisibleRoster);
+  window.addEventListener('pagehide', snapshotVisibleRoster);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) snapshotVisibleRoster();
+  });
+
   window.addEventListener('online', () => {
+    snapshotVisibleRoster();
     updateIndicator();
     setTimeout(syncQueue, 250);
   });
-  window.addEventListener('offline', updateIndicator);
+  window.addEventListener('offline', () => {
+    snapshotVisibleRoster();
+    updateIndicator();
+  });
   window.addEventListener('waimarino-offline-queue-change', () => {
+    snapshotVisibleRoster();
     updateIndicator();
     markQueuedRows();
   });
@@ -193,6 +262,7 @@
   window.__waimarinoOfflineQueuePending = pending;
   window.__waimarinoOfflineQueuedCompetitorIds = queuedCompetitorIds;
   window.__waimarinoSyncOfflineQueue = syncQueue;
+  window.__waimarinoSnapshotVisibleRoster = snapshotVisibleRoster;
 
   updateIndicator();
   markQueuedRows();
