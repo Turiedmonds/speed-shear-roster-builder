@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waimarino-entry-manager-offline-v1';
+const CACHE_NAME = 'waimarino-entry-manager-offline-v2';
 
 const APP_SHELL = [
   '/manage/',
@@ -59,7 +59,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Connectivity probes must reach the real network; never satisfy them from cache.
+  // Connectivity probes must hit the real network and must never be satisfied by this cache.
   if (url.searchParams.has('network-probe')) {
     event.respondWith(fetch(request));
     return;
@@ -79,33 +79,18 @@ self.addEventListener('fetch', event => {
 
   if (!isManagerNavigation && !isManagerAsset) return;
 
+  // The cache is versioned and rebuilt whenever this service worker changes.
+  // Serving the known Entry Manager shell from cache avoids a half-loaded/frozen page
+  // during an outage. Network is used only if an expected cached file is missing.
   event.respondWith((async () => {
     const cached = await fromCache(request);
-    if (cached) {
-      // Refresh the cache quietly when internet is available, but never delay the UI.
-      event.waitUntil(
-        fetch(request)
-          .then(response => {
-            if (response && response.ok) {
-              return caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-            }
-          })
-          .catch(() => undefined)
-      );
-      return cached;
-    }
+    if (cached) return cached;
 
-    try {
-      const response = await fetch(request);
-      if (response && response.ok) {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, response.clone()).catch(() => undefined);
-      }
-      return response;
-    } catch (_) {
-      const fallback = await fromCache(request);
-      if (fallback) return fallback;
-      throw _;
+    const response = await fetch(request);
+    if (response && response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone()).catch(() => undefined);
     }
+    return response;
   })());
 });
