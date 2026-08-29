@@ -31,7 +31,7 @@ As at 29 August 2026:
 - Entry Manager includes a safe 30-second silent background public-entry check; typing-protection smoke test passed.
 - Responsive grade controls, competitor grouping, public grade polish and Programme button repair have been implemented; Programme repair and grouping/polish were user-verified.
 - A custom online-entry closing countdown is implemented on both Entry Manager and public competitor entry using the same saved closing timestamp.
-- Offline manual-competitor fallback and local PDF export are implemented and undergoing live smoke testing.
+- Offline competitor-list fallback, deterministic offline app-shell caching and local PDF export are implemented; the new resilient offline startup/sync flow still requires the next live airplane-mode acceptance test.
 - The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. Never store or reveal its value.
 
 ## Preferred competition-specific links
@@ -45,9 +45,14 @@ Manager/public short codes remain competition-specific, type-specific and subjec
 
 ## Central competition records
 
-The online source of truth remains one JSON record per competition in Google Drive folder `Waimarino Speed Shear Entry Manager`. Do not create a second online competition database.
+The **only permanent source of truth** remains one JSON record per competition in Google Drive folder `Waimarino Speed Shear Entry Manager`. Do not create a second online competition database.
 
-The offline fallback is intentionally a temporary device-local queue, not a second permanent source of truth. Once connectivity returns, queued competitor changes are replayed to the existing central record.
+Offline resilience uses only:
+
+- the last competition snapshot already stored on the device; and
+- a temporary ordered queue of unsynced competitor-list changes.
+
+Those are working/offline recovery data, not a second permanent database. When connectivity returns, queued changes replay through the existing Version 7 confirmed-write path. Only after that ordered queue is empty is one controlled central refresh allowed, returning the screen to the central Drive record.
 
 ## Relationship to Booking Pack
 
@@ -63,32 +68,67 @@ Supports booking-loaded competition details, grades/events, Programme viewer, ma
 
 Common controls respond immediately while retaining Version 7 backend confirmation and rollback on failure. Manual Add, per-grade Online Entries On/Off, entry limits, competitor text edits and details saves avoid unnecessary whole-grade redraws.
 
-### Offline manual competitor fallback
+### Resilient offline competitor mode
 
 Frontend files:
 
 - `entry-manager-offline.js`
 - `entry-manager-offline.css`
+- `entry-manager-sw.js`
+- `entry-manager-bootstrap.js`
+- `manage/index.html`
+- `entry-manager-live-refresh.js`
 - `entry-manager-local-pdf.js`
 
 The offline scope is deliberately limited to **competitor-list operations** so an internet outage does not force entry staff back to pen and paper while avoiding unsafe offline changes to global competition settings.
 
-When the Entry Manager page is already loaded and internet is lost:
+Supported offline competitor work:
 
-- an **Offline** indicator appears in the header;
-- manual competitor Add/Bulk Add remains usable;
-- competitor name/town edits, contact-detail edits, Confirmed/Not Confirmed changes and competitor removal are retained locally;
-- those operations are queued in localStorage for that competition rather than being rolled back when the backend cannot be reached;
-- rows with unsynced competitor changes receive an **Offline** marker;
-- existing competitors already loaded before the outage remain in the locally saved competition state;
-- queued competitor operations automatically replay through the normal Version 7 confirmed-write path when connectivity returns;
-- the 30-second public-entry refresh will not rebuild the manager while an offline queue is waiting/syncing, preventing unsynced local entries from being overwritten.
+- Manual Add and Bulk Add;
+- competitor name/town edits;
+- competitor contact-detail edits;
+- Confirmed/Not Confirmed changes;
+- competitor removal.
+
+These operations use the same local Entry Manager state that the screen is already using. They are queued in order for the central backend and rows with unsynced changes receive an **Offline** marker. Normal offline actions do not trigger whole-grade/page redraws beyond the existing targeted UI behaviour.
 
 The following intentionally still require internet and are **not** faked as successful offline: closing/submitting a grade, Close All Entries, changing public-entry status/cutoff, grade settings/order and other central competition-control changes.
 
-`entry-manager-bootstrap.js` can load cached competition data when the browser explicitly reports offline and the competition was previously saved on that device. This does not guarantee a completely cold offline reload if the browser has discarded the application files from its own cache; the primary resilience target is an Entry Manager already loaded before connectivity is lost.
+#### Real connectivity rather than `navigator.onLine` alone
 
-### Offline add redraw bug — fixed, then user retested consecutive additions
+The original offline wrapper relied too heavily on the browser's `navigator.onLine` flag. iPad/Chrome testing proved that this flag can still indicate an available connection after usable internet has disappeared. In that condition, a competitor change could be sent into the Version 7 confirmation path, wait for confirmation, then roll back. That explained test competitors disappearing and a previously entered name being restored to the Manual Entry input; the PDF button merely exposed the timing and was not the underlying data-loss cause.
+
+`entry-manager-offline.js` v2 now performs a very small real-network probe before competitor-list writes. The service worker explicitly bypasses its cache for that probe, so a cached page cannot falsely report connectivity. If the probe fails, the competitor change is queued locally immediately instead of being sent into the normal online confirmation path.
+
+A lightweight heartbeat also updates the Online/Offline indicator. Exact duplicate queued writes from an accidental double tap are suppressed. Queue replay remains ordered.
+
+#### Offline reload/startup
+
+A full offline reload previously failed because the tidy `/manage/?c=...` shell always had to contact Apps Script to resolve the short code before it could load the manager, and the Entry Manager application shell itself was not deliberately cached.
+
+That is now addressed by:
+
+- `entry-manager-sw.js`, a versioned service worker that pre-caches only the known Entry Manager shell/assets needed to reopen the page;
+- the tidy manager route caching the already-resolved full manager token **on that same device** after a successful online resolution;
+- when the resolver cannot be reached for a network/timeout reason, a previously opened competition may use that cached token and local competition snapshot;
+- `entry-manager-bootstrap.js` also falls back to the saved competition when live validation cannot be reached, even if the browser incorrectly still claims it is online;
+- explicit lifecycle rejections such as cancelled/not-found remain authoritative and do **not** fall back to cached access.
+
+This means an organiser must open the competition successfully online on that device first. The offline cache does not make an unseen competition available offline.
+
+#### Reconnect and single-source-of-truth protection
+
+When connectivity returns:
+
+1. the queued competitor operations are replayed **one by one in their original order** through the existing Version 7 confirmed-write wrapper;
+2. a queued item is removed only after its write is confirmed (with already-applied Remove treated safely if appropriate);
+3. the 30-second public-entry refresh stays blocked while any offline queue item is pending/syncing;
+4. once the queue is completely empty, `entry-manager-live-refresh.js` requests **one controlled central refresh**;
+5. that refresh still waits if the operator is typing, editing, using a dialog or dragging a grade, and preserves scroll.
+
+This avoids two competing sources of truth and prevents a remote refresh from overwriting unsynced local work.
+
+### Offline add redraw bug — fixed and user retested
 
 Initial airplane-mode testing found a repeatable pattern where one offline manual add would work, the next add attempt would flicker and disappear, retrying that same name would work, and the following new add would fail again.
 
@@ -101,22 +141,7 @@ Fix:
 - the observer is reattached only after the rearrangement is complete;
 - cache version is `entry-manager-entry-groups.js?v=1.0.1`.
 
-Follow-up user test then successfully added four offline manual competitors consecutively, confirming the original every-second-add failure was resolved.
-
-### Offline PDF/export roster preservation
-
-A follow-up airplane-mode test found a separate bug: four locally queued offline competitors remained visible and could all be marked Confirmed, and the generated PDF correctly included all ten confirmed competitors, but returning from the PDF/file-viewer flow caused the four offline rows to disappear from the Entry Manager UI.
-
-The PDF/export path was hardened so export is read-only from the operator's point of view and cannot become a roster-reset trigger:
-
-- `entry-manager-local-pdf.js` now builds the PDF directly from the **currently visible grade table**, rather than depending on an older localStorage snapshot;
-- immediately before PDF handoff, `entry-manager-offline.js` snapshots the currently visible competitor rows back into the cached competition state;
-- the same snapshot protection runs on page hide/visibility changes so Safari/iOS handing the PDF to its viewer does not lose locally queued names;
-- a short export guard prevents the 30-second background refresh from running around the PDF handoff/return window;
-- queued offline removals are respected when the visible roster is snapshotted;
-- offline Remove continues through the normal Entry Manager action but uses the immediate offline queue path and the visible state is snapshotted immediately after removal.
-
-This change is frontend-only and still requires a live airplane-mode retest after GitHub Pages publishes.
+Follow-up user testing successfully added four offline manual competitors consecutively, confirming the original every-second-add failure was resolved.
 
 ### Local roster PDF
 
@@ -129,8 +154,11 @@ Current PDF rules:
 - roster table contains only **No., Name and Town**;
 - venue, Booking Reference, generated timestamp, Online/Manual source, confirmation-status column, offline marker and summary counts are intentionally omitted;
 - columns use fixed PDF positions so the Name and Town values align under the correct headings;
-- the PDF is generated directly from the visible Entry Manager table, including confirmed offline additions that have not yet synced;
+- the PDF is built from the currently visible Entry Manager table, including confirmed offline additions that have not yet synced;
+- PDF generation is read-only and is not allowed to refresh, replace or reset Entry Manager state;
 - JSON download remains the machine-readable handover, while PDF is the human-readable emergency roster.
+
+The earlier test where names disappeared after opening the PDF is now attributed to the old offline connectivity/rollback path rather than the PDF generator itself. The new offline connectivity flow must be retested end-to-end.
 
 ### Competitor table grouping and programme
 
@@ -166,13 +194,13 @@ Behaviour:
 
 ### Silent Entry Manager public-entry background refresh
 
-`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. It also defers completely while offline, while the offline competitor queue is pending/syncing, and during the short local-PDF export guard window. Live typing-protection test passed for the original polling behaviour.
+`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. It also defers completely while the real connectivity layer reports offline or while the offline competitor queue is pending/syncing. After a complete offline sync it performs one controlled refresh using the same typing/dialog/drag protection.
 
 ## Manager cancellation access gate
 
-Backend rejects cancelled/deleted manager and public access server-side. `entry-manager-bootstrap.js` validates manager access before organiser scripts load when online, preventing stale cached screens. Production cancellation/deletion testing passed.
+Backend rejects cancelled/deleted manager and public access server-side. `entry-manager-bootstrap.js` validates manager access against the backend whenever that backend is reachable.
 
-The offline cached-state fallback only applies when the browser explicitly reports no connection and cached competition data exists locally. It does not replace the server-side lifecycle guard when connectivity is available.
+Offline cached access is only a resilience fallback for a competition already opened on the device. A **network/timeout failure** can use the saved copy; an explicit lifecycle rejection such as cancelled/not-found remains authoritative and prevents cached fallback. When the tidy resolver explicitly rejects the link, its locally cached short-code mapping is removed.
 
 ## Public competitor entry
 
@@ -188,13 +216,16 @@ Separate private Apps Script project. Uses the same central records. Includes de
 
 Portal remains private. Entry Manager backend remains publicly reachable only because organisers/competitors require bearer-token links; setup requests remain protected by `ENTRY_MANAGER_SHARED_SECRET`.
 
+The tidy manager route now stores its already-resolved manager token locally on a device so that same previously opened competition can reopen offline. This does not create a new token, does not expose it in the visible tidy URL, and does not change the bearer-access model already used by the Entry Manager.
+
 ## Verified competition baseline
 
 Latest full verification used **Speedshear o ngā Taniwha**, Booking Reference **WS-2026-0016**, 18 September 2026, Turangawaewae marae. This is a test competition.
 
 ## Next planned work
 
-1. After GitHub Pages publishes, repeat the same airplane-mode test: add several manual competitors, mark them Confirmed, generate the PDF, return to Entry Manager and confirm none disappear.
-2. Confirm the new PDF contains only competition name, grade, date and the aligned No./Name/Town table, with only confirmed competitors included.
-3. While still offline, remove one competitor and confirm the row disappears immediately and stays removed locally.
-4. Reconnect and confirm all remaining offline additions/confirmation changes/removals sync and survive a normal refresh.
+1. While online, refresh/reopen the tidy Entry Manager once so the new service worker, application shell and resolved-token cache are installed on the device.
+2. Switch to airplane mode and verify the header changes to **Offline**; add several competitors consecutively, Confirm them, Remove one, and confirm every action changes the UI immediately without flicker or rollback.
+3. Still offline, generate JSON and the confirmed-only tidy PDF and confirm neither export changes the Entry Manager list.
+4. Still offline, perform a full browser refresh of the tidy `/manage/?c=...` page; confirm the complete Entry Manager reopens from the saved device state rather than hanging/half-loading.
+5. Reconnect. Confirm queued competitor operations sync in order, one controlled central refresh occurs only when safe, and all final entries/confirmation/removal states survive a normal refresh.
