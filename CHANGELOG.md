@@ -4,6 +4,29 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Online-entry closing countdown
+
+- Added a lightweight custom-closing countdown to both the private Entry Manager and public competitor entry page.
+- Both displays use the same already-saved custom `autoCloseAt` timestamp; no new backend field or Apps Script deployment is required.
+- The Entry Manager countdown shows the live time remaining, the actual closing date/time, and how many grades are currently accepting online entries.
+- The Entry Manager countdown is clickable and opens/focuses the existing custom closing-time setting.
+- The public page shows the live time remaining and actual closing date/time near the competition header.
+- After the closing timestamp has been loaded, countdown ticking is local device-side arithmetic and does not make repeated network requests.
+- The public countdown performs one normal setup read on page load; if that optional display read fails, it silently leaves the countdown hidden and does not interfere with the entry form.
+- Colour emphasis changes as closing approaches: normal, within 24 hours, within 6 hours, and closed.
+- No custom countdown is shown when no custom closing time is configured; the existing default final shutdown logic remains unchanged.
+- Live smoke testing is still required after GitHub Pages publishes the change.
+
+### Entry Manager — competitor grouping, public grade polish and Programme repair
+
+- User verified the new competitor-table grouping: Confirmed competitors are visually grouped separately from competitors still awaiting confirmation without changing the stored roster/draw order.
+- User verified the public grade availability polish: grades without a limit no longer display “No entry limit”; they simply show as open for entries, while limited grades retain the useful count/places-left information.
+- User verified the public Grade / Event chooser now uses the Waimarino custom modal rather than the native browser/iPad selector.
+- Fixed the Entry Manager **Programme** button after a live test found it did nothing.
+- Root cause: `entry-manager-workflow.js` is loaded dynamically after the document has already loaded, but its Programme wiring was waiting only for `DOMContentLoaded`, so the click handler was never attached.
+- Workflow initialization now runs immediately when the document is already loaded, while retaining the normal `DOMContentLoaded` path when required.
+- Cache-busting was updated and the user confirmed the Programme button now opens correctly.
+
 ### Entry Manager — responsive grade controls
 
 - Changed each per-grade control heading from “Public entries for <grade>” to **`<Grade> — Online Entries`**.
