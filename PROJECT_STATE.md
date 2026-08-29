@@ -37,7 +37,10 @@ As at 29 August 2026:
 - **Full tidy public-entry submission is verified end-to-end:** a test competitor submitted through `/enter/?c=...`, received an entry reference and email receipt, and appeared under the correct grade in the matching Entry Manager.
 - Entry Manager includes a **30-second silent background public-entry check** that only requests a visible refresh when a genuinely new public-entry competitor is detected and the organiser is not editing.
 - **Background-refresh live smoke test passed:** unfinished Manual Entry text remained untouched across polling; a new public competitor was held while that draft remained and then appeared automatically after the manual competitor was added.
-- Responsive grade-control source is now committed: manual Add Competitor, per-grade Online Entries On/Off, entry-limit save, competitor text edits and competitor-detail save avoid unnecessary whole-grade redraws while still using Version 7 backend confirmation.
+- Responsive grade-control source is committed: manual Add Competitor, per-grade Online Entries On/Off, entry-limit save, competitor text edits and competitor-detail save avoid unnecessary whole-grade redraws while still using Version 7 backend confirmation.
+- Competitor table grouping, public unlimited-grade wording and the custom public Grade / Event picker were user-verified successfully on 29 August 2026.
+- The Entry Manager Programme button initialization bug was fixed and user-verified: the Programme of Events dialog now opens correctly.
+- Frontend source now includes a shared **custom online-entry closing countdown** for the Entry Manager and public competitor form. It uses the existing saved `autoCloseAt` timestamp and does not require an Apps Script change.
 - Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
 - Public competitor privacy version remains **28 August 2026**.
 - The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
@@ -147,7 +150,7 @@ Compatibility note: organiser-facing **Confirmed** is stored in the existing `ch
 
 ### Responsive grade controls
 
-The Entry Manager now uses the same immediate-response principle as the already-smoothed Confirmed button for common grade actions:
+The Entry Manager uses the same immediate-response principle as the already-smoothed Confirmed button for common grade actions:
 
 - Manual **Add Competitor** inserts the competitor row and updates counts immediately, clears the quick-entry fields and returns focus to the competitor-name field while the central save confirmation continues in the background;
 - if that save fails, the new row is removed and the typed name/town are restored;
@@ -158,6 +161,36 @@ The Entry Manager now uses the same immediate-response principle as the already-
 - saving competitor phone/email details no longer redraws the entire grade after the dialog closes.
 
 The backend confirmation delay still exists by design, but it should no longer make these common controls feel frozen or cause a visible whole-card flicker.
+
+### Competitor table grouping and programme
+
+- Confirmed competitors are visually grouped separately from competitors still awaiting confirmation, with a clear divider/count for entry staff.
+- This is a display-only grouping and does not change the underlying competitor sequence used later when the timing-system draw is created.
+- The Programme button opens the Booking Pack Programme of Events in the Entry Manager.
+- On 29 August 2026 the Programme button was found unresponsive because dynamically loaded `entry-manager-workflow.js` waited for a `DOMContentLoaded` event that had already happened. Initialization now runs immediately when the document is already loaded. The fix was published and user-verified.
+
+### Custom online-entry closing countdown
+
+The existing custom closing time remains one universal online-entry cutoff across all grades. Per-grade **On / Off** controls still provide finer control before that universal cutoff.
+
+Frontend countdown source:
+
+- `entry-manager-countdown.js`
+- `competitor-entry-countdown.js`
+- shared styling in `entry-countdown.css`
+
+Behaviour:
+
+- both displays use the existing saved `entrySettings.autoCloseAt` / public `autoCloseAt` timestamp; there is no second timer or duplicate closing-time source of truth;
+- the Entry Manager shows **Online entries close in ...**, the actual closing date/time, and how many grades are currently accepting online entries;
+- the Entry Manager countdown can be clicked to open/focus the existing custom closing-time setting;
+- the public competitor form shows the live remaining time and the actual closing date/time near the competition header;
+- after the timestamp is loaded, each page recalculates from `closing timestamp - Date.now()` once per second, so it does not drift from an accumulated client timer;
+- the public countdown makes one setup read when the page opens and then ticks locally; it does not poll the internet continuously;
+- reopening/reloading the page reads the current saved timestamp again;
+- colour emphasis changes within 24 hours, within 6 hours, and after closing;
+- if there is no custom closing time, the custom countdown stays hidden and the existing default final shutdown remains unchanged;
+- this is frontend-only and requires no Apps Script redeployment.
 
 ### Silent public-entry background refresh
 
@@ -183,6 +216,10 @@ Production testing confirmed cancelled and permanently deleted manager links sho
 ## Public competitor entry
 
 Collects competitor name, hometown, grade/event, phone/email and privacy acknowledgement. At least one contact method is required. Successful entries save centrally, can receive an entry reference, send a competitor receipt, notify the organiser and send Waimarino Shears a backup copy where applicable.
+
+The public grade availability display omits unnecessary “No entry limit” wording. Unlimited grades simply show as open for entries, while grades with configured limits show their count/remaining-place information.
+
+The Grade / Event choice uses a Waimarino-styled custom dialog rather than the native browser/iPad selection popup.
 
 The tidy `/enter/?c=...` route is fully verified end-to-end: it resolves the correct competition, accepts a test submission, returns an entry reference, sends the competitor receipt email, and the new competitor appears under the correct grade in that competition's Entry Manager.
 
@@ -245,7 +282,8 @@ Lifecycle-control verification used the separate **Entry Manager Test Competitio
 
 ## Next planned work
 
-1. After GitHub Pages publishes the responsive grade-control change, smoke-test Manual Add Competitor and per-grade Online Entries On / Off on the test competition and confirm the controls react immediately without a visible whole-card redraw.
-2. Continue the broader Entry Manager button regression pass if any other controls still feel slow or unnecessarily redraw the page.
+1. After GitHub Pages publishes the countdown source, smoke-test the same custom closing time on both Entry Manager and public competitor form and confirm the displayed date/time and remaining time agree.
+2. Confirm clicking the Entry Manager countdown opens/focuses the custom closing-time setting.
+3. Continue the broader Entry Manager button regression pass only if another control is found slow or unresponsive.
 
-The Version 7 manager-write verification, tidy manager/public URL verification, full tidy public-entry submission test, shared-secret rotation and 30-second polling safety test are complete.
+The Version 7 manager-write verification, tidy manager/public URL verification, full tidy public-entry submission test, shared-secret rotation, 30-second polling safety test, competitor grouping/public grade polish, and Programme button repair are complete.
