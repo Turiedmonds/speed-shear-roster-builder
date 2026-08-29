@@ -83,6 +83,32 @@ Confirmed competitors are visually grouped separately from entries still awaitin
 
 The Programme button opens the Programme of Events supplied from the Booking Pack. Its dynamic-loader initialization was repaired on 29 August 2026 after a live test found the button unresponsive; the repaired button was user-verified.
 
+### Offline competitor-list fallback
+
+The Entry Manager now has a deliberately limited offline fallback for competition-day resilience.
+
+When a manager page has already loaded and internet is lost, competitor-list work can continue locally instead of forcing staff back to pen and paper:
+
+- manual Add and Bulk Add;
+- competitor name/town edits;
+- competitor contact-detail edits;
+- Confirmed/Not Confirmed changes;
+- competitor removal.
+
+These offline competitor operations are stored in a competition-specific local queue and clearly marked on the page. They automatically replay through the normal Version 7 confirmed-write path when connectivity returns.
+
+The offline queue is intentionally **not** used for central competition-control actions such as Close Entries, Close All Entries, public-entry opening/closing, cutoff changes, grade settings or grade order. Those actions still require the central backend so the organiser cannot unknowingly create conflicting online/offline competition states.
+
+The 30-second background public-entry refresh pauses while offline or while offline competitor changes are waiting to sync, protecting unsynced local entries from being replaced by a remote refresh.
+
+`entry-manager-bootstrap.js` may load previously cached competition state when the browser explicitly reports offline and that competition has already been saved on the device. A completely cold offline reload still depends on the browser retaining the page/application files in its own cache.
+
+### Local roster PDF
+
+Each grade's **Download PDF** button now creates a real PDF directly on the device. It does not require the Apps Script backend or internet.
+
+The PDF includes all competitors in that grade, their town, Confirmed/Not Confirmed state, Online/Manual source, any pending Offline marker, competition details and summary totals. It is intended as the human-readable emergency roster if connectivity fails. JSON remains the machine-readable handover format.
+
 ### Custom online-entry closing countdown
 
 A custom closing date/time remains one universal online-entry cutoff for all grades. Individual grade **On / Off** controls still provide finer control before that universal cutoff.
@@ -93,17 +119,16 @@ When a custom cutoff is configured:
 - the Entry Manager countdown can be clicked to open/focus the existing custom closing-time setting;
 - the public competitor form shows the same custom closing time and a live countdown near the competition header;
 - both displays use the existing saved `autoCloseAt` timestamp, so there is no duplicate timer/source of truth;
-- after loading, the countdown is calculated locally from the saved timestamp and the device's current time, with no repeated network requests just to keep the timer moving;
-- reopening the page reads the current saved timestamp again;
+- countdown ticking itself is local device-side arithmetic from the saved closing timestamp;
+- the public page makes a silent setup re-check every 5 minutes, plus when it becomes visible again, so a changed closing time can be picked up without rebuilding the page or touching form inputs;
+- more than 24 hours remaining is shown as days only; 24 hours or less is shown as hours and minutes;
 - if no custom cutoff exists, the countdown stays hidden and the existing default final-shutdown rule remains in force.
 
 This countdown is frontend-only and does **not** require a new Apps Script deployment.
 
-The internal compatibility field remains `checkedIn` even where the UI says Confirmed. Internal submission data, JSON/PDF generation and backend transport remain unchanged even though the organiser-facing wording now says Close Entries.
+The internal compatibility field remains `checkedIn` even where the UI says Confirmed. Internal submission data and backend transport remain unchanged even though the organiser-facing wording now says Close Entries.
 
-The Entry Manager frontend uses `entry-manager-bootstrap.js` to validate token access against the live backend before loading the organiser application. This prevents a cancelled/deleted competition from displaying a stale cached organiser screen from localStorage after the backend has rejected access.
-
-If token validation fails, the organiser application scripts are not loaded and the page shows the competition as unavailable. No-token/manual mode retains its historical local-only behaviour.
+The Entry Manager frontend uses `entry-manager-bootstrap.js` to validate token access against the live backend before loading the organiser application when online. This prevents a cancelled/deleted competition from displaying a stale cached organiser screen while connectivity is available.
 
 ### Confirmed manager writes — Version 7
 
@@ -195,7 +220,7 @@ Cancel keeps the central record for history but blocks organiser/public access s
 
 Old token mappings may remain internally, but Version 7 checks the central file and refuses cancelled/trashed records.
 
-The frontend access bootstrap is an additional protection for already-resolved manager URLs: it verifies the full manager token before any cached organiser UI is loaded.
+When online, the frontend access bootstrap verifies the full manager token before organiser UI is loaded. The offline cached-state fallback is only used when the browser explicitly reports offline and cached competition data exists locally.
 
 ## Verified Entry Manager baseline
 
@@ -206,4 +231,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, and the Programme button repair have all been verified. The custom closing countdown still requires a quick live visual check after GitHub Pages publishes it.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, Programme button repair and the custom closing countdown have been verified. The new offline manual-entry queue, reconnect sync and local PDF export still require the next airplane-mode smoke test after GitHub Pages publishes them.
