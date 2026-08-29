@@ -38,13 +38,15 @@
 
   function countdownText(ms) {
     if (ms <= 0) return 'Online entries are closed';
-    const totalMinutes = Math.floor(ms / 60000);
-    const days = Math.floor(totalMinutes / 1440);
-    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const totalMinutes = Math.max(0, Math.floor(ms / 60000));
+    if (ms > 24 * 60 * 60 * 1000) {
+      const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+      return `Online entries close in ${days} day${days === 1 ? '' : 's'}`;
+    }
+    const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    if (days > 0) return `Online entries close in ${days}d ${hours}h ${minutes}m`;
     if (hours > 0) return `Online entries close in ${hours}h ${minutes}m`;
-    return `Online entries close in ${Math.max(0, minutes)}m`;
+    return `Online entries close in ${minutes}m`;
   }
 
   function openGradeCount(state, cutoffMs) {
