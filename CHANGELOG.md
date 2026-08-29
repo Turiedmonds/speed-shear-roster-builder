@@ -4,6 +4,23 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Entry Manager — offline manual-entry fallback and local PDF
+
+- Added `entry-manager-offline.js` and `entry-manager-offline.css` as a narrow offline fallback for competitor-list work.
+- If internet is lost after the Entry Manager has loaded, manual Add/Bulk Add, competitor name/town edits, details edits, Confirmed/Not Confirmed changes and competitor removal can continue locally instead of being rolled back.
+- Offline competitor operations are queued per competition in localStorage and rows with unsynced changes receive an **Offline** marker.
+- Added a clear Online/Offline/syncing indicator in the Entry Manager header.
+- When connectivity returns, queued competitor changes replay automatically through the existing Version 7 confirmed manager-write path and are removed from the local queue only after successful confirmation.
+- The 30-second public-entry background refresh now pauses while offline or while offline competitor changes are pending/syncing, preventing a remote refresh from overwriting unsynced local work.
+- Global/grade control changes such as Close Entries, Close All Entries, public-entry closing settings and grade settings are intentionally **not** treated as successful offline; those still require the central backend.
+- `entry-manager-bootstrap.js` can load previously cached competition state when the browser explicitly reports offline, provided the application files are available from browser cache.
+- Added `entry-manager-local-pdf.js`: each grade's **Download PDF** now generates a real human-readable roster PDF directly on the device without Apps Script or internet.
+- The local PDF includes all competitors in the grade, Confirmed/Not Confirmed status, Online/Manual source, queued Offline marker, competition details and summary totals.
+- Existing JSON export remains the machine-readable handover; the PDF is the human-readable emergency roster.
+- Fixed the competitor grouping divider spacing so the label and count no longer run together (for example `Confirmed 5` rather than `Confirmed5`).
+- This entire change is frontend-only and requires no Apps Script deployment.
+- Live airplane-mode and reconnect/sync smoke testing is still required after GitHub Pages publishes the change.
+
 ### Online-entry closing countdown — silent refresh and simpler display
 
 - Public competitor page now silently re-checks the existing competition setup every **5 minutes** for a changed custom closing time.
@@ -57,7 +74,7 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - A visible refresh is only requested when a new `source: public-entry` competitor ID is detected that is not already displayed.
 - The refresh is deferred while the organiser is using an input/textarea/select, a dialog is open, a grade is being dragged, or Manual Entry/Bulk Entry draft text exists.
 - This specifically protects unfinished competitor names and other typed text from the historical problem where polling could rebuild a roster UI and wipe a partially typed entry.
-- When a pending refresh becomes safe, it uses the existing trusted **Refresh Entries** path so the internal Entry Manager state and displayed rows remain consistent.
+- When a pending refresh becomes safe, it uses the existing trusted Refresh Entries path so the internal Entry Manager state and displayed rows remain consistent.
 - Scroll position is preserved around that refresh.
 - Background network errors are ignored silently so polling cannot interrupt competition operation.
 - Manual/no-token mode does not poll.
