@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waimarino-entry-manager-offline-v4';
+const CACHE_NAME = 'waimarino-entry-manager-offline-v5';
 
 const APP_SHELL = [
   '/manage/',
@@ -59,9 +59,14 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Connectivity probes must always hit the real network.
+  // Connectivity probes must always hit a real, known production application file.
+  // The offline layer historically requested /CNAME for this purpose; rewrite that
+  // probe to entry-manager.html so browser/GitHub Pages handling of CNAME can never
+  // keep the organiser falsely stuck in Offline after connectivity returns.
   if (url.searchParams.has('network-probe')) {
-    event.respondWith(fetch(request));
+    const liveProbeUrl = new URL('/entry-manager.html', self.location.origin);
+    liveProbeUrl.searchParams.set('network-probe', url.searchParams.get('network-probe') || String(Date.now()));
+    event.respondWith(fetch(liveProbeUrl.toString(), { cache: 'no-store' }));
     return;
   }
 
@@ -79,8 +84,6 @@ self.addEventListener('fetch', event => {
 
   if (!isManagerNavigation && !isManagerAsset) return;
 
-  // The versioned cache is rebuilt from the current published files on install.
-  // Cache-first keeps an offline reload fast and avoids sequential network timeouts.
   event.respondWith((async () => {
     const cached = await fromCache(request);
     if (cached) return cached;
