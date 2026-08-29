@@ -7,7 +7,7 @@
   const appScripts = [
     'entry-manager-workflow.js?v=1.1.1',
     'entry-manager-write-confirmation.js?v=1.0.0',
-    'entry-manager-offline.js?v=2.0.0',
+    'entry-manager-offline.js?v=2.0.1',
     'entry-manager.js?v=20260829-responsive1',
     'entry-manager-local-pdf.js?v=1.1.0',
     'entry-manager-live-refresh.js?v=1.3.0',
@@ -138,8 +138,6 @@
       const text = String(error && error.message || error || '');
       const lifecycleBlocked = /cancelled|no longer available|not found|not currently available|link is invalid|link could not be found/i.test(text);
 
-      // A browser may still claim it is online after the connection has disappeared.
-      // For a network/timeout failure, a competition already saved on this device is safe to reopen locally.
       if (!lifecycleBlocked && await loadCachedApplication()) return;
 
       const safeMessage = lifecycleBlocked
