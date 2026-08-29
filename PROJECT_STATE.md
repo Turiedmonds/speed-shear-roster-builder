@@ -26,29 +26,12 @@ As at 29 August 2026:
 
 - GitHub Pages custom domain is active: `entries.waimarinoshears.com`.
 - **Speed Shear Entry Manager Apps Script: Version 7 live.**
-- Version 7 retains the existing web-app deployment URL and adds confirmed manager-write result checking.
-- **Version 7 production manager-write smoke test passed:** a competitor was changed from Not Confirmed to Confirmed and remained Confirmed after a full page refresh.
 - **System Operator Portal Apps Script: Version 6 live.**
-- Portal Version 5 was deployed for tidy `/manage/` and `/enter/` link generation, but its `Code.gs` was missing the existing `operatorPortalSort_()` helper and therefore failed while loading the competition list.
-- Portal Version 6 restored the missing sort helper while retaining the tidy links.
-- The Portal Version 5 regression affected portal rendering only; it did **not** alter or delete any central competition records.
-- Portal Version 6 post-deploy refresh passed: the active competition list and card loaded normally again with no ReferenceError.
-- **Tidy manager/public URLs are verified live:** Portal/Open links load the correct competition while keeping `/manage/?c=...` and `/enter/?c=...` visible in the browser.
-- **Full tidy public-entry submission is verified end-to-end:** a test competitor submitted through `/enter/?c=...`, received an entry reference and email receipt, and appeared under the correct grade in the matching Entry Manager.
-- Entry Manager includes a **30-second silent background public-entry check** that only requests a visible refresh when a genuinely new public-entry competitor is detected and the organiser is not editing.
-- **Background-refresh live smoke test passed:** unfinished Manual Entry text remained untouched across polling; a new public competitor was held while that draft remained and then appeared automatically after the manual competitor was added.
-- Responsive grade-control source is committed: manual Add Competitor, per-grade Online Entries On/Off, entry-limit save, competitor text edits and competitor-detail save avoid unnecessary whole-grade redraws while still using Version 7 backend confirmation.
-- Competitor table grouping, public unlimited-grade wording and the custom public Grade / Event picker were user-verified successfully on 29 August 2026.
-- The Entry Manager Programme button initialization bug was fixed and user-verified: the Programme of Events dialog now opens correctly.
-- Frontend source now includes a shared **custom online-entry closing countdown** for the Entry Manager and public competitor form. It uses the existing saved `autoCloseAt` timestamp and does not require an Apps Script change.
-- Portal executes as the Waimarino Shears Google account and access remains **Only myself**.
-- Public competitor privacy version remains **28 August 2026**.
-- The full deposit/cancel/restore/delete lifecycle is verified end-to-end on a disposable test competition.
-- The live Portal custom Cancel / Restore / Delete dialogs are verified from Version 4 and retained in Version 6.
-- A dedicated normal Edge profile signed into only the authorised Waimarino Shears Google account successfully opens the private Portal without InPrivate.
-- Entry Manager UI improvements are user smoke-tested successfully: Manual Entry helper wording, **Close Entries / Close All Entries**, smoother Checked / Paid confirmation state, and narrower desktop Close Entries button.
-- Tidy GitHub Pages routes are published and current Apps Script deployments generate them directly.
-- The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. The replacement value is intentionally not stored in GitHub or chat.
+- Tidy manager/public URLs are verified live and full public submission is verified end-to-end.
+- Entry Manager includes a safe 30-second silent background public-entry check; typing-protection smoke test passed.
+- Responsive grade controls, competitor grouping, public grade polish and Programme button repair have been implemented; Programme repair and grouping/polish were user-verified.
+- A custom online-entry closing countdown is implemented on both Entry Manager and public competitor entry using the same saved closing timestamp.
+- The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. Never store or reveal its value.
 
 ## Preferred competition-specific links
 
@@ -57,121 +40,36 @@ Preferred user-facing links:
 - private organiser Entry Manager: `https://entries.waimarinoshears.com/manage/?c=<20-char-code>`
 - public competitor form: `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`
 
-Security/binding rules:
-
-- manager and public links use different tokens and therefore different short codes;
-- each short code is the first 20 hexadecimal characters of that competition's own token;
-- the resolver accepts exactly 20 hex characters;
-- manager codes search only `entryManagerToken_...` mappings;
-- public codes search only `entryPublicToken_...` mappings;
-- exactly one matching token is required;
-- manager resolution applies `entryManagerAssertManagerTokenAvailable_`;
-- public resolution applies `entryManagerAssertPublicTokenAvailable_`;
-- cancelled or trashed/deleted competitions remain blocked;
-- a public code therefore opens only the public form for the competition whose public token it resolves to.
-
-Published routes:
-
-- `enter/index.html` resolves the public short code and loads the existing long-token competitor form internally while leaving `/enter/?c=...` visible in the browser.
-- `manage/index.html` resolves the manager short code and loads the existing long-token manager app internally while leaving `/manage/?c=...` visible in the browser.
-- legacy `e.html?c=...` forwards to `/enter/?c=...`.
-- legacy `m.html?c=...` forwards to `/manage/?c=...`.
-- legacy full-token URLs remain supported.
-
-Current competition tokens did not change.
-
-### Version 7 Entry Manager backend
-
-Live `google-apps-script/WebApp.gs` retains the Version 6 `/manage/` and `/enter/` link generation and the Version 5 lifecycle/availability guard.
-
-Version 7 adds reliable manager-write acknowledgement without changing the stored competition format:
-
-- frontend manager writes still use the Apps Script-compatible `fetch(..., mode:'no-cors')` POST;
-- each write includes a unique `requestId`;
-- the backend runs the write and stores its real success/error result briefly in Apps Script Cache;
-- `GET action=manager-write-result` retrieves that result using the same manager token + request ID;
-- the frontend polls for the result before treating the operation as confirmed;
-- the cache key is a SHA-256 digest of manager token + request ID, so raw tokens are not used as cache-key text;
-- cached results expire after 300 seconds.
-
-This uses the same send-then-confirm pattern already proven by the public competitor-entry flow, while preserving the existing Apps Script transport compatibility.
-
-Production verification passed on the live Entry Manager: a competitor confirmation change remained correctly saved after refresh, confirming the Version 7 acknowledgement path is functioning in production.
-
-### Version 6 Portal link generation and repair
-
-Live `operator-portal/google-apps-script/Code.gs` generates `/manage/` and `/enter/` directly for the Portal's **Open Entry Manager** and **Open Public Entry** buttons.
-
-Version 5 accidentally omitted `operatorPortalSort_()` while changing those generated URL strings. The live portal then showed `ReferenceError: operatorPortalSort_ is not defined` and zero competitions because loading stopped before the list could be returned. Version 6 restores the exact existing sort helper. No competition record writes occur in that failed sort path, so the central records were unaffected. The subsequent Version 6 refresh confirmed normal competition listing was restored.
-
-Live tidy-link verification also passed: the private manager button opens the correct competition at `/manage/?c=...`, and the public entry button opens the same competition's public form at `/enter/?c=...`, with the short URLs remaining visible.
+Manager/public short codes remain competition-specific, type-specific and subject to the existing active/cancelled/deleted availability checks. Legacy short/full-token links remain supported.
 
 ## Central competition records
 
-The source of truth remains one JSON record per competition in Google Drive folder:
-
-`Waimarino Speed Shear Entry Manager`
-
-Core data includes Booking Reference, manager/public tokens, competition identity, organiser contact, grades/settings, Programme, competitors, submissions and optional `operatorControl` metadata.
-
-Token/file mappings remain in Entry Manager Apps Script Properties using `entryManagerToken_...`, `entryPublicToken_...` and `entryManagerReference_...`.
-
-Do not create a second competition database.
+The source of truth remains one JSON record per competition in Google Drive folder `Waimarino Speed Shear Entry Manager`. Do not create a second competition database.
 
 ## Relationship to Booking Pack
 
-Booking Pack repository:
+Booking Pack repository: `Turiedmonds/waimarino-shears-speed-shear-booking-pack`.
 
-`Turiedmonds/waimarino-shears-speed-shear-booking-pack`
-
-The Booking Receiver sends an authorised setup payload containing Booking Reference, competition name/date/venue, selected competition contact, grades/events and Programme of Events.
-
-The shared Script Property is `ENTRY_MANAGER_SHARED_SECRET`. It is configured separately in both Apps Script projects and the values must match. Never put its value in GitHub, documentation, emails or user-facing output.
-
-The shared secret was rotated on 29 August 2026 in both projects after the prior development value had been exposed in conversation history. No Apps Script deployment is required for Script Property changes.
-
-A booking can create its central competition record before the organiser pays the required deposit. Waimarino Shears does **not** release the organiser Entry Manager link until the required booking/deposit stage has been met.
+The Booking Receiver sends the authorised competition setup to this system. The shared Script Property is `ENTRY_MANAGER_SHARED_SECRET`; never put its value in GitHub, documentation, emails or user-facing output.
 
 ## Current organiser Entry Manager behaviour
 
 Supports booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitors, contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade controls/limits, grade reorder/collapse and roster submission to Waimarino Shears.
 
-The organiser action uses normal Speed Shear industry wording: **Close Entries** for an individual grade and **Close All Entries** for the overall action. A previously closed grade displays **Update Closed Entries** for a later updated roster.
-
-Manual Entry helper text is:
-
-**“Add competitor entries manually if they were not received through the online entry form.”**
-
-Checked / Paid confirmation updates the clicked button and grade Confirmed count immediately, then completes the existing central save without rebuilding the full grade card.
-
-The Close Entries confirmation explains that the grade will close to new public entries and the confirmed roster will be sent to Waimarino Shears. If competitors are not Confirmed, the warning lists them and offers **Close Entries Anyway**.
-
-Compatibility note: organiser-facing **Confirmed** is stored in the existing `checkedIn` field.
-
 ### Responsive grade controls
 
-The Entry Manager uses the same immediate-response principle as the already-smoothed Confirmed button for common grade actions:
-
-- Manual **Add Competitor** inserts the competitor row and updates counts immediately, clears the quick-entry fields and returns focus to the competitor-name field while the central save confirmation continues in the background;
-- if that save fails, the new row is removed and the typed name/town are restored;
-- per-grade control wording is **`<Grade> — Online Entries`** with simple **On / Off** buttons;
-- On / Off changes update immediately without rebuilding the grade card, then retain the Version 7 confirmed-save check and roll back if the backend rejects the change;
-- optional entry-limit changes update the grade summary immediately and roll back on save failure;
-- editing an existing competitor name/town no longer redraws the grade after a successful save;
-- saving competitor phone/email details no longer redraws the entire grade after the dialog closes.
-
-The backend confirmation delay still exists by design, but it should no longer make these common controls feel frozen or cause a visible whole-card flicker.
+Common controls respond immediately while retaining Version 7 backend confirmation and rollback on failure. Manual Add, per-grade Online Entries On/Off, entry limits, competitor text edits and details saves avoid unnecessary whole-grade redraws.
 
 ### Competitor table grouping and programme
 
 - Confirmed competitors are visually grouped separately from competitors still awaiting confirmation, with a clear divider/count for entry staff.
-- This is a display-only grouping and does not change the underlying competitor sequence used later when the timing-system draw is created.
-- The Programme button opens the Booking Pack Programme of Events in the Entry Manager.
-- On 29 August 2026 the Programme button was found unresponsive because dynamically loaded `entry-manager-workflow.js` waited for a `DOMContentLoaded` event that had already happened. Initialization now runs immediately when the document is already loaded. The fix was published and user-verified.
+- This grouping is display-only and does not change underlying competitor sequence/draw order.
+- The Programme button opens the Booking Pack Programme of Events.
+- The 29 August Programme initialization bug caused by dynamically loading after `DOMContentLoaded` has been repaired and user-verified.
 
 ### Custom online-entry closing countdown
 
-The existing custom closing time remains one universal online-entry cutoff across all grades. Per-grade **On / Off** controls still provide finer control before that universal cutoff.
+The existing custom closing time remains one universal online-entry cutoff across all grades. Per-grade **On / Off** controls provide finer control before that universal cutoff.
 
 Frontend countdown source:
 
@@ -182,108 +80,45 @@ Frontend countdown source:
 Behaviour:
 
 - both displays use the existing saved `entrySettings.autoCloseAt` / public `autoCloseAt` timestamp; there is no second timer or duplicate closing-time source of truth;
-- the Entry Manager shows **Online entries close in ...**, the actual closing date/time, and how many grades are currently accepting online entries;
-- the Entry Manager countdown can be clicked to open/focus the existing custom closing-time setting;
-- the public competitor form shows the live remaining time and the actual closing date/time near the competition header;
-- after the timestamp is loaded, each page recalculates from `closing timestamp - Date.now()` once per second, so it does not drift from an accumulated client timer;
-- the public countdown makes one setup read when the page opens and then ticks locally; it does not poll the internet continuously;
-- reopening/reloading the page reads the current saved timestamp again;
-- colour emphasis changes within 24 hours, within 6 hours, and after closing;
+- Entry Manager shows remaining time, exact closing date/time and how many grades are currently accepting online entries; its countdown can be clicked to focus the existing closing-time setting;
+- public competitor form shows remaining time and exact closing date/time near the competition header;
+- countdown display uses two simple modes: when **more than 24 hours** remain it shows **days only**; at **24 hours or less** it shows **hours and minutes**; the exact closing date/time remains underneath in both modes;
+- local countdown calculation is always `saved closing timestamp - Date.now()`, avoiding accumulated timer drift;
+- public page performs a **silent setup re-check every 5 minutes** and once when the page becomes visible again, so a closing-time change can be picked up without requiring a manual refresh;
+- that 5-minute re-check does **not** reload/rebuild the page and does not read, clear, replace or focus any competitor form fields; if the timestamp changed, only the countdown timestamp/display changes;
+- failed background re-checks are silent and cannot interrupt competitor entry/submission;
+- colour emphasis changes within 24 hours, within 6 hours and after closing;
 - if there is no custom closing time, the custom countdown stays hidden and the existing default final shutdown remains unchanged;
-- this is frontend-only and requires no Apps Script redeployment.
+- this remains frontend-only and requires no Apps Script redeployment.
 
-### Silent public-entry background refresh
+### Silent Entry Manager public-entry background refresh
 
-`entry-manager-live-refresh.js` is loaded by `entry-manager-bootstrap.js` for token-based Entry Manager sessions.
-
-- checks the same manager GET endpoint every **30 seconds**;
-- background checks are silent and do not redraw the page when nothing changed;
-- it only reacts when the central record contains a new competitor with `source: public-entry` whose ID is not already displayed;
-- if any input/textarea/select is focused, a details/confirmation dialog is open, a grade is being dragged, or a Manual Entry/Bulk Entry draft contains text, the visible refresh is deferred;
-- once the organiser is no longer busy, the existing trusted **Refresh Entries** path is used so the closure-held Entry Manager state and DOM stay in sync;
-- scroll position is preserved around that refresh;
-- network/background-check failures are intentionally silent and never interrupt the organiser;
-- manual/no-token mode does not poll.
-
-Live verification passed using unfinished Manual Entry text: the draft remained untouched across the poll interval, a new online competitor did not interrupt the draft, and the new competitor appeared automatically after the manual entry was completed.
+`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. Live typing-protection test passed.
 
 ## Manager cancellation access gate
 
-The backend rejects cancelled/deleted manager and public access server-side. `entry-manager-bootstrap.js` also validates a manager token before loading organiser scripts, preventing stale cached organiser screens after cancellation/deletion.
-
-Production testing confirmed cancelled and permanently deleted manager links show **Competition unavailable** rather than cached organiser controls.
+Backend rejects cancelled/deleted manager and public access server-side. `entry-manager-bootstrap.js` validates manager access before organiser scripts load, preventing stale cached screens. Production cancellation/deletion testing passed.
 
 ## Public competitor entry
 
-Collects competitor name, hometown, grade/event, phone/email and privacy acknowledgement. At least one contact method is required. Successful entries save centrally, can receive an entry reference, send a competitor receipt, notify the organiser and send Waimarino Shears a backup copy where applicable.
+Collects competitor name, hometown, grade/event, phone/email and privacy acknowledgement. At least one contact method is required. Successful entries save centrally, can receive an entry reference and email receipt, notify the organiser and send Waimarino Shears a backup copy where applicable.
 
-The public grade availability display omits unnecessary “No entry limit” wording. Unlimited grades simply show as open for entries, while grades with configured limits show their count/remaining-place information.
-
-The Grade / Event choice uses a Waimarino-styled custom dialog rather than the native browser/iPad selection popup.
-
-The tidy `/enter/?c=...` route is fully verified end-to-end: it resolves the correct competition, accepts a test submission, returns an entry reference, sends the competitor receipt email, and the new competitor appears under the correct grade in that competition's Entry Manager.
+Unlimited grades omit unnecessary “No entry limit” wording. Grade/Event choice uses a Waimarino custom dialog. Tidy `/enter/?c=...` submission is verified end-to-end.
 
 ## System Operator Portal — Version 6 live
 
-Separate Apps Script project: **Waimarino Shears System Operator Portal**.
-
-Repository source:
-
-- `operator-portal/google-apps-script/Code.gs`
-- `operator-portal/google-apps-script/Index.html`
-- `operator-portal/README.md`
-
-Version 6 includes:
-
-- **Awaiting Deposit** / **Deposit Paid**;
-- Active / Cancelled state;
-- **Cancel Competition**;
-- **Restore Competition**;
-- **Delete Permanently** only after cancellation;
-- active/cancelled/lifecycle filtering;
-- entry/grade/roster summaries;
-- custom Waimarino confirmation dialogs;
-- tidy `/manage/` and `/enter/` button links;
-- restored `operatorPortalSort_()` helper required by competition-list loading.
-
-Marking **Deposit Paid** does not automatically email or release the organiser Entry Manager link. Waimarino Shears still controls when that private link is sent.
-
-`operatorControl` is stored in the same competition JSON record, with fields such as `status`, `depositStatus`, `cancelledAt` and `updatedAt`.
-
-Permanent delete moves the central JSON file to Google Drive Trash and intentionally requires Cancel first.
+Separate private Apps Script project. Uses the same central records. Includes deposit status, active/cancelled lifecycle, Cancel/Restore/Delete, filters, summaries, custom dialogs and tidy manager/public links. Access remains **Only myself**.
 
 ## Security boundary
 
-Portal:
-
-- separate Apps Script project;
-- executes as Waimarino Shears account;
-- access **Only myself**;
-- no shared secret/full token stored in browser-side code.
-
-Entry Manager backend remains publicly reachable because organisers/competitors need token links; setup requests remain protected by `ENTRY_MANAGER_SHARED_SECRET`.
-
-Do not make the portal public to work around Google multi-account routing.
-
-## Normal browser access
-
-Normal Portal operation uses the dedicated Microsoft Edge profile named **Waimarino Shears**, with Google signed in only to the authorised Waimarino Shears account. InPrivate is not required.
+Portal remains private. Entry Manager backend remains publicly reachable only because organisers/competitors require bearer-token links; setup requests remain protected by `ENTRY_MANAGER_SHARED_SECRET`.
 
 ## Verified competition baseline
 
-Latest full Entry Manager/public-entry verification used:
-
-- **Speedshear o ngā Taniwha**
-- Booking Reference **WS-2026-0016**
-- 18 September 2026
-- Turangawaewae marae
-
-Lifecycle-control verification used the separate **Entry Manager Test Competition**, which has now been permanently deleted as intended.
+Latest full verification used **Speedshear o ngā Taniwha**, Booking Reference **WS-2026-0016**, 18 September 2026, Turangawaewae marae. This is a test competition.
 
 ## Next planned work
 
-1. After GitHub Pages publishes the countdown source, smoke-test the same custom closing time on both Entry Manager and public competitor form and confirm the displayed date/time and remaining time agree.
-2. Confirm clicking the Entry Manager countdown opens/focuses the custom closing-time setting.
-3. Continue the broader Entry Manager button regression pass only if another control is found slow or unresponsive.
-
-The Version 7 manager-write verification, tidy manager/public URL verification, full tidy public-entry submission test, shared-secret rotation, 30-second polling safety test, competitor grouping/public grade polish, and Programme button repair are complete.
+1. Smoke-test the updated adaptive countdown display after GitHub Pages publishes: >24 hours should show days only; <=24 hours should show hours/minutes.
+2. Change the saved closing time while a public entry page is left open and confirm its silent 5-minute re-check updates only the countdown without disturbing typed form data.
+3. Continue broader Entry Manager regression checks only when another issue is found.
