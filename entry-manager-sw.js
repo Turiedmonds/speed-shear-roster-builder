@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waimarino-entry-manager-offline-v6';
+const CACHE_NAME = 'waimarino-entry-manager-offline-v7';
 
 const APP_SHELL = [
   '/manage/',
@@ -14,6 +14,7 @@ const APP_SHELL = [
   '/entry-manager-workflow.js',
   '/entry-manager-write-confirmation.js',
   '/entry-manager-offline.js',
+  '/entry-manager-reconnect-fast.js',
   '/entry-manager.js',
   '/entry-manager-timing-export.js',
   '/entry-manager-local-pdf.js',
@@ -60,10 +61,6 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Connectivity probes must always hit a real, known production application file.
-  // The offline layer historically requested /CNAME for this purpose; rewrite that
-  // probe to entry-manager.html so browser/GitHub Pages handling of CNAME can never
-  // keep the organiser falsely stuck in Offline after connectivity returns.
   if (url.searchParams.has('network-probe')) {
     const liveProbeUrl = new URL('/entry-manager.html', self.location.origin);
     liveProbeUrl.searchParams.set('network-probe', url.searchParams.get('network-probe') || String(Date.now()));
