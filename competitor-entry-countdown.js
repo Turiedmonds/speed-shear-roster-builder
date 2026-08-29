@@ -15,6 +15,7 @@
   const main = card.querySelector('.entry-countdown-main');
   const time = card.querySelector('.entry-countdown-time');
   let cutoff = '';
+  let refreshInFlight = false;
 
   function formatDateTime(value) {
     const d = new Date(value);
@@ -27,13 +28,15 @@
 
   function countdownText(ms) {
     if (ms <= 0) return 'Online entries are closed';
-    const totalMinutes = Math.floor(ms / 60000);
-    const days = Math.floor(totalMinutes / 1440);
-    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const totalMinutes = Math.max(0, Math.floor(ms / 60000));
+    if (ms > 24 * 60 * 60 * 1000) {
+      const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+      return `Entries close in ${days} day${days === 1 ? '' : 's'}`;
+    }
+    const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    if (days > 0) return `Entries close in ${days}d ${hours}h ${minutes}m`;
     if (hours > 0) return `Entries close in ${hours}h ${minutes}m`;
-    return `Entries close in ${Math.max(0, minutes)}m`;
+    return `Entries close in ${minutes}m`;
   }
 
   function render() {
@@ -52,17 +55,28 @@
   }
 
   async function loadCutoff() {
+    if (refreshInFlight || document.hidden) return;
+    refreshInFlight = true;
     try {
       const response = await fetch(`${ENDPOINT}?action=competitor-entry&entry=${encodeURIComponent(entryToken)}`, { cache: 'no-store' });
       const setup = await response.json();
       if (!setup || setup.ok !== true) return;
-      cutoff = setup.autoCloseAt || '';
-      render();
+      const nextCutoff = setup.autoCloseAt || '';
+      if (nextCutoff !== cutoff) {
+        cutoff = nextCutoff;
+        render();
+      }
     } catch (_) {
-      // Countdown is optional display only; never interrupt the entry form.
+      // Optional silent display refresh only; never interrupt or alter the entry form.
+    } finally {
+      refreshInFlight = false;
     }
   }
 
   loadCutoff();
   setInterval(render, 1000);
+  setInterval(loadCutoff, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) loadCutoff();
+  });
 })();
