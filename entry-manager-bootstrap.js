@@ -8,6 +8,7 @@
     'entry-manager-workflow.js?v=1.1.1',
     'entry-manager-write-confirmation.js?v=1.0.0',
     'entry-manager-offline.js?v=2.1.0',
+    'entry-manager-reconnect-fast.js?v=1.0.0',
     'entry-manager.js?v=20260829-responsive1',
     'entry-manager-timing-export.js?v=1.0.0',
     'entry-manager-local-pdf.js?v=1.1.0',
@@ -19,7 +20,7 @@
   ];
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('entry-manager-sw.js?v=6', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
+    navigator.serviceWorker.register('entry-manager-sw.js?v=7', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
   }
 
   function showPage() {
