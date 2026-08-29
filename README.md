@@ -65,10 +65,9 @@ Application-controlled dialogs across the Waimarino Shears Speed Shear web tools
 
 Audit result in this repository:
 
-- Entry Manager already uses custom `<dialog>` confirmation/workflow screens rather than browser `confirm()` popups;
-- Public Competitor Entry already uses a custom privacy dialog and no browser-native confirmation path was found;
-- the System Operator Portal was the remaining area using browser-native confirmations for Cancel / Restore / Delete;
-- **System Operator Portal Version 6 is live** and retains the Version 4 uniform custom Waimarino dialogs while adding tidy `/manage/` and `/enter/` link generation and restoring the required competition-list sort helper.
+- Entry Manager uses custom `<dialog>` confirmation/workflow screens rather than browser `confirm()` popups;
+- Public Competitor Entry uses a custom privacy dialog and a Waimarino-styled Grade / Event picker rather than the native browser/iPad selection popup;
+- the System Operator Portal uses uniform custom Waimarino dialogs for Cancel / Restore / Delete.
 
 Google/browser permission, sign-in and authorisation prompts cannot be restyled by the application.
 
@@ -78,7 +77,27 @@ Current organiser features include booking-loaded competition details, grades/ev
 
 The organiser-facing workflow uses normal Speed Shear language: the grade action is **Close Entries** rather than “Submit Confirmed Entries”. Closing a grade closes that grade to new public entries and sends the confirmed roster through the existing backend workflow. The overall action is **Close All Entries**. A previously closed grade can use **Update Closed Entries** when an updated confirmed roster needs to be sent.
 
-Manual Entry helper text explains that it is for competitors not received through the online entry form. Checked / Paid confirmation changes update the button colour and Confirmed count immediately while the backend save continues, avoiding the previous whole-card redraw/flicker. This organiser-UI update has been user smoke-tested successfully in production.
+Manual Entry helper text explains that it is for competitors not received through the online entry form. Checked / Paid confirmation changes update the button colour and Confirmed count immediately while the backend save continues, avoiding the previous whole-card redraw/flicker.
+
+Confirmed competitors are visually grouped separately from entries still awaiting confirmation to make the entry desk easier to scan. This grouping is display-only and does not alter the underlying competitor sequence used later when the timing-system draw is created.
+
+The Programme button opens the Programme of Events supplied from the Booking Pack. Its dynamic-loader initialization was repaired on 29 August 2026 after a live test found the button unresponsive; the repaired button was user-verified.
+
+### Custom online-entry closing countdown
+
+A custom closing date/time remains one universal online-entry cutoff for all grades. Individual grade **On / Off** controls still provide finer control before that universal cutoff.
+
+When a custom cutoff is configured:
+
+- the Entry Manager shows a live countdown, the actual closing date/time, and how many grades are currently accepting online entries;
+- the Entry Manager countdown can be clicked to open/focus the existing custom closing-time setting;
+- the public competitor form shows the same custom closing time and a live countdown near the competition header;
+- both displays use the existing saved `autoCloseAt` timestamp, so there is no duplicate timer/source of truth;
+- after loading, the countdown is calculated locally from the saved timestamp and the device's current time, with no repeated network requests just to keep the timer moving;
+- reopening the page reads the current saved timestamp again;
+- if no custom cutoff exists, the countdown stays hidden and the existing default final-shutdown rule remains in force.
+
+This countdown is frontend-only and does **not** require a new Apps Script deployment.
 
 The internal compatibility field remains `checkedIn` even where the UI says Confirmed. Internal submission data, JSON/PDF generation and backend transport remain unchanged even though the organiser-facing wording now says Close Entries.
 
@@ -99,6 +118,8 @@ The public form collects competitor name, hometown, grade/event, phone/email and
 Privacy version currently in production: **28 August 2026**.
 
 Successful public entries save centrally, receive an entry reference, can send a competitor receipt, notify the organiser, and send Waimarino Shears a backup copy where applicable.
+
+Unlimited grades are shown simply as open for entries rather than displaying unnecessary “No entry limit” wording. Grades with configured limits still show the useful count/places-left information.
 
 ## System Operator Portal
 
@@ -185,4 +206,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain and lifecycle protections have been verified. Version 7 deployment is complete; a safe manager-write smoke test remains useful to confirm the new acknowledgement path in production. The tidy `/enter/` route also remains to be smoke-tested with a safe public test entry.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, and the Programme button repair have all been verified. The custom closing countdown still requires a quick live visual check after GitHub Pages publishes it.
