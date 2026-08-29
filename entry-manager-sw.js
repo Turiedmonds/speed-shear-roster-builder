@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waimarino-entry-manager-offline-v5';
+const CACHE_NAME = 'waimarino-entry-manager-offline-v6';
 
 const APP_SHELL = [
   '/manage/',
@@ -15,6 +15,7 @@ const APP_SHELL = [
   '/entry-manager-write-confirmation.js',
   '/entry-manager-offline.js',
   '/entry-manager.js',
+  '/entry-manager-timing-export.js',
   '/entry-manager-local-pdf.js',
   '/entry-manager-live-refresh.js',
   '/entry-manager-drag-autoscroll.js',
