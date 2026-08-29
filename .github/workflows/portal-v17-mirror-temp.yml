@@ -1,0 +1,44 @@
+name: Portal V17 mirror temp
+
+on:
+  push:
+    branches:
+      - portal-v17-mirror-temp
+    paths:
+      - .portal-sync/READY
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: portal-v17-mirror-temp
+      - name: Rebuild exact deployed Index.html
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .portal-sync/v17.00 .portal-sync/v17.01 .portal-sync/v17.02 .portal-sync/v17.03 \
+            | base64 --decode \
+            | gzip --decompress \
+            > operator-portal/google-apps-script/Index.html
+          actual="$(git hash-object operator-portal/google-apps-script/Index.html)"
+          expected="0106311836cd85110510488da798827045cd1eaa"
+          echo "Index blob: $actual"
+          test "$actual" = "$expected"
+      - name: Commit rebuilt file to temporary branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add operator-portal/google-apps-script/Index.html
+          if git diff --cached --quiet; then
+            echo "Index.html already matches Version 17."
+            exit 0
+          fi
+          git commit -m "Rebuild exact System Operator Portal Version 17 UI"
+          git push origin HEAD:portal-v17-mirror-temp
