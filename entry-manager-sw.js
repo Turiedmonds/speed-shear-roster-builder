@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waimarino-entry-manager-offline-v3';
+const CACHE_NAME = 'waimarino-entry-manager-offline-v4';
 
 const APP_SHELL = [
   '/manage/',
@@ -59,7 +59,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Connectivity probes must hit the real network and must never be satisfied by this cache.
+  // Connectivity probes must always hit the real network.
   if (url.searchParams.has('network-probe')) {
     event.respondWith(fetch(request));
     return;
@@ -79,8 +79,8 @@ self.addEventListener('fetch', event => {
 
   if (!isManagerNavigation && !isManagerAsset) return;
 
-  // The cache is versioned and rebuilt whenever the offline shell changes.
-  // Serving known manager files from cache avoids half-loaded/frozen pages during outages.
+  // The versioned cache is rebuilt from the current published files on install.
+  // Cache-first keeps an offline reload fast and avoids sequential network timeouts.
   event.respondWith((async () => {
     const cached = await fromCache(request);
     if (cached) return cached;
