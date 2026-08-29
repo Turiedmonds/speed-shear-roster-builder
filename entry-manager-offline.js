@@ -14,10 +14,13 @@
     'speed_shear_manager_competitor_remove'
   ]);
   const PROBE_TIMEOUT_MS = 1500;
+  const BACKEND_PROBE_TIMEOUT_MS = 5000;
   const HEARTBEAT_MS = 12000;
 
   let syncing = false;
   let probePromise = null;
+  let backendProbePromise = null;
+  let reconnectPromise = null;
   let networkReachable = window.__waimarinoOfflineBootstrap === true
     ? false
     : (navigator.onLine === false ? false : null);
@@ -109,7 +112,7 @@
     reportConnectionChange();
   }
 
-  async function probeNetwork(force = false) {
+  async function probeNetwork() {
     if (navigator.onLine === false) {
       setNetworkReachability(false);
       return false;
@@ -143,6 +146,37 @@
     }
   }
 
+  async function probeBackend() {
+    if (!await probeNetwork()) return false;
+    if (backendProbePromise) return backendProbePromise;
+
+    backendProbePromise = (async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), BACKEND_PROBE_TIMEOUT_MS);
+      try {
+        const response = await delegatedFetch(
+          `${ENDPOINT}?action=entry-manager&access=${encodeURIComponent(token)}&connectionProbe=${Date.now()}`,
+          { cache: 'no-store', signal: controller.signal }
+        );
+        const result = await response.json();
+        const reachable = Boolean(result && result.ok === true);
+        setBackendReachability(reachable);
+        return reachable;
+      } catch (_) {
+        setBackendReachability(false);
+        return false;
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+
+    try {
+      return await backendProbePromise;
+    } finally {
+      backendProbePromise = null;
+    }
+  }
+
   function connectivityLikeError(error) {
     const text = String(error && error.message || error || '');
     return /failed to fetch|network|load failed|abort|confirmation was not received|could not be confirmed|check your connection/i.test(text);
@@ -164,20 +198,21 @@
   }
 
   async function syncQueue() {
-    if (syncing) return;
+    if (syncing) return false;
     let queue = readQueue();
     if (!queue.length) {
       updateIndicator();
-      return;
+      return true;
     }
 
-    if (!await probeNetwork(true)) {
+    if (!await probeNetwork()) {
       updateIndicator();
-      return;
+      return false;
     }
 
     syncing = true;
     updateIndicator();
+    statusText(`Online connection found — syncing ${queue.length} saved change${queue.length === 1 ? '' : 's'}…`, 'warn');
 
     let hardFailure = null;
 
@@ -204,7 +239,7 @@
           continue;
         }
 
-        const networkOk = await probeNetwork(true);
+        const networkOk = await probeNetwork();
         if (!networkOk) {
           setNetworkReachability(false);
           break;
@@ -227,12 +262,31 @@
 
     if (hardFailure) {
       statusText(`Could not sync one saved offline change: ${String(hardFailure.message || hardFailure)}`, 'warn');
-      return;
+      return false;
     }
 
     if (!queue.length) {
+      setNetworkReachability(true);
+      setBackendReachability(true);
       statusText('Offline competitor changes have synced successfully.', 'ok');
       window.dispatchEvent(new CustomEvent('waimarino-offline-sync-complete'));
+      return true;
+    }
+
+    return false;
+  }
+
+  async function tryReconnect() {
+    if (reconnectPromise) return reconnectPromise;
+    reconnectPromise = (async () => {
+      if (!await probeNetwork()) return false;
+      if (readQueue().length) return syncQueue();
+      return probeBackend();
+    })();
+    try {
+      return await reconnectPromise;
+    } finally {
+      reconnectPromise = null;
     }
   }
 
@@ -258,12 +312,14 @@
     indicator.classList.toggle('offline', offline);
     indicator.classList.toggle('syncing', !offline && (syncing || count > 0));
 
-    if (offline) {
+    if (syncing) {
+      indicator.textContent = `Online — syncing ${count} saved change${count === 1 ? '' : 's'}`;
+    } else if (offline) {
       indicator.textContent = count
         ? `Offline — ${count} change${count === 1 ? '' : 's'} saved on this device`
         : 'Offline — competitor list available on this device';
-    } else if (syncing || count) {
-      indicator.textContent = `Online — syncing ${count} offline change${count === 1 ? '' : 's'}`;
+    } else if (count) {
+      indicator.textContent = `Online — ${count} saved change${count === 1 ? '' : 's'} waiting to sync`;
     } else {
       indicator.textContent = 'Online';
     }
@@ -288,9 +344,32 @@
     });
   }
 
+  function isManagerSetupGet(input, options) {
+    const method = String(options?.method || 'GET').toUpperCase();
+    if (method !== 'GET') return false;
+    try {
+      const raw = typeof input === 'string' ? input : input?.url;
+      if (!raw) return false;
+      const url = new URL(raw, location.href);
+      const endpoint = new URL(ENDPOINT);
+      return url.origin === endpoint.origin &&
+        url.pathname === endpoint.pathname &&
+        url.searchParams.get('action') === 'entry-manager';
+    } catch (_) {
+      return false;
+    }
+  }
+
   window.fetch = async function(input, init) {
     const options = init || {};
     const method = String(options.method || 'GET').toUpperCase();
+
+    // Never allow a central setup refresh to replace the visible/local roster while
+    // offline competitor changes are still waiting to be confirmed centrally.
+    if (isManagerSetupGet(input, options) && pending()) {
+      throw new TypeError('Central refresh deferred until saved offline changes have synced.');
+    }
+
     if (method !== 'POST' || typeof options.body !== 'string') {
       return delegatedFetch(input, options);
     }
@@ -302,16 +381,14 @@
       return delegatedFetch(input, options);
     }
 
-    // Supported competitor-list writes always perform a tiny real-network check first.
-    // The UI has already made its targeted optimistic change, so this check does not cause a redraw.
-    if (!await probeNetwork(true)) return queueAsOffline(payload, 'network');
+    if (!await probeNetwork()) return queueAsOffline(payload, 'network');
 
     try {
       const response = await delegatedFetch(input, options);
       setBackendReachability(true);
       return response;
     } catch (error) {
-      const networkOk = await probeNetwork(true);
+      const networkOk = await probeNetwork();
       if (!networkOk) return queueAsOffline(payload, 'network');
       if (connectivityLikeError(error)) return queueAsOffline(payload, 'backend');
       setBackendReachability(true);
@@ -323,13 +400,15 @@
   const grades = document.getElementById('gradesContainer');
   if (grades) observer.observe(grades, { childList: true, subtree: true });
 
-  window.addEventListener('online', async () => {
-    if (await probeNetwork(true)) await syncQueue();
-  });
-
+  window.addEventListener('online', () => { setTimeout(tryReconnect, 100); });
   window.addEventListener('offline', () => {
     setNetworkReachability(false);
     updateIndicator();
+  });
+  window.addEventListener('focus', () => { setTimeout(tryReconnect, 100); });
+  window.addEventListener('pageshow', () => { setTimeout(tryReconnect, 100); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) setTimeout(tryReconnect, 100);
   });
 
   window.addEventListener('waimarino-offline-queue-change', () => {
@@ -342,17 +421,12 @@
   window.__waimarinoSyncOfflineQueue = syncQueue;
   window.__waimarinoConnectionOffline = offlineNow;
   window.__waimarinoProbeConnection = probeNetwork;
+  window.__waimarinoTryReconnect = tryReconnect;
 
   updateIndicator();
   reportConnectionChange();
   markQueuedRows();
 
-  probeNetwork(true).then(reachable => {
-    if (reachable && readQueue().length) syncQueue();
-  });
-
-  setInterval(async () => {
-    const reachable = await probeNetwork(true);
-    if (reachable && (backendReachable === false || readQueue().length)) syncQueue();
-  }, HEARTBEAT_MS);
+  setTimeout(tryReconnect, 250);
+  setInterval(tryReconnect, HEARTBEAT_MS);
 })();
