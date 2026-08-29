@@ -109,13 +109,15 @@ The original fallback relied too heavily on `navigator.onLine`. iPad/Chrome test
 
 `entry-manager-offline.js` therefore performs a very small real-network probe before competitor-list writes. The service worker is explicitly prevented from satisfying that probe from cache. If the probe fails, the action is saved locally instead of being sent into the normal online confirmation path.
 
+Service-worker v5 fixed the remaining reconnect-detection problem by turning the historical probe into a real no-store same-origin request to `/entry-manager.html`. Live iPad/Safari testing then showed the indicator change from Offline to **Online — syncing…**, count the queued changes down and finish at green **Online**.
+
 Reconnect recovery does not rely on one browser event. The queue is retried from `online`, window focus, `pageshow`, return from background and a lightweight heartbeat. A separate backend reachability probe is used when there is no queued write available to prove backend recovery.
 
 Normal online behaviour is unchanged: when the real connection is available, competitor writes still use Version 7 backend confirmation.
 
 #### Offline page refresh/startup
 
-`entry-manager-sw.js` is a versioned service worker that caches only the known Entry Manager application shell/assets required to reopen the manager after an outage. Current cache version is **`waimarino-entry-manager-offline-v4`**; older Entry Manager cache versions are removed when v4 activates.
+`entry-manager-sw.js` is a versioned service worker that caches only the known Entry Manager application shell/assets required to reopen the manager after an outage. Current cache version is **`waimarino-entry-manager-offline-v6`**. v6 retains the verified v5 reconnect probe and adds the sanitized timing-roster exporter to the cached shell.
 
 The tidy `/manage/?c=...` route also stores the already-resolved full manager token locally on the same device after a successful online resolution. If the resolver later cannot be reached because of a network/timeout failure, that previously opened competition can reopen with its cached token and saved local competition state.
 
@@ -126,6 +128,8 @@ An explicit lifecycle rejection such as cancelled/not-found is still authoritati
 The tidy manager shell reveals its same-origin Entry Manager frame as soon as the cached manager DOM is rendered rather than waiting for the iframe's final `load` event. This prevents a slow/unavailable external resource from leaving a usable offline manager hidden behind the “Opening Entry Manager…” card.
 
 A competition must therefore be opened successfully online on a device at least once before that device can reopen it offline.
+
+Because the manager shell deliberately uses cache-first known assets, every future Entry Manager source change must bump the service-worker cache version/registration so an older cached JavaScript file cannot remain active.
 
 #### Reconnect/sync rules
 
@@ -141,7 +145,7 @@ When connectivity returns:
 
 This keeps the central Drive record as the single permanent source of truth without allowing a remote refresh to overwrite unsynced local work.
 
-Latest live iPad testing has already passed for offline Add, Confirm, Remove, JSON download and confirmed-only PDF generation. The remaining acceptance test is the repaired offline full reload plus reconnect/queue-drain handover.
+The complete live iPad/Safari acceptance path has now passed: offline Add, Confirmed/Not Confirmed, Remove, JSON/PDF download, a full offline browser refresh, reconnect/queue drain, green Online state, and a fresh online reload preserving the final roster centrally. The reconnect did take roughly 30–40 seconds before syncing began, which is recorded for later tuning.
 
 ### Local roster PDF
 
@@ -154,7 +158,22 @@ The current local PDF is intentionally simple:
 - aligned **No. / Name / Town** table;
 - no venue, Booking Reference, generated timestamp, confirmation/source column or other operational metadata.
 
-The PDF is built from the currently visible grade table and is read-only: generating it must not refresh, replace or reset the Entry Manager roster. JSON remains the machine-readable handover format.
+The PDF is built from the currently visible grade table and is read-only: generating it must not refresh, replace or reset the Entry Manager roster.
+
+### Timing-system roster JSON
+
+JSON is the machine-readable handover to `Turiedmonds/SheariQ-Speed-Shear-Timing-System`. The exact format is documented in `ROSTER-JSON-CONTRACT.md`.
+
+The Entry Manager and Timing System now use two deliberately small compatible formats:
+
+- a per-grade **Download JSON** file is a plain JSON array of confirmed competitors, with each row containing only `name` and `town`;
+- **Download Full Roster** is `{ "type": "roster_pack", "rosters": { ... } }`, with each grade containing only confirmed `{name,town}` rows.
+
+The Timing System keeps its existing single-grade import behaviour and now also accepts the multi-grade `roster_pack`. Multi-grade import replaces the matching configured grade rosters in one operation; it refuses an unknown grade rather than silently creating one without programme/round rules.
+
+Roster downloads deliberately exclude manager access tokens, booking references, competition metadata, phone/email, source, IDs, status fields and timestamps. The backend Close Entries submission payload is a separate transport contract and still carries the authentication needed by the backend; simplifying a user-downloaded roster must not remove authentication from the actual server write.
+
+`entry-manager-timing-export.js` performs these user-facing exports locally, so they remain available offline, and service-worker v6 includes that file in the cached manager shell.
 
 ### Custom online-entry closing countdown
 
@@ -278,4 +297,4 @@ Latest full Entry Manager/public-entry verification used:
 - 18 September 2026
 - Turangawaewae marae
 
-Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, Programme button repair and the custom closing countdown have been verified. Offline Add/Confirm/Remove and JSON/PDF now also have live iPad passes; repaired offline full refresh and reconnect queue-drain still require the next live acceptance test.
+Private/public links, online entry save, organiser/competitor emails, backup email, custom domain, lifecycle protections, Version 7 manager-write acknowledgement, tidy routes, 30-second safe public-entry polling, competitor grouping/public grade polish, Programme button repair, custom closing countdown and the complete offline → reconnect → sync → central reload handover have been verified. The sanitized timing JSON and new Timing System multi-grade import are committed and are the next live integration checks.
