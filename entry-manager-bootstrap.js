@@ -5,8 +5,10 @@
   const appScripts = [
     'entry-manager-workflow.js?v=1.1.1',
     'entry-manager-write-confirmation.js?v=1.0.0',
+    'entry-manager-offline.js?v=1.0.0',
     'entry-manager.js?v=20260829-responsive1',
-    'entry-manager-live-refresh.js?v=1.0.0',
+    'entry-manager-local-pdf.js?v=1.0.0',
+    'entry-manager-live-refresh.js?v=1.1.0',
     'entry-manager-drag-autoscroll.js?v=1.0.0',
     'entry-manager-tidy.js?v=1.2.0',
     'entry-manager-entry-groups.js?v=1.0.0',
@@ -17,8 +19,8 @@
     document.body.classList.remove('entry-manager-access-checking');
   }
 
-  function showBlocked(message) {
-    if (token) {
+  function showBlocked(message, clearCachedState = true) {
+    if (token && clearCachedState) {
       try {
         localStorage.removeItem(MANAGER_STORAGE_PREFIX + token);
       } catch (_) {}
@@ -45,6 +47,16 @@
       .replace(/'/g, '&#039;');
   }
 
+  function hasCachedCompetition() {
+    if (!token) return false;
+    try {
+      const cached = JSON.parse(localStorage.getItem(MANAGER_STORAGE_PREFIX + token) || 'null');
+      return Boolean(cached && Array.isArray(cached.grades));
+    } catch (_) {
+      return false;
+    }
+  }
+
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -68,7 +80,16 @@
       try {
         await loadApplication();
       } catch (error) {
-        showBlocked(error && error.message);
+        showBlocked(error && error.message, false);
+      }
+      return;
+    }
+
+    if (!navigator.onLine && hasCachedCompetition()) {
+      try {
+        await loadApplication();
+      } catch (_) {
+        showBlocked('This device has saved competition data, but the Entry Manager files were not available offline. Reconnect once and reopen the page.', false);
       }
       return;
     }
@@ -92,10 +113,17 @@
       await loadApplication();
     } catch (error) {
       const text = String(error && error.message || error || '');
-      const safeMessage = /cancelled|no longer available|not found|not currently available/i.test(text)
+      const lifecycleBlocked = /cancelled|no longer available|not found|not currently available/i.test(text);
+      if (!lifecycleBlocked && !navigator.onLine && hasCachedCompetition()) {
+        try {
+          await loadApplication();
+          return;
+        } catch (_) {}
+      }
+      const safeMessage = lifecycleBlocked
         ? text
         : 'Unable to verify this competition right now. Check your internet connection and try again.';
-      showBlocked(safeMessage);
+      showBlocked(safeMessage, lifecycleBlocked);
     }
   }
 
