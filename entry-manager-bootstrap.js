@@ -11,7 +11,7 @@
     'entry-manager-live-refresh.js?v=1.1.0',
     'entry-manager-drag-autoscroll.js?v=1.0.0',
     'entry-manager-tidy.js?v=1.2.0',
-    'entry-manager-entry-groups.js?v=1.0.0',
+    'entry-manager-entry-groups.js?v=1.0.1',
     'entry-manager-countdown.js?v=1.1.0'
   ];
 
@@ -75,7 +75,6 @@
   }
 
   async function validateAndLoad() {
-    // Manual/no-token mode keeps the historical local-only behaviour.
     if (!token) {
       try {
         await loadApplication();
