@@ -4,6 +4,30 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Timing-system JSON handover + multi-grade contract
+
+- Traced the live Timing System roster importer before changing the Entry Manager export format.
+- Confirmed the existing single-grade Timing System importer expects a plain JSON array whose rows contain only `{name, town}`.
+- Confirmed the Entry Manager's old **Download JSON** reused the backend `speed_shear_roster_submission` payload, so it contained unrelated metadata and the private manager bearer token and was not directly compatible with the Timing System importer.
+- Added `entry-manager-timing-export.js` as a local export-only compatibility layer. It does **not** change the backend submission transport used by Close Entries.
+- Per-grade **Download JSON** now exports confirmed competitors only as a plain `{name,town}` array.
+- **Download Full Roster** now exports the minimal multi-grade package `{type:"roster_pack",rosters:{...}}`, again containing confirmed `{name,town}` rows only.
+- Timing-roster downloads exclude the manager access token, booking reference, competition metadata, phone/email, source, competitor IDs, confirmation flags and timestamps.
+- Added `ROSTER-JSON-CONTRACT.md` to record the exact machine-readable handover contract.
+- Matching Timing System repository change adds multi-grade `roster_pack` import while retaining single-grade array import. Multi-grade import only replaces grades that already exist in the Timing System setup.
+- Entry Manager service-worker cache advanced to **`waimarino-entry-manager-offline-v6`** and now caches the timing exporter so the sanitized downloads remain available offline.
+- Apps Script backend version remains Version 7; no Apps Script deployment is required for this export change.
+- Live Entry Manager → Raspberry Pi import regression test is still required after GitHub Pages publishes v6 and the Pi pulls the matching Timing System commit.
+
+### Offline acceptance test completed
+
+- Final iPad/Safari acceptance testing passed the complete handover path: offline detection, consecutive manual Add, Confirmed/Not Confirmed, offline Remove, JSON download, local confirmed-only PDF, full browser refresh while still offline, reconnect, ordered queue drain, green Online state and a final fresh online reload.
+- The offline refresh preserved Test A/Test B as Confirmed, Test C remained removed, and the pre-existing unconfirmed competitor remained Not Confirmed.
+- Reconnect showed **Online — syncing 6 saved changes**, counted the queue down to zero and finished at green **Online**.
+- A fresh online browser refresh then proved the final roster had persisted centrally rather than existing only in local storage.
+- Reconnect took roughly **30–40 seconds** before syncing began. This did not cause data loss, but the delay is recorded for later tuning.
+- The verified reconnect fix is service-worker v5's real no-store probe against `/entry-manager.html`; v6 retains that behaviour and only adds the sanitized timing-roster exporter to the cached shell.
+
 ### Offline reconnect queue + offline reload repair
 
 - Live iPad airplane-mode testing passed for consecutive offline Add, Confirmed/Not Confirmed, offline Remove, JSON download and the tidy confirmed-only PDF.
