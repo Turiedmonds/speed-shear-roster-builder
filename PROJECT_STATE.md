@@ -31,6 +31,7 @@ As at 29 August 2026:
 - Entry Manager includes a safe 30-second silent background public-entry check; typing-protection smoke test passed.
 - Responsive grade controls, competitor grouping, public grade polish and Programme button repair have been implemented; Programme repair and grouping/polish were user-verified.
 - A custom online-entry closing countdown is implemented on both Entry Manager and public competitor entry using the same saved closing timestamp.
+- Offline manual-competitor fallback and local PDF export source are now committed and require live smoke testing after GitHub Pages publishes.
 - The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. Never store or reveal its value.
 
 ## Preferred competition-specific links
@@ -44,7 +45,9 @@ Manager/public short codes remain competition-specific, type-specific and subjec
 
 ## Central competition records
 
-The source of truth remains one JSON record per competition in Google Drive folder `Waimarino Speed Shear Entry Manager`. Do not create a second competition database.
+The online source of truth remains one JSON record per competition in Google Drive folder `Waimarino Speed Shear Entry Manager`. Do not create a second online competition database.
+
+The offline fallback is intentionally a temporary device-local queue, not a second permanent source of truth. Once connectivity returns, queued competitor changes are replayed to the existing central record.
 
 ## Relationship to Booking Pack
 
@@ -60,10 +63,47 @@ Supports booking-loaded competition details, grades/events, Programme viewer, ma
 
 Common controls respond immediately while retaining Version 7 backend confirmation and rollback on failure. Manual Add, per-grade Online Entries On/Off, entry limits, competitor text edits and details saves avoid unnecessary whole-grade redraws.
 
+### Offline manual competitor fallback
+
+New frontend files:
+
+- `entry-manager-offline.js`
+- `entry-manager-offline.css`
+- `entry-manager-local-pdf.js`
+
+The offline scope is deliberately limited to **competitor-list operations** so an internet outage does not force entry staff back to pen and paper while avoiding unsafe offline changes to global competition settings.
+
+When the Entry Manager page is already loaded and internet is lost:
+
+- an **Offline** indicator appears in the header;
+- manual competitor Add/Bulk Add remains usable;
+- competitor name/town edits, contact-detail edits, Confirmed/Not Confirmed changes and competitor removal are retained locally;
+- those operations are queued in localStorage for that competition rather than being rolled back when the backend cannot be reached;
+- rows with unsynced competitor changes receive an **Offline** marker;
+- existing competitors already loaded before the outage remain in the locally saved competition state;
+- queued competitor operations automatically replay through the normal Version 7 confirmed-write path when connectivity returns;
+- the 30-second public-entry refresh will not rebuild the manager while an offline queue is waiting/syncing, preventing unsynced local entries from being overwritten.
+
+The following intentionally still require internet and are **not** faked as successful offline: closing/submitting a grade, Close All Entries, changing public-entry status/cutoff, grade settings/order and other central competition-control changes.
+
+`entry-manager-bootstrap.js` can also load cached competition data when the browser explicitly reports offline and the competition was previously saved on that device. This does not guarantee a completely cold offline reload if the browser has discarded the application files from its own cache; the primary resilience target is an Entry Manager already loaded before connectivity is lost.
+
+### Local roster PDF
+
+The per-grade **Download PDF** button now has a real device-side PDF generator rather than the previous placeholder message.
+
+- PDF creation uses the locally held roster and requires no Apps Script/backend call;
+- it includes every competitor in the selected grade, not only confirmed competitors;
+- each row shows name, town, Confirmed/Not Confirmed state, source (Online/Manual), and an OFFLINE marker where that competitor still has queued local changes;
+- the header includes competition, grade, date, venue, Booking Reference, generated time and summary counts;
+- it is intended as a human-readable emergency roster if the competition has to continue without internet;
+- JSON download remains the machine-readable handover, while PDF is the human-readable fallback.
+
 ### Competitor table grouping and programme
 
 - Confirmed competitors are visually grouped separately from competitors still awaiting confirmation, with a clear divider/count for entry staff.
 - This grouping is display-only and does not change underlying competitor sequence/draw order.
+- Added explicit spacing between the group label and count so the divider reads e.g. **Confirmed 5**, not `Confirmed5`.
 - The Programme button opens the Booking Pack Programme of Events.
 - The 29 August Programme initialization bug caused by dynamically loading after `DOMContentLoaded` has been repaired and user-verified.
 
@@ -93,11 +133,13 @@ Behaviour:
 
 ### Silent Entry Manager public-entry background refresh
 
-`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. Live typing-protection test passed.
+`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. It now also defers completely while offline or while the offline competitor queue is pending/syncing. Live typing-protection test passed for the original polling behaviour.
 
 ## Manager cancellation access gate
 
-Backend rejects cancelled/deleted manager and public access server-side. `entry-manager-bootstrap.js` validates manager access before organiser scripts load, preventing stale cached screens. Production cancellation/deletion testing passed.
+Backend rejects cancelled/deleted manager and public access server-side. `entry-manager-bootstrap.js` validates manager access before organiser scripts load when online, preventing stale cached screens. Production cancellation/deletion testing passed.
+
+The offline cached-state fallback only applies when the browser explicitly reports no connection and cached competition data exists locally. It does not replace the server-side lifecycle guard when connectivity is available.
 
 ## Public competitor entry
 
@@ -119,6 +161,7 @@ Latest full verification used **Speedshear o ngā Taniwha**, Booking Reference *
 
 ## Next planned work
 
-1. Smoke-test the updated adaptive countdown display after GitHub Pages publishes: >24 hours should show days only; <=24 hours should show hours/minutes.
-2. Change the saved closing time while a public entry page is left open and confirm its silent 5-minute re-check updates only the countdown without disturbing typed form data.
-3. Continue broader Entry Manager regression checks only when another issue is found.
+1. After GitHub Pages publishes the offline fallback, test with airplane mode: manually add a competitor and confirm the row remains with an Offline marker rather than rolling back.
+2. While still offline, change that competitor to Confirmed and download both JSON and PDF; confirm PDF opens and lists all competitors clearly.
+3. Reconnect and confirm the header changes to syncing/online and the queued competitor changes persist after a normal refresh.
+4. Confirm group divider spacing now reads correctly (e.g. `Confirmed 5`).
