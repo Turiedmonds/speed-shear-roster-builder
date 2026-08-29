@@ -4,6 +4,16 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 
 ## 29 August 2026
 
+### Online-entry closing countdown — silent refresh and simpler display
+
+- Public competitor page now silently re-checks the existing competition setup every **5 minutes** for a changed custom closing time.
+- The re-check never reloads/rebuilds the page and never reads, clears or changes competitor form inputs; only the countdown timestamp/display is updated when the saved closing time changed.
+- Background failures are silent and cannot interrupt entry submission.
+- When the page becomes visible again after being in the background, it also performs one silent closing-time re-check.
+- Countdown display is now intentionally simple on both Entry Manager and public page: **more than 24 hours remaining shows days only**; **24 hours or less shows hours and minutes**; the exact closing date/time remains displayed underneath.
+- Cache versions were bumped for both countdown scripts.
+- No Apps Script change or deployment is required.
+
 ### Online-entry closing countdown
 
 - Added a lightweight custom-closing countdown to both the private Entry Manager and public competitor entry page.
@@ -11,11 +21,9 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - The Entry Manager countdown shows the live time remaining, the actual closing date/time, and how many grades are currently accepting online entries.
 - The Entry Manager countdown is clickable and opens/focuses the existing custom closing-time setting.
 - The public page shows the live time remaining and actual closing date/time near the competition header.
-- After the closing timestamp has been loaded, countdown ticking is local device-side arithmetic and does not make repeated network requests.
-- The public countdown performs one normal setup read on page load; if that optional display read fails, it silently leaves the countdown hidden and does not interfere with the entry form.
+- Countdown ticking is local device-side arithmetic; the public page now supplements this with the controlled 5-minute silent re-check described above.
 - Colour emphasis changes as closing approaches: normal, within 24 hours, within 6 hours, and closed.
 - No custom countdown is shown when no custom closing time is configured; the existing default final shutdown logic remains unchanged.
-- Live smoke testing is still required after GitHub Pages publishes the change.
 
 ### Entry Manager — competitor grouping, public grade polish and Programme repair
 
@@ -40,7 +48,6 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - Saving competitor phone/email details no longer redraws the full grade after the details dialog closes.
 - Cache-busting versions were updated in `entry-manager-bootstrap.js` and `entry-manager.html` so the responsive source is loaded after GitHub Pages publishes it.
 - No Apps Script backend change or deployment is required for this frontend-only update.
-- Live smoke testing of the new responsive controls remains to be completed after GitHub Pages publishes the change.
 
 ### Entry Manager — safe 30-second public-entry background refresh
 
@@ -50,8 +57,8 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 - A visible refresh is only requested when a new `source: public-entry` competitor ID is detected that is not already displayed.
 - The refresh is deferred while the organiser is using an input/textarea/select, a dialog is open, a grade is being dragged, or Manual Entry/Bulk Entry draft text exists.
 - This specifically protects unfinished competitor names and other typed text from the historical problem where polling could rebuild a roster UI and wipe a partially typed entry.
-- When a pending refresh becomes safe, it uses the existing trusted Refresh Entries path so the internal Entry Manager state and displayed rows remain consistent.
-- Scroll position is preserved around the refresh.
+- When a pending refresh becomes safe, it uses the existing trusted **Refresh Entries** path so the internal Entry Manager state and displayed rows remain consistent.
+- Scroll position is preserved around that refresh.
 - Background network errors are ignored silently so polling cannot interrupt competition operation.
 - Manual/no-token mode does not poll.
 - **Live smoke test passed:** unfinished Manual Entry text remained untouched across polling, the new online competitor was held while the draft remained, and then appeared automatically once the manual competitor was added.
