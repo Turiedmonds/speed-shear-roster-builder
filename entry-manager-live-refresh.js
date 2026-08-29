@@ -12,8 +12,12 @@
   let pollInFlight = false;
   let refreshPending = false;
 
+  function offlineQueuePending() {
+    return typeof window.__waimarinoOfflineQueuePending === 'function' && window.__waimarinoOfflineQueuePending();
+  }
+
   function operatorIsBusy() {
-    if (document.hidden) return true;
+    if (document.hidden || !navigator.onLine || offlineQueuePending()) return true;
 
     const active = document.activeElement;
     if (active && active !== document.body) {
@@ -64,7 +68,7 @@
   }
 
   async function pollForNewEntries() {
-    if (pollInFlight) return;
+    if (pollInFlight || !navigator.onLine || offlineQueuePending()) return;
     pollInFlight = true;
 
     try {
@@ -101,5 +105,11 @@
       applyPendingRefreshWhenSafe();
       pollForNewEntries();
     }
+  });
+  window.addEventListener('waimarino-offline-queue-change', () => {
+    setTimeout(() => {
+      applyPendingRefreshWhenSafe();
+      pollForNewEntries();
+    }, 0);
   });
 })();
