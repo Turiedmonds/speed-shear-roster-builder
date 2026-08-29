@@ -27,30 +27,88 @@
       const status = document.getElementById('status');
       const loadingCard = document.getElementById('loadingCard');
       const frame = document.getElementById('managerFrame');
+      const CACHE_KEY = code ? `waimarinoSpeedShearManagerResolved_${code}` : '';
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('../entry-manager-sw.js', { scope: '/' }).catch(() => undefined);
+      }
 
       if (!/^[a-f0-9]{20}$/.test(code)) {
         status.textContent = 'This Entry Manager link is incomplete or invalid.';
         return;
       }
 
-      fetch(`${ENDPOINT}?action=resolve-manager-code&code=${encodeURIComponent(code)}`, { cache: 'no-store' })
+      function readCachedToken() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+          return saved && typeof saved.token === 'string' && saved.token.trim() ? saved.token.trim() : '';
+        } catch (_) {
+          return '';
+        }
+      }
+
+      function saveCachedToken(token) {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ token, cachedAt: new Date().toISOString() }));
+        } catch (_) {}
+      }
+
+      function clearCachedToken() {
+        try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+      }
+
+      function openManager(token, offlineFallback) {
+        frame.addEventListener('load', () => {
+          loadingCard.hidden = true;
+          frame.hidden = false;
+        }, { once: true });
+
+        const offline = offlineFallback ? '&offline=1' : '';
+        frame.src = `../entry-manager.html?access=${encodeURIComponent(token)}${offline}`;
+      }
+
+      function openCachedOrExplain() {
+        const token = readCachedToken();
+        if (!token) {
+          status.textContent = 'This competition has not been saved on this device yet. Reconnect to the internet and open the Entry Manager once before using it offline.';
+          return;
+        }
+        status.textContent = 'Opening the saved Entry Manager in offline mode…';
+        openManager(token, true);
+      }
+
+      if (navigator.onLine === false) {
+        openCachedOrExplain();
+        return;
+      }
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+
+      fetch(`${ENDPOINT}?action=resolve-manager-code&code=${encodeURIComponent(code)}`, {
+        cache: 'no-store',
+        signal: controller.signal
+      })
         .then(response => response.json())
         .then(result => {
+          clearTimeout(timer);
           if (!result || result.ok !== true || !result.token) {
-            throw new Error(result && result.error || 'This Entry Manager link could not be found.');
+            clearCachedToken();
+            const error = new Error(result && result.error || 'This Entry Manager link could not be found.');
+            error.resolverRejected = true;
+            throw error;
           }
 
-          frame.addEventListener('load', () => {
-            loadingCard.hidden = true;
-            frame.hidden = false;
-          }, { once: true });
-
-          frame.src = `../entry-manager.html?access=${encodeURIComponent(result.token)}`;
+          saveCachedToken(result.token);
+          openManager(result.token, false);
         })
         .catch(error => {
-          status.textContent = error && error.message
-            ? error.message
-            : 'This Entry Manager link could not be opened.';
+          clearTimeout(timer);
+          if (error && error.resolverRejected) {
+            status.textContent = error.message;
+            return;
+          }
+          openCachedOrExplain();
         });
     })();
   </script>
