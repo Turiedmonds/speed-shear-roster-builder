@@ -1,19 +1,25 @@
 (() => {
   const ENDPOINT = 'https://script.google.com/macros/s/AKfycbwOkoKs3Is6bSumWYe71zH2mOEZ4h0YhY-PO2JPiea2WClMs6kIMjzYtEZmqg3MlgQC-w/exec';
-  const token = new URLSearchParams(location.search).get('access') || '';
+  const params = new URLSearchParams(location.search);
+  const token = params.get('access') || '';
+  const offlineHint = params.get('offline') === '1';
   const MANAGER_STORAGE_PREFIX = 'waimarinoSpeedShearEntryManagerV3_';
   const appScripts = [
     'entry-manager-workflow.js?v=1.1.1',
     'entry-manager-write-confirmation.js?v=1.0.0',
-    'entry-manager-offline.js?v=1.1.0',
+    'entry-manager-offline.js?v=2.0.0',
     'entry-manager.js?v=20260829-responsive1',
     'entry-manager-local-pdf.js?v=1.1.0',
-    'entry-manager-live-refresh.js?v=1.2.0',
+    'entry-manager-live-refresh.js?v=1.3.0',
     'entry-manager-drag-autoscroll.js?v=1.0.0',
     'entry-manager-tidy.js?v=1.2.0',
     'entry-manager-entry-groups.js?v=1.0.1',
     'entry-manager-countdown.js?v=1.1.0'
   ];
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('entry-manager-sw.js', { scope: '/' }).catch(() => undefined);
+  }
 
   function showPage() {
     document.body.classList.remove('entry-manager-access-checking');
@@ -74,6 +80,31 @@
     showPage();
   }
 
+  async function loadCachedApplication() {
+    if (!hasCachedCompetition()) return false;
+    window.__waimarinoOfflineBootstrap = true;
+    try {
+      await loadApplication();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async function fetchLiveSetup() {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    try {
+      const response = await fetch(
+        `${ENDPOINT}?action=entry-manager&access=${encodeURIComponent(token)}`,
+        { cache: 'no-store', signal: controller.signal }
+      );
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function validateAndLoad() {
     if (!token) {
       try {
@@ -84,22 +115,14 @@
       return;
     }
 
-    if (!navigator.onLine && hasCachedCompetition()) {
-      try {
-        await loadApplication();
-      } catch (_) {
-        showBlocked('This device has saved competition data, but the Entry Manager files were not available offline. Reconnect once and reopen the page.', false);
-      }
+    if ((offlineHint || navigator.onLine === false) && hasCachedCompetition()) {
+      if (await loadCachedApplication()) return;
+      showBlocked('This device has saved competition data, but the Entry Manager application files were not available offline. Reconnect once and reopen the page.', false);
       return;
     }
 
     try {
-      const response = await fetch(
-        `${ENDPOINT}?action=entry-manager&access=${encodeURIComponent(token)}`,
-        { cache: 'no-store' }
-      );
-
-      const result = await response.json();
+      const result = await fetchLiveSetup();
 
       if (!result || result.ok !== true) {
         throw new Error(
@@ -109,16 +132,16 @@
         );
       }
 
+      window.__waimarinoOfflineBootstrap = false;
       await loadApplication();
     } catch (error) {
       const text = String(error && error.message || error || '');
-      const lifecycleBlocked = /cancelled|no longer available|not found|not currently available/i.test(text);
-      if (!lifecycleBlocked && !navigator.onLine && hasCachedCompetition()) {
-        try {
-          await loadApplication();
-          return;
-        } catch (_) {}
-      }
+      const lifecycleBlocked = /cancelled|no longer available|not found|not currently available|link is invalid|link could not be found/i.test(text);
+
+      // A browser may still claim it is online after the connection has disappeared.
+      // For a network/timeout failure, a competition already saved on this device is safe to reopen locally.
+      if (!lifecycleBlocked && await loadCachedApplication()) return;
+
       const safeMessage = lifecycleBlocked
         ? text
         : 'Unable to verify this competition right now. Check your internet connection and try again.';
