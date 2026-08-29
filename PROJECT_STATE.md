@@ -2,11 +2,19 @@
 
 **Last updated:** 29 August 2026
 
-This file is the authoritative current-state handoff for future ChatGPT/Codex sessions.
+This is the authoritative current-state handoff for future ChatGPT/Codex sessions.
 
 ## Working rule
 
-Before changes, read `README.md`, this file, and the latest `CHANGELOG.md`, then inspect the exact current source involved. Every meaningful change must update this file and `CHANGELOG.md`; update `README.md` when architecture, setup, deployment or public behaviour changes.
+Before making changes, read:
+
+1. `README.md`
+2. this file
+3. `CHANGELOG.md`
+
+Then inspect the exact current source involved. Every meaningful change must update this file and `CHANGELOG.md`; update `README.md` when architecture, deployment, public behaviour or important workflow changes.
+
+Do not guess where code lives or replace Apps Script files with shortened/unverified versions.
 
 ## Project identity
 
@@ -14,65 +22,151 @@ Repository: `Turiedmonds/speed-shear-roster-builder`
 
 Production domain: `https://entries.waimarinoshears.com`
 
-Visible system name: **Speed Shear Entries**
+Visible system names:
 
-Private organiser area: **Entry Manager**
-
-Public page: **Speed Shear Competitor Entry**
+- public system: **Speed Shear Entries**
+- private organiser area: **Entry Manager**
+- public form: **Speed Shear Competitor Entry**
+- Waimarino private admin: **System Operator Portal**
 
 ## Current live production baseline
 
-As at 29 August 2026:
+As at the end of 29 August 2026:
 
-- GitHub Pages custom domain is active: `entries.waimarinoshears.com`.
+- GitHub Pages custom domain `entries.waimarinoshears.com` is active.
 - **Speed Shear Entry Manager Apps Script: Version 7 live.**
-- **System Operator Portal Apps Script: Version 6 live.**
-- Tidy manager/public URLs are verified live and full public submission is verified end-to-end.
-- Entry Manager includes a safe 30-second silent background public-entry check; typing-protection smoke test passed.
-- Responsive grade controls, competitor grouping, public grade polish and Programme button repair have been implemented; Programme repair and grouping/polish were user-verified.
-- A custom online-entry closing countdown is implemented on both Entry Manager and public competitor entry using the same saved closing timestamp.
-- The complete offline acceptance path has now passed live iPad/Safari testing: offline detection, consecutive Add, Confirmed/Not Confirmed, Remove, JSON/PDF download, full browser refresh while offline, reconnect/ordered queue drain, final green Online state, and a fresh online reload preserving the central roster.
-- Reconnect took roughly 30–40 seconds before queue syncing began in that acceptance test. A dedicated fast reconnect helper is now committed to retry recovery every 3 seconds while recovery is actually needed, plus short retry bursts on reconnect-related browser events. This still needs one live timing regression after GitHub Pages publishes service-worker v7.
-- The sanitized timing-roster JSON export has now been live-verified on iPad: single-grade JSON contains only confirmed `{name,town}` rows, and Full Roster contains only the expected multi-grade `roster_pack` structure with no private manager token or unrelated metadata.
-- The shared Booking Receiver ↔ Entry Manager secret was rotated in both Apps Script projects on 29 August 2026. Never store or reveal its value.
+- **System Operator Portal Apps Script: Version 17 live and user-verified.**
+- System Operator Portal remains private with Apps Script access **Only myself**.
+- Tidy manager/public URLs are live-verified.
+- Full public competitor submission has been verified end-to-end.
+- Safe 30-second Entry Manager background refresh is verified and protects typing/dialog/drag/offline-queue state.
+- Offline competitor fallback has passed full iPad/Safari acceptance testing.
+- Fast reconnect service-worker v7 has now passed its live timing regression: one queued offline competitor change synced and returned Online in roughly **7 seconds** after internet restoration.
+- Sanitized timing-roster JSON exports are live-verified on iPad for both single-grade and Full Roster formats.
+- System Operator Portal responsive restyle is verified across desktop/laptop, iPad portrait/landscape and iPhone portrait/landscape.
+- System Operator Portal **Postpone Competition** is fully verified end-to-end for both custom-cutoff choices: move the closing time or keep it unchanged.
+- Booking Receiver ↔ Entry Manager `ENTRY_MANAGER_SHARED_SECRET` has been rotated. Never retrieve, print, expose, document or commit its value.
 
-## Preferred competition-specific links
+## Central source of truth
 
-Preferred user-facing links:
+The **only permanent competition source of truth** is one JSON record per competition in Google Drive folder:
 
-- private organiser Entry Manager: `https://entries.waimarinoshears.com/manage/?c=<20-char-code>`
+`Waimarino Speed Shear Entry Manager`
+
+Records contain items including:
+
+- Booking Reference;
+- manager/public tokens;
+- competition details;
+- organiser details;
+- grades/settings;
+- Programme of Events;
+- competitors;
+- roster/submission state;
+- optional operator-control metadata.
+
+Do **not** create a second permanent competition database.
+
+Offline browser snapshots and queued changes are temporary resilience data only. Once connectivity returns, supported queued changes replay through the existing confirmed-write path and the screen returns to the central record.
+
+## Security boundary
+
+- Never expose `ENTRY_MANAGER_SHARED_SECRET`.
+- Never expose full manager/public bearer tokens in documentation, chat output or user-download roster JSON.
+- The private System Operator Portal remains **Only myself**.
+- Entry Manager/public endpoints are accessible using their existing token model because organisers and competitors need remote access.
+- Explicit cancellation/deletion responses remain authoritative and must not be bypassed by cached offline state.
+
+## Preferred competition links
+
+User-facing links:
+
+- organiser Entry Manager: `https://entries.waimarinoshears.com/manage/?c=<20-char-code>`
 - public competitor form: `https://entries.waimarinoshears.com/enter/?c=<20-char-code>`
 
-Manager/public short codes remain competition-specific, type-specific and subject to the existing active/cancelled/deleted availability checks. Legacy short/full-token links remain supported.
-
-## Central competition records
-
-The **only permanent source of truth** remains one JSON record per competition in Google Drive folder `Waimarino Speed Shear Entry Manager`. Do not create a second online competition database.
-
-Offline resilience uses only:
-
-- the last competition snapshot already stored on the device; and
-- a temporary ordered queue of unsynced competitor-list changes.
-
-Those are working/offline recovery data, not a second permanent database. When connectivity returns, queued changes replay through the existing Version 7 confirmed-write path. Only after that ordered queue is empty is one controlled central refresh allowed, returning the screen to the central Drive record.
+Manager and public short codes are type-specific and competition-specific. Legacy routes/full-token links remain supported internally for compatibility.
 
 ## Relationship to Booking Pack
 
-Booking Pack repository: `Turiedmonds/waimarino-shears-speed-shear-booking-pack`.
+Booking Pack repository:
 
-The Booking Receiver sends the authorised competition setup to this system. The shared Script Property is `ENTRY_MANAGER_SHARED_SECRET`; never put its value in GitHub, documentation, emails or user-facing output.
+`Turiedmonds/waimarino-shears-speed-shear-booking-pack`
 
-## Current organiser Entry Manager behaviour
+The Booking Receiver sends authorised competition setup data into the central Entry Manager record. Booking Pack is the initial competition configuration stage; the System Operator Portal later operates on that same central record.
 
-Supports booking-loaded competition details, grades/events, Programme viewer, manual/bulk/public competitors, contact details, Confirmed/Not Confirmed, global/custom public closing, per-grade controls/limits, grade reorder/collapse and roster submission to Waimarino Shears.
+## Entry Manager — current behaviour
 
-### Responsive grade controls
+Current organiser functionality includes:
 
-Common controls respond immediately while retaining Version 7 backend confirmation and rollback on failure. Manual Add, per-grade Online Entries On/Off, entry limits, competitor text edits and details saves avoid unnecessary whole-grade redraws.
+- booking-loaded competition details;
+- grades/events and Programme viewer;
+- manual/bulk/public competitors;
+- competitor contact details;
+- Confirmed / Not Confirmed;
+- public-entry global/custom closing;
+- per-grade online-entry controls and limits;
+- grade reorder/collapse;
+- Close Entries / Close All Entries / Update Closed Entries;
+- local PDF and timing-roster JSON exports;
+- safe background refresh;
+- resilient offline competitor-list operation.
 
-### Resilient offline competitor mode
+### Confirmed writes — Version 7
 
-Frontend files:
+Manager writes retain Apps Script-compatible `no-cors` POST transport but use request IDs plus `GET action=manager-write-result` so the frontend waits for the real backend success/error result rather than assuming a request was saved.
+
+Production confirmation-save testing passed.
+
+### Responsive/common organiser controls
+
+Manual Add, Online Entries On/Off, entry-limit changes and common competitor edits update the relevant UI immediately while retaining backend confirmation/rollback behaviour and avoiding unnecessary whole-grade redraws.
+
+### Confirmed / Awaiting grouping
+
+Confirmed competitors are visually grouped separately from competitors still awaiting confirmation. This is display-only and does not change stored competitor sequence/draw order.
+
+The grouping MutationObserver now disconnects while rearranging rows, preventing the former every-second-offline-add flicker/disappearance. Consecutive offline additions were successfully retested.
+
+### Programme
+
+The Programme button opens the Programme supplied from the Booking Pack. The dynamic-loader initialization issue caused by loading after `DOMContentLoaded` has been repaired and user-verified.
+
+## Online-entry closing countdown
+
+Frontend sources include:
+
+- `entry-manager-countdown.js`
+- `competitor-entry-countdown.js`
+- `entry-countdown.css`
+
+Both Entry Manager and public competitor entry use the same existing saved `entrySettings.autoCloseAt`/public timestamp rather than a duplicate timer source.
+
+Display rules:
+
+- more than 24 hours: days only;
+- 24 hours or less: hours and minutes;
+- exact closing date/time shown underneath.
+
+The public page silently re-checks setup every 5 minutes and when returning to visible state without rebuilding the form or touching typed competitor inputs.
+
+## Safe 30-second Entry Manager refresh
+
+`entry-manager-live-refresh.js` checks for genuinely new public competitors every 30 seconds.
+
+Refresh is deferred while:
+
+- an input/edit is active;
+- a draft is in progress;
+- a dialog is open;
+- a grade is being dragged;
+- real connectivity is offline;
+- an offline queue exists or is syncing.
+
+Scroll position is preserved and after an offline queue drains only one controlled central refresh is requested.
+
+## Offline competitor mode
+
+Important frontend files:
 
 - `entry-manager-offline.js`
 - `entry-manager-reconnect-fast.js`
@@ -84,189 +178,200 @@ Frontend files:
 - `entry-manager-local-pdf.js`
 - `entry-manager-timing-export.js`
 
-The offline scope is deliberately limited to **competitor-list operations** so an internet outage does not force entry staff back to pen and paper while avoiding unsafe offline changes to global competition settings.
+Offline support is intentionally limited to competitor-list work:
 
-Supported offline competitor work:
-
-- Manual Add and Bulk Add;
+- Manual Add / Bulk Add;
 - competitor name/town edits;
 - competitor contact-detail edits;
-- Confirmed/Not Confirmed changes;
+- Confirmed/Not Confirmed;
 - competitor removal.
 
-These operations use the same local Entry Manager state that the screen is already using. They are queued in order for the central backend and rows with unsynced changes receive an **Offline** marker. Normal offline actions do not trigger whole-grade/page redraws beyond the existing targeted UI behaviour.
+Central settings such as Close Entries, public cutoff/status, grade settings/order remain online-only.
 
-The following intentionally still require internet and are **not** faked as successful offline: closing/submitting a grade, Close All Entries, changing public-entry status/cutoff, grade settings/order and other central competition-control changes.
+### Connectivity detection
 
-#### Real connectivity rather than `navigator.onLine` alone
+Do not rely on `navigator.onLine` alone. The offline layer performs a real same-origin network probe, with service-worker handling that prevents cached content from falsely proving internet connectivity.
 
-The original offline wrapper relied too heavily on the browser's `navigator.onLine` flag. iPad/Chrome testing proved that this flag can still indicate an available connection after usable internet has disappeared. In that condition, a competitor change could be sent into the Version 7 confirmation path, wait for confirmation, then roll back. That explained test competitors disappearing and a previously entered name being restored to the Manual Entry input; the PDF button merely exposed the timing and was not the underlying data-loss cause.
+### Offline reload/startup
 
-`entry-manager-offline.js` now performs a very small real-network probe before competitor-list writes. The service worker explicitly bypasses its cache for that probe, so a cached page cannot falsely report connectivity. Service-worker v5 additionally rewrote the historical `/CNAME?network-probe=...` request to a guaranteed same-origin `/entry-manager.html?network-probe=...` no-store request; this was the change that fixed the iPad/Safari reconnect detection in live testing.
+The service worker caches the known Entry Manager shell/assets. The tidy `/manage/?c=...` route caches the already-resolved manager token on that same device after a successful online load, allowing a previously opened competition to reopen during network failure.
 
-Reconnect handling also performs a separate backend reachability check when needed. The queue retries on browser `online`, window focus, `pageshow`, return from background and a background heartbeat. `entry-manager-reconnect-fast.js` supplements that verified path only while recovery is actually needed: it retries every 3 seconds and runs a short burst at 0 ms, 800 ms, 1.8 s and 3.5 s after reconnect-related events. The existing reconnect promise coalesces overlapping attempts, so the helper cannot start duplicate queue replay.
+Explicit cancelled/not-found lifecycle responses still block access and clear the cached mapping where appropriate.
 
-Exact duplicate queued writes from an accidental double tap are suppressed. Queue replay remains ordered.
+Current service-worker cache:
 
-#### Offline reload/startup
+`waimarino-entry-manager-offline-v7`
 
-A full offline reload originally failed because the tidy `/manage/?c=...` shell always had to contact Apps Script to resolve the short code before it could load the manager, and the Entry Manager application shell itself was not deliberately cached.
+Every future Entry Manager source change that affects the cached shell must bump the service-worker cache and registration version.
 
-That is addressed by:
+### Reconnect/source-of-truth protection
 
-- `entry-manager-sw.js`, a versioned service worker that pre-caches only the known Entry Manager shell/assets needed to reopen the page;
-- the tidy manager route caching the already-resolved full manager token **on that same device** after a successful online resolution;
-- when the resolver cannot be reached for a network/timeout reason, a previously opened competition may use that cached token and local competition snapshot;
-- `entry-manager-bootstrap.js` also falls back to the saved competition when live validation cannot be reached, even if the browser incorrectly still claims it is online;
-- explicit lifecycle rejections such as cancelled/not-found remain authoritative and do **not** fall back to cached access.
+While offline changes exist:
 
-The earlier 29 August test proved the tidy route found its cached token but initially stayed on “Opening the saved Entry Manager in offline mode…” because `manage/index.html` waited for the iframe's final `load` event. The shell now watches the same-origin iframe document and reveals it as soon as the cached Entry Manager DOM is rendered. The follow-up acceptance test passed a full browser refresh while airplane mode remained enabled and preserved the offline roster exactly.
+1. normal central setup refreshes are blocked from replacing the visible local roster;
+2. queued writes replay one-by-one in original order through the Version 7 confirmed-write wrapper;
+3. an item remains queued until confirmed;
+4. background refresh remains blocked;
+5. after queue reaches zero, one controlled central refresh is permitted;
+6. UI returns to green Online only after real network/backend recovery.
 
-The current service-worker cache is `waimarino-entry-manager-offline-v7`. v5 contained the verified reconnect-probe fix. v6 added the sanitized timing-roster export script. v7 adds the fast reconnect helper. Because the manager shell uses deterministic cache-first assets, **every future Entry Manager source change must continue to bump the service-worker cache version and registration URL**.
+The full acceptance path passed on iPad/Safari: offline Add, Confirmed/Not Confirmed, Remove, JSON/PDF download, full offline browser refresh, reconnect, queue drain, final Online state and fresh online reload with central persistence.
 
-This means an organiser must open the competition successfully online on that device first. The offline cache does not make an unseen competition available offline.
+### Fast reconnect v7 — verified
 
-#### Reconnect and single-source-of-truth protection
+`entry-manager-reconnect-fast.js` supplements the existing recovery layer only when recovery is actually needed. It retries at a 3-second cadence plus short event-triggered bursts; overlapping attempts are coalesced by the existing reconnect promise.
 
-An earlier reconnect test showed **11 offline changes were still safely present in the device queue**, but the screen reverted to the older central roster and the indicator stayed Offline. The queue itself was not lost.
+Live regression on 29 August 2026 passed: after one offline competitor change, restoring internet began syncing and returned the manager Online in roughly **7 seconds**. Queue semantics and final central persistence remained intact.
 
-Two concrete handover defects were found and repaired:
+## Local roster PDF
 
-1. the normal Entry Manager startup GET could still fetch/apply the central competition while the offline queue existed, replacing the visible local roster before its queued changes had synced;
-2. a stale cache could keep an older offline script running if the service-worker version was not advanced after manager-source changes.
+`entry-manager-local-pdf.js` generates locally from the current visible grade table and works offline.
 
-Current rule:
+Rules:
 
-1. while any offline queue item exists or is syncing, `entry-manager-offline.js` blocks central `action=entry-manager` setup GETs from the organiser application so the older server roster cannot overwrite unsynced local work;
-2. queued competitor operations replay **one by one in their original order** through the existing Version 7 confirmed-write wrapper;
-3. a queued item is removed only after its write is confirmed (with already-applied Remove treated safely if appropriate);
-4. the 30-second public-entry refresh stays blocked while any offline queue item is pending/syncing;
-5. once the queue is completely empty, `entry-manager-live-refresh.js` requests **one controlled central refresh**;
-6. that refresh still waits if the operator is typing, editing, using a dialog or dragging a grade, and preserves scroll;
-7. the indicator becomes **Online** only after real network/backend recovery, and after a successful queue drain it explicitly returns to Online.
+- confirmed competitors only;
+- competition name, grade/event, date;
+- columns: No. / Name / Town;
+- no Booking Reference, generated timestamp, source/status clutter or other operational metadata.
 
-The final live acceptance run queued six changes, reconnected, counted the queue down to zero, reached green **Online**, and then survived a normal browser refresh with Test A/Test B still Confirmed, Test C absent, and the pre-existing unconfirmed competitor unchanged. The data path is therefore verified. Service-worker v7 now targets only the observed reconnect-start delay and must not weaken these protections.
+Live offline testing passed without roster loss.
 
-This avoids two competing sources of truth and prevents a remote refresh from overwriting unsynced local work.
+## Timing-system roster JSON handover
 
-### Offline add redraw bug — fixed and user retested
+Contract:
 
-Initial airplane-mode testing found a repeatable pattern where one offline manual add would work, the next add attempt would flicker and disappear, retrying that same name would work, and the following new add would fail again.
+`ROSTER-JSON-CONTRACT.md`
 
-Root cause was in `entry-manager-entry-groups.js`: the Confirmed/Awaiting grouping `MutationObserver` rearranged table rows while still observing those same DOM changes. Its own row moves therefore retriggered the observer and caused repeated table rearrangement/redraw activity that could race with a new offline add.
+User-facing timing exports are intentionally separate from the backend Close Entries transport.
 
-Fix:
+Per-grade **Download JSON**:
 
-- the grouping observer now disconnects before rearranging divider/competitor rows;
-- grouping is performed once;
-- the observer is reattached only after the rearrangement is complete;
-- cache version is `entry-manager-entry-groups.js?v=1.0.1`.
+- plain top-level array;
+- confirmed competitors only;
+- rows contain only `{name,town}`.
 
-Follow-up user testing successfully added four offline manual competitors consecutively, confirming the original every-second-add failure was resolved.
+**Download Full Roster**:
 
-### Local roster PDF
+- `{ "type": "roster_pack", "rosters": { ... } }`;
+- supplied grades contain confirmed `{name,town}` rows only.
 
-The per-grade **Download PDF** button is a device-side PDF generator and requires no Apps Script/backend call.
+Timing downloads exclude manager token, Booking Reference, competition metadata, phone/email, source, IDs, status flags and timestamps.
 
-Current PDF rules:
+Both manual export formats have been screenshot-verified live on iPad.
 
-- **confirmed competitors only**;
-- header contains only **competition name, grade/event and competition date**;
-- roster table contains only **No., Name and Town**;
-- venue, Booking Reference, generated timestamp, Online/Manual source, confirmation-status column, offline marker and summary counts are intentionally omitted;
-- columns use fixed PDF positions so the Name and Town values align under the correct headings;
-- the PDF is built from the currently visible Entry Manager table, including confirmed offline additions that have not yet synced;
-- PDF generation is read-only and is not allowed to refresh, replace or reset Entry Manager state;
-- JSON download remains the machine-readable handover, while PDF is the human-readable emergency roster.
+Matching Timing System importer changes are already committed in `Turiedmonds/SheariQ-Speed-Shear-Timing-System`, but the Raspberry Pi has **not yet pulled/tested them** because connectivity/VNC was unavailable. This remains the main outstanding integration test.
 
-Live airplane-mode testing passed for both JSON and PDF without losing the visible competitors. The PDF correctly included the confirmed remaining competitors after one offline removal.
+## System Operator Portal — Version 17 live
 
-### Timing-system roster JSON handover
+Source mirror:
 
-`ROSTER-JSON-CONTRACT.md` is the explicit contract between the Entry Manager and `Turiedmonds/SheariQ-Speed-Shear-Timing-System`.
+- `operator-portal/google-apps-script/Code.gs`
+- `operator-portal/google-apps-script/Index.html`
+- `operator-portal/README.md`
 
-The old Download JSON action reused the backend `speed_shear_roster_submission` payload. That was wrong for a Timing System handover because it included unrelated submission metadata and the private manager bearer token, while the Timing System's existing single-grade importer expects a plain array of `{name,town}` rows.
+The portal uses the same central Drive records and remains private.
 
-`entry-manager-timing-export.js` now intercepts the organiser-facing roster download buttons without changing the existing backend submission transport:
+### Current responsive styling
 
-- per-grade **Download JSON** exports a plain JSON array of **confirmed competitors only**;
-- each row contains only `name` and `town`;
-- **Download Full Roster** exports `{ "type": "roster_pack", "rosters": { ... } }`, with each grade containing only confirmed `{name,town}` rows;
-- manager access token, booking reference, competition metadata, phone/email, source, competitor IDs, confirmation flags and timestamps are excluded from the timing-roster downloads;
-- the export is entirely local/device-side and remains usable offline;
-- service-worker v7 caches this exporter together with the rest of the current offline shell.
+The current design uses Waimarino Shears red / black / white branding and logo.
 
-The matching Timing System change accepts both the original single-grade array and the new `roster_pack` multi-grade format. Multi-grade import only replaces grades already configured in the Timing System, so roster import cannot silently create a grade with no programme/round rules.
+Verified layout behaviour includes:
 
-Live iPad export verification passed for both formats. The remaining handover test is to pull the matching Timing System change onto the Raspberry Pi and verify single-grade and Full Roster imports there.
+- desktop/laptop;
+- iPad portrait/landscape;
+- iPhone portrait/landscape;
+- constrained maximum content width for large displays/TVs;
+- three-zone larger-screen header: logo left, title centred, private-access indicator right;
+- phone portrait hides the private-access indicator;
+- search/filter/Refresh adapts by width;
+- status badges are grouped consistently;
+- competition cards have a red top edge and stronger black outside border;
+- Total Entries / Confirmed / Not Confirmed are centred;
+- iPad portrait keeps the three operator buttons on one equal-width row;
+- phone portrait stacks operator actions full-width.
 
-### Competitor table grouping and programme
+### Existing operator lifecycle/deposit controls
 
-- Confirmed competitors are visually grouped separately from competitors still awaiting confirmation, with a clear divider/count for entry staff.
-- This grouping is display-only and does not change underlying competitor sequence/draw order.
-- Added explicit spacing between the group label and count so the divider reads e.g. **Confirmed 5**, not `Confirmed5`.
-- The Programme button opens the Booking Pack Programme of Events.
-- The 29 August Programme initialization bug caused by dynamically loading after `DOMContentLoaded` has been repaired and user-verified.
+The portal supports:
 
-### Custom online-entry closing countdown
+- Awaiting Deposit / Deposit Paid;
+- Active / Cancelled;
+- Cancel Competition;
+- Restore Competition;
+- Delete Permanently only after cancellation;
+- search/filter/refresh;
+- tidy manager/public links.
 
-The existing custom closing time remains one universal online-entry cutoff across all grades. Per-grade **On / Off** controls provide finer control before that universal cutoff.
+Cancellation/deletion backend guarding remains unchanged. Delete moves the central JSON to Drive Trash.
 
-Frontend countdown source:
+### Postpone Competition — fully verified
 
-- `entry-manager-countdown.js`
-- `competitor-entry-countdown.js`
-- shared styling in `entry-countdown.css`
+Postponement does **not** create a new main lifecycle status. The competition remains Active and receives a separate POSTPONED badge.
 
-Behaviour:
+The backend updates the existing central `competition.date` and preserves:
 
-- both displays use the existing saved `entrySettings.autoCloseAt` / public `autoCloseAt` timestamp; there is no second timer or duplicate closing-time source of truth;
-- Entry Manager shows remaining time, exact closing date/time and how many grades are currently accepting online entries; its countdown can be clicked to focus the existing closing-time setting;
-- public competitor form shows remaining time and exact closing date/time near the competition header;
-- countdown display uses two simple modes: when **more than 24 hours** remain it shows **days only**; at **24 hours or less** it shows **hours and minutes**; the exact closing date/time remains underneath in both modes;
-- local countdown calculation is always `saved closing timestamp - Date.now()`, avoiding accumulated timer drift;
-- public page performs a **silent setup re-check every 5 minutes** and once when the page becomes visible again, so a closing-time change can be picked up without requiring a manual refresh;
-- that 5-minute re-check does **not** reload/rebuild the page and does not read, clear, replace or focus any competitor form fields; if the timestamp changed, only the countdown timestamp/display changes;
-- failed background re-checks are silent and cannot interrupt competitor entry/submission;
-- colour emphasis changes within 24 hours, within 6 hours and after closing;
-- if there is no custom closing time, the custom countdown stays hidden and the existing default final shutdown remains unchanged;
-- this remains frontend-only and requires no Apps Script redeployment.
+- competitors;
+- grades/events;
+- Programme;
+- Booking Reference;
+- manager/public tokens and links;
+- existing competition settings except the explicitly chosen closing-time change.
 
-### Silent Entry Manager public-entry background refresh
+Optional `operatorControl` postponement metadata:
 
-`entry-manager-live-refresh.js` checks the manager record every 30 seconds for genuinely new public entries. It is visually silent when nothing changed, defers visible refresh while the organiser is editing/typing/using dialogs/dragging, preserves scroll, and uses the trusted Refresh Entries path once safe. It also defers completely while the real connectivity layer reports offline or while the offline competitor queue is pending/syncing. After a complete offline sync it performs one controlled refresh using the same typing/dialog/drag protection.
+- `postponedAt`;
+- `originalDate`;
+- `previousDate`;
+- `postponementCount`.
 
-## Manager cancellation access gate
+If a custom `entrySettings.autoCloseAt` exists, the modal supports:
 
-Backend rejects cancelled/deleted manager and public access server-side. `entry-manager-bootstrap.js` validates manager access against the backend whenever that backend is reachable.
+- **Move the closing time with the competition**;
+- **Keep the existing closing time**.
 
-Offline cached access is only a resilience fallback for a competition already opened on the device. A **network/timeout failure** can use the saved copy; an explicit lifecycle rejection such as cancelled/not-found remains authoritative and prevents cached fallback. When the tidy resolver explicitly rejects the link, its locally cached short-code mapping is removed.
+If no custom cutoff exists, `autoCloseAt` stays blank and the existing automatic date-derived rule follows the changed competition date.
 
-## Public competitor entry
+Validation requires a real new date later than the current competition date and prevents postponing while Cancelled.
 
-Collects competitor name, hometown, grade/event, phone/email and privacy acknowledgement. At least one contact method is required. Successful entries save centrally, can receive an entry reference and email receipt, notify the organiser and send Waimarino Shears a backup copy where applicable.
+Postpone-dialog fixes completed during live testing:
 
-Unlimited grades omit unnecessary “No entry limit” wording. Grade/Event choice uses a Waimarino custom dialog. Tidy `/enter/?c=...` submission is verified end-to-end.
+- radio buttons no longer inherit full-width generic input CSS;
+- no horizontal dialog overflow;
+- empty orange preview is hidden until preview text exists.
 
-## System Operator Portal — Version 6 live
+### Postpone acceptance tests
 
-Separate private Apps Script project. Uses the same central records. Includes deposit status, active/cancelled lifecycle, Cancel/Restore/Delete, filters, summaries, custom dialogs and tidy manager/public links. Access remains **Only myself**.
+Test competition: **Speedshear o ngā Taniwha**, Booking Reference `WS-2026-0016`, Turangawaewae marae.
 
-## Security boundary
+Move-cutoff test:
 
-Portal remains private. Entry Manager backend remains publicly reachable only because organisers/competitors require bearer-token links; setup requests remain protected by `ENTRY_MANAGER_SHARED_SECRET`.
+- 18 Sep 2026 → 25 Sep 2026;
+- custom cutoff 17 Sep 2026, 5:00 pm → 24 Sep 2026, 5:00 pm;
+- Portal remained Active + POSTPONED;
+- Entry Manager and public form showed the new date/cutoff;
+- roster, grades and links remained intact.
 
-The tidy manager route stores its already-resolved manager token locally on a device so that same previously opened competition can reopen offline. This does not create a new token, does not expose it in the visible tidy URL, and does not change the bearer-access model already used by the Entry Manager.
+Keep-cutoff test:
 
-Timing-system roster downloads must never contain the manager bearer token. The sanitized Download JSON / Download Full Roster contract contains only the roster data described above. The actual manager token must never be printed, documented or repeated from screenshots.
+- competition changed again to 28 Sep 2026;
+- cutoff stayed 24 Sep 2026, 5:00 pm;
+- Portal, Entry Manager and public page all reflected the intended state.
 
-## Verified competition baseline
+Both Postpone paths are therefore live-verified.
 
-Latest full verification used **Speedshear o ngā Taniwha**, Booking Reference **WS-2026-0016**, 18 September 2026, Turangawaewae marae. This is a test competition.
+## Test competition current state
 
-## Next planned work
+`Speedshear o ngā Taniwha` / `WS-2026-0016` is a test competition.
 
-1. Allow GitHub Pages/service-worker v7 to publish and activate, then perform one short reconnect timing regression on iPad: create at least one offline queued competitor change, reconnect, and measure how quickly the indicator changes from Offline to Online — syncing.
-2. Confirm the v7 reconnect helper does not alter queue order or final central persistence; a fresh online reload must still show the final offline changes.
-3. Later, pull the matching Timing System changes to the Raspberry Pi and test both the single-grade JSON import and the multi-grade Full Roster `roster_pack` import.
-4. Keep backend submission payloads and timing-roster download files as separate contracts; do not remove authentication fields from the actual server transport simply to simplify the user-downloaded roster file.
+After Postpone testing its date is **28 September 2026** and its saved custom entry closing time remains **24 September 2026 at 5:00 pm**.
+
+Test roster data is intentionally mutable.
+
+## Remaining work / next planned work
+
+1. Pull the already-committed Timing System roster-import changes onto the Raspberry Pi when connectivity is available.
+2. Verify both Pi import paths:
+   - single-grade plain `{name,town}` array;
+   - Full Roster multi-grade `roster_pack`.
+3. Keep backend Close Entries transport and user-download timing JSON as separate contracts; never remove required backend authentication merely to simplify downloaded roster files.
+4. No further Portal styling is planned unless an actual usability/layout bug is found.
