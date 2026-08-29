@@ -30,7 +30,7 @@
       const CACHE_KEY = code ? `waimarinoSpeedShearManagerResolved_${code}` : '';
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('../entry-manager-sw.js', { scope: '/' }).catch(() => undefined);
+        navigator.serviceWorker.register('../entry-manager-sw.js?v=4', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
       }
 
       if (!/^[a-f0-9]{20}$/.test(code)) {
@@ -57,14 +57,36 @@
         try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
       }
 
-      function openManager(token, offlineFallback) {
-        frame.addEventListener('load', () => {
-          loadingCard.hidden = true;
-          frame.hidden = false;
-        }, { once: true });
+      function revealFrame() {
+        if (!frame.hidden) return;
+        loadingCard.hidden = true;
+        frame.hidden = false;
+      }
 
+      function revealWhenRendered() {
+        const started = Date.now();
+        const timer = setInterval(() => {
+          try {
+            const doc = frame.contentDocument;
+            if (doc && doc.body && doc.body.children.length > 0 && doc.readyState !== 'loading') {
+              clearInterval(timer);
+              revealFrame();
+              return;
+            }
+          } catch (_) {}
+
+          if (Date.now() - started > 12000) {
+            clearInterval(timer);
+            status.textContent = 'The saved Entry Manager is taking longer than expected to open. If this continues, reconnect once and reopen it before going offline again.';
+          }
+        }, 100);
+      }
+
+      function openManager(token, offlineFallback) {
+        frame.addEventListener('load', revealFrame, { once: true });
         const offline = offlineFallback ? '&offline=1' : '';
         frame.src = `../entry-manager.html?access=${encodeURIComponent(token)}${offline}`;
+        revealWhenRendered();
       }
 
       function openCachedOrExplain() {
