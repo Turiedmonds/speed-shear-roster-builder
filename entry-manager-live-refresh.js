@@ -16,6 +16,11 @@
     return typeof window.__waimarinoOfflineQueuePending === 'function' && window.__waimarinoOfflineQueuePending();
   }
 
+  function connectionOffline() {
+    if (navigator.onLine === false) return true;
+    return typeof window.__waimarinoConnectionOffline === 'function' && window.__waimarinoConnectionOffline();
+  }
+
   function exportGuardActive() {
     try {
       return Number(sessionStorage.getItem('waimarinoEntryManagerExportGuardUntil') || 0) > Date.now();
@@ -25,7 +30,7 @@
   }
 
   function operatorIsBusy() {
-    if (document.hidden || !navigator.onLine || offlineQueuePending() || exportGuardActive()) return true;
+    if (document.hidden || connectionOffline() || offlineQueuePending() || exportGuardActive()) return true;
 
     const active = document.activeElement;
     if (active && active !== document.body) {
@@ -76,7 +81,7 @@
   }
 
   async function pollForNewEntries() {
-    if (pollInFlight || !navigator.onLine || offlineQueuePending() || exportGuardActive()) return;
+    if (pollInFlight || connectionOffline() || offlineQueuePending() || exportGuardActive()) return;
     pollInFlight = true;
 
     try {
@@ -119,5 +124,19 @@
       applyPendingRefreshWhenSafe();
       pollForNewEntries();
     }, 0);
+  });
+  window.addEventListener('waimarino-offline-sync-complete', () => {
+    // One controlled central refresh after the ordered queue has fully synced.
+    // Typing/dialog/drag protection still applies before the refresh can run.
+    refreshPending = true;
+    setTimeout(applyPendingRefreshWhenSafe, 0);
+  });
+  window.addEventListener('waimarino-connection-change', event => {
+    if (event?.detail?.online === true) {
+      setTimeout(() => {
+        applyPendingRefreshWhenSafe();
+        pollForNewEntries();
+      }, 0);
+    }
   });
 })();
