@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waimarino-entry-manager-offline-v7';
+const CACHE_NAME = 'waimarino-entry-manager-offline-v8';
 
 const APP_SHELL = [
   '/manage/',
