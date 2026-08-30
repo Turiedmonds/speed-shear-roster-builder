@@ -2,6 +2,33 @@
 
 This changelog records meaningful completed changes. Keep it current whenever functionality, workflow, deployment, URLs, email behaviour, privacy wording or architecture changes.
 
+## 30 August 2026
+
+### Entry Manager Version 9 — unified branded confirmed-roster PDF
+
+- Simplified the Apps Script Close Entries PDF while retaining the Waimarino Shears branded layout.
+- Removed **Booking Reference**, **File Version** and the former **BACKUP ROSTER** footer/explanatory text.
+- Current PDF information block is Competition / Date and Venue / Submitted, followed by the grade/event confirmed count and `# / Competitor / Hometown` table.
+- Rebuilt the ordinary per-grade **Download PDF** presentation to match the same branded Close Entries roster design while remaining a browser/local generator so it can still work offline.
+- Because the two PDFs run in different environments, they remain separate technical generators, but their user-facing layout/content are intentionally aligned.
+- Entry Manager frontend cache advanced to `waimarino-entry-manager-offline-v8` and bootstrap now loads the updated branded local-PDF source.
+- GitHub Pages deployment for the branded local PDF completed successfully.
+- Apps Script existing web-app deployment was updated to **Version 9**.
+- Production verification passed for both paths using the Intermediate test roster with six confirmed competitors: the emailed Close Entries PDF and the ordinary Download PDF both displayed the branded roster correctly.
+
+### Entry Manager Version 8 — Close Entries JSON/PDF roster repair
+
+- Fixed a Close Entries attachment mismatch where the submitted grade correctly reported the confirmed competitor count but the branded PDF roster cells were blank.
+- Added a single cleaned roster-row helper so generated Close Entries attachments use confirmed `{name,town}` rows consistently.
+- Per-grade Close Entries / Update Closed Entries JSON attachment now matches the timing handover format: a plain top-level array containing only confirmed `{name,town}` rows.
+- The generated JSON no longer includes Booking Reference, competition/submission metadata, timestamps, contact details, source/IDs/status flags or bearer tokens.
+- The authenticated frontend-to-backend `speed_shear_roster_submission` request remains unchanged; only the generated timing attachment is simplified.
+- Close All Entries current source maps the generated all-grades attachment to the existing multi-grade `roster_pack` shape; that specific generated all-grades attachment path has not yet been screenshot-tested after this change.
+- PDF roster cells are explicitly rendered as black text and use the same cleaned roster rows as the JSON attachment.
+- Existing Drive file creation, email delivery, grade submitted state and manager write-confirmation architecture were preserved.
+- Apps Script existing web-app deployment was updated to **Version 8** for the initial repair, then later to Version 9 for the PDF presentation alignment above.
+- Live production test passed: Intermediate produced six visible confirmed competitors in the emailed PDF and the matching simple `{name,town}` JSON attachment.
+
 ## 29 August 2026
 
 ### System Operator Portal Version 17 — responsive restyle + Postpone Competition
@@ -82,10 +109,11 @@ This changelog records meaningful completed changes. Keep it current whenever fu
 ### Offline PDF/export preservation and PDF cleanup
 
 - `entry-manager-local-pdf.js` builds the roster directly from the currently visible grade table.
-- PDF is intentionally minimal: **confirmed competitors only**, competition name, grade/event, date, and aligned **No. / Name / Town** columns.
-- Venue, Booking Reference, generated timestamp, summary counts, confirmation/source columns and offline markers are omitted.
+- At this historical stage the PDF was intentionally minimal: **confirmed competitors only**, competition name, grade/event, date, and aligned **No. / Name / Town** columns.
+- Venue, Booking Reference, generated timestamp, summary counts, confirmation/source columns and offline markers were omitted.
 - PDF generation is read-only and does not refresh/replace Entry Manager state.
 - Live airplane-mode testing passed without roster loss.
+- This historical plain layout was superseded on 30 August 2026 by the Version 9 unified branded roster presentation while retaining local/offline generation.
 
 ### Offline manual entry — consecutive-add flicker fix
 
