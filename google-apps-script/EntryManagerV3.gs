@@ -38,7 +38,9 @@ function entryManagerSaveSubmissionV3_(payload) {
 
     const orderedGrades = {};
     record.grades.forEach(name => {
-      if (Object.prototype.hasOwnProperty.call(payload.grades || {}, name)) orderedGrades[name] = payload.grades[name] || [];
+      if (Object.prototype.hasOwnProperty.call(payload.grades || {}, name)) {
+        orderedGrades[name] = entryManagerTimingRosterRowsV3_(payload.grades[name]);
+      }
     });
 
     const submission = {
@@ -63,7 +65,12 @@ function entryManagerSaveSubmissionV3_(payload) {
     entryManagerSaveRecord_(found);
 
     const baseName = entryManagerSubmissionBaseNameV3_(submission);
-    const json = Utilities.newBlob(JSON.stringify(submission, null, 2), 'application/json', baseName + '.json');
+    const timingJsonPayload = entryManagerTimingJsonPayloadV3_(submission);
+    const json = Utilities.newBlob(
+      JSON.stringify(timingJsonPayload, null, 2),
+      'application/json',
+      entryManagerTimingJsonFilenameV3_(submission)
+    );
     const pdf = entryManagerBuildRosterPdf_(submission, baseName + '.pdf');
     const folder = entryManagerFolder_();
     folder.createFile(json.copyBlob());
@@ -89,6 +96,40 @@ function entryManagerSaveSubmissionV3_(payload) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function entryManagerTimingRosterRowsV3_(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map(item => ({
+      name: entryManagerClean_(item && item.name),
+      town: entryManagerClean_(item && item.town)
+    }))
+    .filter(item => item.name);
+}
+
+function entryManagerTimingJsonPayloadV3_(submission) {
+  const names = Object.keys(submission.grades || {});
+  if (submission.submission && submission.submission.mode === 'all') {
+    const rosters = {};
+    names.forEach(name => {
+      rosters[name] = entryManagerTimingRosterRowsV3_(submission.grades[name]);
+    });
+    return {type:'roster_pack', rosters};
+  }
+  const grade = names[0] || '';
+  return grade ? entryManagerTimingRosterRowsV3_(submission.grades[grade]) : [];
+}
+
+function entryManagerTimingJsonFilenameV3_(submission) {
+  const names = Object.keys(submission.grades || {});
+  const competition = String(submission.competition && submission.competition.name || 'Competition')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'Competition';
+  if (submission.submission && submission.submission.mode === 'all') return competition + '_FullRoster.json';
+  const grade = String(names[0] || 'Grade')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'Grade';
+  return competition + '_' + grade + '_Roster.json';
 }
 
 function entryManagerSubmissionBaseNameV3_(submission) {
@@ -131,7 +172,7 @@ function entryManagerBuildRosterPdf_(submission, filename) {
 
   body.appendParagraph('').setSpacingAfter(2);
   Object.keys(submission.grades || {}).forEach((grade, gradeIndex) => {
-    const competitors = Array.isArray(submission.grades[grade]) ? submission.grades[grade] : [];
+    const competitors = entryManagerTimingRosterRowsV3_(submission.grades[grade]);
     const heading = body.appendParagraph(grade + ' — ' + competitors.length + ' Confirmed');
     heading.setBold(true).setFontSize(14).setForegroundColor('#111111').setSpacingBefore(gradeIndex ? 12 : 5).setSpacingAfter(5);
 
@@ -145,15 +186,15 @@ function entryManagerBuildRosterPdf_(submission, filename) {
     });
     if (!competitors.length) {
       const empty = table.appendTableRow();
-      empty.appendTableCell('—');
-      empty.appendTableCell('No confirmed competitors submitted.');
-      empty.appendTableCell('');
+      entryManagerPdfRosterCell_(empty, '—');
+      entryManagerPdfRosterCell_(empty, 'No confirmed competitors submitted.');
+      entryManagerPdfRosterCell_(empty, '');
     } else {
       competitors.forEach((competitor, index) => {
         const r = table.appendTableRow();
-        r.appendTableCell(String(index + 1));
-        r.appendTableCell(String(competitor && competitor.name || ''));
-        r.appendTableCell(String(competitor && competitor.town || ''));
+        entryManagerPdfRosterCell_(r, String(index + 1));
+        entryManagerPdfRosterCell_(r, competitor.name);
+        entryManagerPdfRosterCell_(r, competitor.town);
       });
     }
   });
@@ -169,6 +210,13 @@ function entryManagerBuildRosterPdf_(submission, filename) {
   const pdf = file.getAs(MimeType.PDF).setName(filename);
   file.setTrashed(true);
   return pdf;
+}
+
+function entryManagerPdfRosterCell_(row, value) {
+  const cell = row.appendTableCell(String(value == null ? '' : value));
+  cell.setBackgroundColor('#ffffff');
+  cell.editAsText().setBold(false).setForegroundColor('#111111');
+  return cell;
 }
 
 function entryManagerPdfDetailRow_(table, label1, value1, label2, value2) {
