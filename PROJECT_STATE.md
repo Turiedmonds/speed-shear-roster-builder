@@ -1,6 +1,6 @@
 # PROJECT STATE — Speed Shear Entries / Entry Manager
 
-**Last updated:** 29 August 2026
+**Last updated:** 30 August 2026
 
 This is the authoritative current-state handoff for future ChatGPT/Codex sessions.
 
@@ -31,18 +31,21 @@ Visible system names:
 
 ## Current live production baseline
 
-As at the end of 29 August 2026:
+As at 30 August 2026:
 
 - GitHub Pages custom domain `entries.waimarinoshears.com` is active.
-- **Speed Shear Entry Manager Apps Script: Version 7 live.**
+- **Speed Shear Entry Manager Apps Script: Version 9 live.**
 - **System Operator Portal Apps Script: Version 17 live and user-verified.**
 - System Operator Portal remains private with Apps Script access **Only myself**.
 - Tidy manager/public URLs are live-verified.
 - Full public competitor submission has been verified end-to-end.
 - Safe 30-second Entry Manager background refresh is verified and protects typing/dialog/drag/offline-queue state.
 - Offline competitor fallback has passed full iPad/Safari acceptance testing.
-- Fast reconnect service-worker v7 has now passed its live timing regression: one queued offline competitor change synced and returned Online in roughly **7 seconds** after internet restoration.
-- Sanitized timing-roster JSON exports are live-verified on iPad for both single-grade and Full Roster formats.
+- Fast reconnect service-worker v7 passed its live timing regression: one queued offline competitor change synced and returned Online in roughly **7 seconds** after internet restoration. The current manager shell cache is now **v8** after the branded local-PDF update.
+- Sanitized timing-roster JSON downloads are live-verified on iPad for both single-grade and Full Roster formats.
+- Per-grade **Close Entries / Update Closed Entries** now generates a sanitized single-grade timing JSON attachment containing only confirmed `{name,town}` rows. The authenticated backend submission request remains unchanged.
+- The repaired Close Entries JSON attachment and branded emailed PDF have been live-verified against the Intermediate test roster.
+- The ordinary per-grade **Download PDF** now uses the same cleaned Waimarino branded roster presentation as the Close Entries PDF and has also been visually verified live.
 - System Operator Portal responsive restyle is verified across desktop/laptop, iPad portrait/landscape and iPhone portrait/landscape.
 - System Operator Portal **Postpone Competition** is fully verified end-to-end for both custom-cutoff choices: move the closing time or keep it unchanged.
 - Booking Receiver ↔ Entry Manager `ENTRY_MANAGER_SHARED_SECRET` has been rotated. Never retrieve, print, expose, document or commit its value.
@@ -107,15 +110,15 @@ Current organiser functionality includes:
 - per-grade online-entry controls and limits;
 - grade reorder/collapse;
 - Close Entries / Close All Entries / Update Closed Entries;
-- local PDF and timing-roster JSON exports;
+- branded local PDF and timing-roster JSON exports;
 - safe background refresh;
 - resilient offline competitor-list operation.
 
-### Confirmed writes — Version 7
+### Confirmed writes — Version 7 architecture retained
 
 Manager writes retain Apps Script-compatible `no-cors` POST transport but use request IDs plus `GET action=manager-write-result` so the frontend waits for the real backend success/error result rather than assuming a request was saved.
 
-Production confirmation-save testing passed.
+Production confirmation-save testing passed. Later Apps Script deployments, including current Version 9, retain this confirmed-write architecture.
 
 ### Responsive/common organiser controls
 
@@ -125,7 +128,7 @@ Manual Add, Online Entries On/Off, entry-limit changes and common competitor edi
 
 Confirmed competitors are visually grouped separately from competitors still awaiting confirmation. This is display-only and does not change stored competitor sequence/draw order.
 
-The grouping MutationObserver now disconnects while rearranging rows, preventing the former every-second-offline-add flicker/disappearance. Consecutive offline additions were successfully retested.
+The grouping MutationObserver disconnects while rearranging rows, preventing the former every-second-offline-add flicker/disappearance. Consecutive offline additions were successfully retested.
 
 ### Programme
 
@@ -200,7 +203,7 @@ Explicit cancelled/not-found lifecycle responses still block access and clear th
 
 Current service-worker cache:
 
-`waimarino-entry-manager-offline-v7`
+`waimarino-entry-manager-offline-v8`
 
 Every future Entry Manager source change that affects the cached shell must bump the service-worker cache and registration version.
 
@@ -209,7 +212,7 @@ Every future Entry Manager source change that affects the cached shell must bump
 While offline changes exist:
 
 1. normal central setup refreshes are blocked from replacing the visible local roster;
-2. queued writes replay one-by-one in original order through the Version 7 confirmed-write wrapper;
+2. queued writes replay one-by-one in original order through the confirmed-write wrapper;
 3. an item remains queued until confirmed;
 4. background refresh remains blocked;
 5. after queue reaches zero, one controlled central refresh is permitted;
@@ -223,26 +226,42 @@ The full acceptance path passed on iPad/Safari: offline Add, Confirmed/Not Confi
 
 Live regression on 29 August 2026 passed: after one offline competitor change, restoring internet began syncing and returned the manager Online in roughly **7 seconds**. Queue semantics and final central persistence remained intact.
 
-## Local roster PDF
+## Confirmed roster PDF — unified branded presentation
 
-`entry-manager-local-pdf.js` generates locally from the current visible grade table and works offline.
+There are still two technical PDF generators because they serve different environments:
 
-Rules:
+- `entry-manager-local-pdf.js` builds the ordinary per-grade **Download PDF** locally from the visible roster and remains available offline;
+- Apps Script `entryManagerBuildRosterPdf_()` builds the PDF attached by **Close Entries / Update Closed Entries**.
 
-- confirmed competitors only;
-- competition name, grade/event, date;
-- columns: No. / Name / Town;
-- no Booking Reference, generated timestamp, source/status clutter or other operational metadata.
+Their user-facing design and roster content are now intentionally aligned.
 
-Live offline testing passed without roster loss.
+Verified current layout:
+
+- Waimarino Shears logo;
+- **WAIMARINO SHEARS INCORPORATED** branding;
+- **Speed Shear Confirmed Entry Roster** title;
+- competition name;
+- competition date;
+- venue;
+- submitted time where available;
+- grade/event and confirmed count;
+- columns `# / Competitor / Hometown`;
+- confirmed competitors only.
+
+Intentionally removed from the PDF:
+
+- Booking Reference;
+- File Version;
+- phone/email/source/status clutter;
+- former **BACKUP ROSTER** footer and explanatory text.
+
+Production verification on 30 August 2026 passed for both the emailed Close Entries PDF and the ordinary Download PDF using the Intermediate test roster with six confirmed competitors.
 
 ## Timing-system roster JSON handover
 
 Contract:
 
 `ROSTER-JSON-CONTRACT.md`
-
-User-facing timing exports are intentionally separate from the backend Close Entries transport.
 
 Per-grade **Download JSON**:
 
@@ -258,6 +277,23 @@ Per-grade **Download JSON**:
 Timing downloads exclude manager token, Booking Reference, competition metadata, phone/email, source, IDs, status flags and timestamps.
 
 Both manual export formats have been screenshot-verified live on iPad.
+
+### Close Entries generated JSON attachment — Version 8+ verified
+
+The frontend-to-backend **Close Entries** request remains the existing authenticated `speed_shear_roster_submission` transport. Do not remove its access token or required submission metadata.
+
+Inside Apps Script, the timing-system JSON attachment generated after a successful per-grade Close/Update is now deliberately simplified before writing/emailing:
+
+- plain top-level array;
+- confirmed competitors only;
+- rows contain only `{name,town}`;
+- no Booking Reference, competition metadata, timestamp, phone/email, IDs, source, confirmation flag or bearer token.
+
+The PDF and JSON attachment are both generated from the same cleaned `{name,town}` roster rows, preventing the prior mismatch where the PDF count was correct but its competitor cells were blank.
+
+Live test on 30 August 2026 passed for **Intermediate**: six confirmed competitors appeared in both the emailed PDF and simple JSON attachment in matching order.
+
+**Close All Entries** uses the multi-grade `roster_pack` shape in the current source, but that generated all-grades attachment path has not yet been screenshot-tested after this alignment. Do not claim that specific path is live-verified until tested.
 
 Matching Timing System importer changes are already committed in `Turiedmonds/SheariQ-Speed-Shear-Timing-System`, but the Raspberry Pi has **not yet pulled/tested them** because connectivity/VNC was unavailable. This remains the main outstanding integration test.
 
@@ -365,7 +401,7 @@ Both Postpone paths are therefore live-verified.
 
 After Postpone testing its date is **28 September 2026** and its saved custom entry closing time remains **24 September 2026 at 5:00 pm**.
 
-Test roster data is intentionally mutable.
+The Intermediate roster used for the 30 August export tests contained six confirmed test competitors. Test roster data is intentionally mutable.
 
 ## Remaining work / next planned work
 
@@ -373,5 +409,6 @@ Test roster data is intentionally mutable.
 2. Verify both Pi import paths:
    - single-grade plain `{name,town}` array;
    - Full Roster multi-grade `roster_pack`.
-3. Keep backend Close Entries transport and user-download timing JSON as separate contracts; never remove required backend authentication merely to simplify downloaded roster files.
-4. No further Portal styling is planned unless an actual usability/layout bug is found.
+3. If the all-grades generated attachment will be used operationally, run one **Close All Entries** verification to confirm its current `roster_pack` JSON/PDF output after the Version 8/9 changes.
+4. Keep the authenticated backend Close Entries request contract separate from the generated sanitized timing JSON attachment; never remove required backend authentication merely to simplify downloaded/attached roster files.
+5. No further Portal styling is planned unless an actual usability/layout bug is found.
