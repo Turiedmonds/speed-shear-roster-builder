@@ -11,7 +11,7 @@
     'entry-manager-reconnect-fast.js?v=1.0.0',
     'entry-manager.js?v=20260829-responsive1',
     'entry-manager-timing-export.js?v=1.0.0',
-    'entry-manager-local-pdf.js?v=1.1.0',
+    'entry-manager-local-pdf.js?v=1.2.0',
     'entry-manager-live-refresh.js?v=1.3.0',
     'entry-manager-drag-autoscroll.js?v=1.0.0',
     'entry-manager-tidy.js?v=1.2.0',
@@ -20,7 +20,7 @@
   ];
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('entry-manager-sw.js?v=7', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
+    navigator.serviceWorker.register('entry-manager-sw.js?v=8', { scope: '/', updateViaCache: 'none' }).catch(() => undefined);
   }
 
   function showPage() {
